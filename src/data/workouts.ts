@@ -77,12 +77,25 @@ export async function getLastSets(exerciseId: string, excludeWorkoutId?: string)
   )
 }
 
-/** Every logged set of an exercise with its workout date, oldest first. */
+// PostgREST caps a response at 1000 rows by default, so history is read in pages of this size.
+const HISTORY_PAGE_SIZE = 1000
+
+/** Every logged set of an exercise with its workout date, oldest first, however many there are. */
 export async function getExerciseHistory(exerciseId: string): Promise<HistorySet[]> {
-  const rows = unwrap<(SetLog & { workout: { date: string } })[]>(
-    await supabase.from('set_log').select('*, workout!inner(date)').eq('exercise_id', exerciseId),
-  )
-  return rows
-    .map(({ workout, ...set }) => ({ ...set, date: workout.date }))
-    .sort((a, b) => a.date.localeCompare(b.date) || a.workout_id.localeCompare(b.workout_id) || a.set_number - b.set_number)
+  const history: HistorySet[] = []
+  for (let from = 0; ; from += HISTORY_PAGE_SIZE) {
+    // workout_id breaks ties between workouts on the same day, so pages never overlap or skip rows.
+    const page = unwrap<(SetLog & { workout: { date: string } })[]>(
+      await supabase
+        .from('set_log')
+        .select('*, workout!inner(date)')
+        .eq('exercise_id', exerciseId)
+        .order('workout(date)')
+        .order('workout_id')
+        .order('set_number')
+        .range(from, from + HISTORY_PAGE_SIZE - 1),
+    )
+    history.push(...page.map(({ workout, ...set }) => ({ ...set, date: workout.date })))
+    if (page.length < HISTORY_PAGE_SIZE) return history
+  }
 }

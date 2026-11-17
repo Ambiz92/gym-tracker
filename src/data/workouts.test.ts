@@ -102,17 +102,56 @@ describe('getLastSets', () => {
   })
 })
 
-test('getExerciseHistory flattens the workout date and sorts oldest first', async () => {
-  fakeSupabase.reset(() => ({
-    data: [
-      { id: 'c', workout_id: 'w2', set_number: 1, workout: { date: '2026-11-10' } },
-      { id: 'b', workout_id: 'w1', set_number: 2, workout: { date: '2026-11-03' } },
-      { id: 'a', workout_id: 'w1', set_number: 1, workout: { date: '2026-11-03' } },
-    ],
-  }))
-  const rows = await getExerciseHistory('e1')
-  expect(rows.map((r) => r.id)).toEqual(['a', 'b', 'c'])
-  expect(rows[0]).toMatchObject({ date: '2026-11-03' })
-  expect(rows[0]).not.toHaveProperty('workout')
-  expect(fakeSupabase.calls[0]).toMatchObject({ table: 'set_log', filters: [['eq', 'exercise_id', 'e1']] })
+describe('getExerciseHistory', () => {
+  const row = (n: number) => ({ id: `l${n}`, workout_id: 'w1', set_number: n, workout: { date: '2026-11-03' } })
+
+  test('flattens the workout date and asks the database for date, workout, set order', async () => {
+    fakeSupabase.reset(() => ({
+      data: [
+        { id: 'a', workout_id: 'w1', set_number: 1, workout: { date: '2026-11-03' } },
+        { id: 'b', workout_id: 'w1', set_number: 2, workout: { date: '2026-11-03' } },
+      ],
+    }))
+    const rows = await getExerciseHistory('e1')
+    expect(rows.map((r) => r.id)).toEqual(['a', 'b'])
+    expect(rows[0]).toMatchObject({ date: '2026-11-03' })
+    expect(rows[0]).not.toHaveProperty('workout')
+    expect(fakeSupabase.calls).toHaveLength(1)
+    expect(fakeSupabase.calls[0]).toMatchObject({
+      table: 'set_log',
+      filters: [['eq', 'exercise_id', 'e1']],
+      orders: [
+        { column: 'workout(date)', ascending: true },
+        { column: 'workout_id', ascending: true },
+        { column: 'set_number', ascending: true },
+      ],
+      range: [0, 999],
+    })
+  })
+
+  test('keeps reading pages until a short one, so rows beyond 1000 are not dropped', async () => {
+    const pages = [Array.from({ length: 1000 }, (_, i) => row(i)), Array.from({ length: 1000 }, (_, i) => row(1000 + i)), [row(2000)]]
+    fakeSupabase.reset((call) => ({ data: pages[call.range![0] / 1000] }))
+
+    const rows = await getExerciseHistory('e1')
+    expect(rows).toHaveLength(2001)
+    expect(rows.at(-1)?.id).toBe('l2000')
+    expect(fakeSupabase.calls.map((c) => c.range)).toEqual([
+      [0, 999],
+      [1000, 1999],
+      [2000, 2999],
+    ])
+  })
+
+  test('an exact multiple of the page size ends with one empty page', async () => {
+    const pages = [Array.from({ length: 1000 }, (_, i) => row(i)), []]
+    fakeSupabase.reset((call) => ({ data: pages[call.range![0] / 1000] }))
+    expect(await getExerciseHistory('e1')).toHaveLength(1000)
+    expect(fakeSupabase.calls).toHaveLength(2)
+  })
+
+  test('a failing page is thrown, not truncated', async () => {
+    fakeSupabase.reset((call) => (call.range![0] === 0 ? { data: Array.from({ length: 1000 }, (_, i) => row(i)) } : failure))
+    await expect(getExerciseHistory('e1')).rejects.toBeInstanceOf(DataError)
+  })
 })
