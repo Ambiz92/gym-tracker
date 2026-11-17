@@ -163,4 +163,31 @@ create policy set_log_insert on public.set_log for insert to authenticated with 
 create policy set_log_update on public.set_log for update to authenticated using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
 create policy set_log_delete on public.set_log for delete to authenticated using (auth.uid() = owner_id);
 
+-- Second factor required ----------------------------------------------------
+-- Restrictive policies are ANDed with the permissive ones above: a session
+-- that has not passed the TOTP challenge (aal1) sees and changes nothing.
+-- Recovery if the app is unreachable: drop these policies from the SQL editor.
+
+create policy exercise_aal2 on public.exercise as restrictive for all to authenticated
+  using (((select auth.jwt()) ->> 'aal') = 'aal2')
+  with check (((select auth.jwt()) ->> 'aal') = 'aal2');
+create policy plan_aal2 on public.plan as restrictive for all to authenticated
+  using (((select auth.jwt()) ->> 'aal') = 'aal2')
+  with check (((select auth.jwt()) ->> 'aal') = 'aal2');
+create policy plan_session_aal2 on public.plan_session as restrictive for all to authenticated
+  using (((select auth.jwt()) ->> 'aal') = 'aal2')
+  with check (((select auth.jwt()) ->> 'aal') = 'aal2');
+create policy plan_exercise_aal2 on public.plan_exercise as restrictive for all to authenticated
+  using (((select auth.jwt()) ->> 'aal') = 'aal2')
+  with check (((select auth.jwt()) ->> 'aal') = 'aal2');
+create policy warmup_item_aal2 on public.warmup_item as restrictive for all to authenticated
+  using (((select auth.jwt()) ->> 'aal') = 'aal2')
+  with check (((select auth.jwt()) ->> 'aal') = 'aal2');
+create policy workout_aal2 on public.workout as restrictive for all to authenticated
+  using (((select auth.jwt()) ->> 'aal') = 'aal2')
+  with check (((select auth.jwt()) ->> 'aal') = 'aal2');
+create policy set_log_aal2 on public.set_log as restrictive for all to authenticated
+  using (((select auth.jwt()) ->> 'aal') = 'aal2')
+  with check (((select auth.jwt()) ->> 'aal') = 'aal2');
+
 commit;
