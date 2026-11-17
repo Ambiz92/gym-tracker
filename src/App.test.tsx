@@ -25,3 +25,11 @@ test.each(['/', '/session/1', '/plans', '/plans/1', '/exercises', '/history', '/
     expect(html).toContain('<nav')
   },
 )
+
+test('an unknown path renders the not-found page inside the layout with a link back to Oggi', () => {
+  const html = renderAt('/nope/at/all')
+  expect(html).toContain('Pagina non trovata')
+  expect(html).toContain('<nav')
+  expect(html).toContain('href="/"')
+  expect(html).toContain('Torna a Oggi')
+})

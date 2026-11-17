@@ -7,6 +7,7 @@ import { History } from './pages/History'
 import { Home } from './pages/Home'
 import { Login } from './pages/Login'
 import { More } from './pages/More'
+import { NotFound } from './pages/NotFound'
 import { PlanEdit } from './pages/PlanEdit'
 import { Plans } from './pages/Plans'
 import { Session } from './pages/Session'
@@ -39,6 +40,7 @@ export function AppRoutes() {
           <Route path="/history" element={<History />} />
           <Route path="/history/:exerciseId" element={<History />} />
           <Route path="/more" element={<More />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </>
