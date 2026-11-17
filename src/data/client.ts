@@ -55,7 +55,7 @@ export async function isReferenced(table: TableName, column: string, ids: string
   return rows.length > 0
 }
 
-/** Thrown by delete operations that would drop rows referenced by logged history. */
+/** Thrown by delete operations that would drop rows still referenced by history or a plan. */
 export function inUseError(what: string): DataError {
-  return new DataError(`${what} is used by logged workouts: archive it instead`, 'in_use')
+  return new DataError(`${what} is still in use: archive it instead`, 'in_use')
 }

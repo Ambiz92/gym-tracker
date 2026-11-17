@@ -58,6 +58,16 @@ test('deleteExercise deletes an unused exercise', async () => {
   expect(fakeSupabase.calls[1]).toMatchObject({ table: 'exercise', op: 'delete', filters: [['eq', 'id', 'e1']] })
 })
 
+test('deleteExercise maps a plan reference (foreign key violation) to in_use', async () => {
+  fakeSupabase.reset((call) => (call.op === 'select' ? { data: [] } : { error: { message: 'fk', code: '23503' } }))
+  await expect(deleteExercise('e1')).rejects.toMatchObject({ name: 'DataError', code: 'in_use' })
+})
+
+test('deleteExercise keeps other database errors as they are', async () => {
+  fakeSupabase.reset((call) => (call.op === 'select' ? { data: [] } : { error: { message: 'denied', code: '42501' } }))
+  await expect(deleteExercise('e1')).rejects.toMatchObject({ code: '42501' })
+})
+
 test('failures surface as DataError', async () => {
   fakeSupabase.reset(() => ({ error: { message: 'boom', code: 'XX000' } }))
   await expect(listExercises()).rejects.toBeInstanceOf(DataError)
