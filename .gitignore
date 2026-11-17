@@ -1,0 +1,14 @@
+# Local-only material: never commit
+private/
+
+# Secrets and env
+.env
+.env.*
+!.env.example
+
+# Build and deps
+node_modules/
+dist/
+
+# Local tooling
+.claude/
