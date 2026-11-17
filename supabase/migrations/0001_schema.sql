@@ -110,7 +110,7 @@ create index set_log_exercise_id_idx on public.set_log (exercise_id);
 revoke all on table
   public.exercise, public.plan, public.plan_session, public.plan_exercise,
   public.warmup_item, public.workout, public.set_log
-from anon, public;
+from anon, authenticated, public;
 
 grant select, insert, update, delete on table
   public.exercise, public.plan, public.plan_session, public.plan_exercise,
