@@ -9,23 +9,48 @@ const failure = { error: { message: 'boom', code: 'XX000' } }
 
 beforeEach(() => fakeSupabase.reset())
 
-test('createWorkout inserts the caller local date and the session snapshot', async () => {
-  fakeSupabase.reset(() => ({ data: { id: 'w1' } }))
-  const workout = await createWorkout({ date: '2026-11-17', sessionId: 's1', sessionName: 'A' })
-  expect(workout).toEqual({ id: 'w1' })
-  expect(fakeSupabase.calls[0]).toMatchObject({
-    table: 'workout',
-    op: 'insert',
-    payload: { date: '2026-11-17', session_id: 's1', session_name: 'A' },
-    mode: 'single',
+describe('createWorkout', () => {
+  test('writes the caller local date and the session snapshot', async () => {
+    fakeSupabase.reset(() => ({ data: { id: 'w1' } }))
+    const workout = await createWorkout({ date: '2026-11-17', sessionId: 's1', sessionName: 'A' })
+    expect(workout).toEqual({ id: 'w1' })
+    expect(fakeSupabase.calls[0]).toMatchObject({
+      table: 'workout',
+      op: 'upsert',
+      payload: { date: '2026-11-17', session_id: 's1', session_name: 'A' },
+      mode: 'single',
+    })
+  })
+
+  test('upserts on the client-generated id so a retry does not create a second workout', async () => {
+    fakeSupabase.reset(() => ({ data: { id: 'w-draft' } }))
+    const input = { id: 'w-draft', date: '2026-11-17', sessionId: 's1', sessionName: 'A' }
+    await createWorkout(input)
+    await createWorkout(input)
+
+    for (const call of fakeSupabase.calls) {
+      expect(call).toMatchObject({ op: 'upsert', options: { onConflict: 'id' }, payload: { id: 'w-draft' } })
+    }
   })
 })
 
-test('logSet inserts the set and returns the stored row', async () => {
-  fakeSupabase.reset(() => ({ data: { id: 'l1' } }))
+describe('logSet', () => {
   const set = { workout_id: 'w1', exercise_id: 'e1', set_number: 1, reps: 8, weight_kg: 20, equipment_used: 'barbell' as const }
-  expect(await logSet(set)).toEqual({ id: 'l1' })
-  expect(fakeSupabase.calls[0]).toMatchObject({ table: 'set_log', op: 'insert', payload: set })
+
+  test('stores the set and returns the stored row', async () => {
+    fakeSupabase.reset(() => ({ data: { id: 'l1' } }))
+    expect(await logSet(set)).toEqual({ id: 'l1' })
+    expect(fakeSupabase.calls[0]).toMatchObject({ table: 'set_log', op: 'upsert', payload: set })
+  })
+
+  test('upserts on the set identity so retrying a stored set succeeds', async () => {
+    fakeSupabase.reset(() => ({ data: { id: 'l-draft' } }))
+    await logSet({ ...set, id: 'l-draft' })
+    expect(fakeSupabase.calls[0]).toMatchObject({
+      options: { onConflict: 'workout_id,exercise_id,set_number' },
+      payload: { id: 'l-draft' },
+    })
+  })
 })
 
 test('writes surface failures as DataError', async () => {

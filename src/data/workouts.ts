@@ -2,6 +2,8 @@ import type { SetLog, SetLogInsert, Workout } from '../types/db'
 import { ensureOk, supabase, unwrap } from './client'
 
 export interface NewWorkout {
+  /** Client-generated uuid: lets a retry of the same draft hit the same row. */
+  id?: string
   /** Local date YYYY-MM-DD: the database default is UTC, which is wrong near midnight. */
   date: string
   sessionId: string | null
@@ -13,20 +15,34 @@ export interface HistorySet extends SetLog {
   date: string
 }
 
-/** Creates the workout row; called when the first set of a session is confirmed. */
-export async function createWorkout({ date, sessionId, sessionName }: NewWorkout): Promise<Workout> {
+/**
+ * Creates the workout row when the first set of a session is confirmed.
+ * Idempotent on `id`: the UI draft keeps one id and retries after a network failure, so a
+ * request that actually reached the database must not create a second workout.
+ */
+export async function createWorkout({ id, date, sessionId, sessionName }: NewWorkout): Promise<Workout> {
   return unwrap<Workout>(
     await supabase
       .from('workout')
-      .insert({ date, session_id: sessionId, session_name: sessionName })
+      .upsert({ id, date, session_id: sessionId, session_name: sessionName }, { onConflict: 'id' })
       .select()
       .single(),
   )
 }
 
-/** Inserts a confirmed set. */
+/**
+ * Stores a confirmed set. Idempotent on (workout, exercise, set number): the UI retry of a set
+ * that already reached the database overwrites it with the same values instead of failing on
+ * the unique constraint. Pass `id` to keep the row id stable across retries.
+ */
 export async function logSet(set: SetLogInsert): Promise<SetLog> {
-  return unwrap<SetLog>(await supabase.from('set_log').insert(set).select().single())
+  return unwrap<SetLog>(
+    await supabase
+      .from('set_log')
+      .upsert(set, { onConflict: 'workout_id,exercise_id,set_number' })
+      .select()
+      .single(),
+  )
 }
 
 /** Undo of a confirmed set. */
