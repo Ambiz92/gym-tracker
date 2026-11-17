@@ -4,9 +4,11 @@ import { addSet, ackWorkout, newDraft, removeSet, type Draft } from './sessionDr
 import {
   buildSummary,
   completedExercises,
+  equipmentLabel,
   isExerciseDone,
   lastTimeHint,
   loggedCount,
+  splitSteps,
   startingValues,
   targetLabel,
   unitLabel,
@@ -105,4 +107,19 @@ describe('buildSummary', () => {
       { name: 'Curl', sets: 1, weightKg: 10, deltaKg: null },
     ])
   })
+})
+
+describe('splitSteps', () => {
+  it('returns one step per non-empty line without the typed numbering', () => {
+    expect(splitSteps('1. In piedi\n\n2) Gomiti fermi\n  Scendi piano  ')).toEqual(['In piedi', 'Gomiti fermi', 'Scendi piano'])
+  })
+
+  it('returns nothing without text', () => {
+    expect(splitSteps(null)).toEqual([])
+    expect(splitSteps('  \n ')).toEqual([])
+  })
+})
+
+it('labels the equipment in Italian', () => {
+  expect([equipmentLabel('barbell'), equipmentLabel('dumbbell'), equipmentLabel('other')]).toEqual(['Bilanciere', 'Manubri', 'Altro'])
 })

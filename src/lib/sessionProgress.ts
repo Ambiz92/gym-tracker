@@ -11,6 +11,18 @@ const UNIT_LABEL: Record<TargetUnit, string> = { reps: 'rip', seconds: 'sec', me
 /** Label under the reps number: "rip", "sec" or "m". */
 export const unitLabel = (unit: TargetUnit): string => UNIT_LABEL[unit]
 
+const EQUIPMENT_LABEL: Record<Equipment, string> = { barbell: 'Bilanciere', dumbbell: 'Manubri', other: 'Altro' }
+
+export const equipmentLabel = (equipment: Equipment): string => EQUIPMENT_LABEL[equipment]
+
+/** Execution steps typed one per line; a leading "1." or "2)" is dropped because the list numbers them. */
+export function splitSteps(text: string | null): string[] {
+  return (text ?? '')
+    .split('\n')
+    .map((line) => line.replace(/^\s*\d+[.)]\s*/, '').trim())
+    .filter((line) => line !== '')
+}
+
 const UNIT_SUFFIX: Record<TargetUnit, string> = { reps: '', seconds: ' s', meters: ' m' }
 
 export function loggedCount(draft: Draft | null, exerciseId: string): number {
