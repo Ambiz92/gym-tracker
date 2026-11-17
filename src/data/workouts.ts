@@ -44,6 +44,7 @@ export async function getLastSets(exerciseId: string, excludeWorkoutId?: string)
     .select('id, set_log!inner(exercise_id)')
     .eq('set_log.exercise_id', exerciseId)
     .order('date', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(1)
   if (excludeWorkoutId) query = query.neq('id', excludeWorkoutId)
 

@@ -4,4 +4,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   base: '/gym-tracker/',
   plugins: [react()],
+  test: {
+    exclude: ['**/node_modules/**', '.claude/**'],
+  },
 })

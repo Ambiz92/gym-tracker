@@ -82,6 +82,7 @@ create table public.workout (
   id           uuid primary key default gen_random_uuid(),
   owner_id     uuid not null default auth.uid() references auth.users (id),
   date         date not null default current_date,
+  created_at   timestamptz not null default now(),
   session_id   uuid references public.plan_session (id) on delete set null,
   session_name text not null check (char_length(session_name) between 1 and 120),
   notes        text check (char_length(notes) <= 2000)

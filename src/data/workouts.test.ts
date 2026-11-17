@@ -48,7 +48,10 @@ describe('getLastSets', () => {
     expect(find).toMatchObject({
       table: 'workout',
       filters: [['eq', 'set_log.exercise_id', 'e1']],
-      orders: [{ column: 'date', ascending: false }],
+      orders: [
+        { column: 'date', ascending: false },
+        { column: 'created_at', ascending: false },
+      ],
       limit: 1,
     })
     expect(read).toMatchObject({

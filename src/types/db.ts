@@ -88,11 +88,12 @@ export interface Workout {
   id: string
   owner_id: string
   date: string // YYYY-MM-DD
+  created_at: string // ISO timestamp, breaks ties between workouts on the same day
   session_id: string | null
   session_name: string
   notes: string | null
 }
-export type WorkoutInsert = Insert<Workout, 'id' | 'date' | 'session_id' | 'notes'>
+export type WorkoutInsert = Insert<Workout, 'id' | 'date' | 'created_at' | 'session_id' | 'notes'>
 
 export interface SetLog {
   id: string
