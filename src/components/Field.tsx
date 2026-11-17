@@ -4,7 +4,11 @@ interface FieldProps {
   label: string
   value: string
   onChange: (value: string) => void
-  type?: 'text' | 'email' | 'number'
+  type?: 'text' | 'email'
+  /** Soft-keyboard layout; use "decimal" for weights instead of type="number". */
+  inputMode?: 'text' | 'decimal' | 'numeric' | 'email'
+  enterKeyHint?: 'next' | 'done' | 'go' | 'send'
+  required?: boolean
   autoComplete?: string
   placeholder?: string
   hint?: string
@@ -17,6 +21,9 @@ export function Field({
   value,
   onChange,
   type = 'text',
+  inputMode,
+  enterKeyHint,
+  required = false,
   autoComplete,
   placeholder,
   hint,
@@ -30,11 +37,15 @@ export function Field({
     <div className="field">
       <label className="field__label" htmlFor={id}>
         {label}
+        {required && <span aria-hidden="true"> *</span>}
       </label>
       <input
         id={id}
         className="field__input"
         type={type}
+        inputMode={inputMode}
+        enterKeyHint={enterKeyHint}
+        required={required}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         autoComplete={autoComplete}

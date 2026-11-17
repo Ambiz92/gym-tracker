@@ -147,7 +147,6 @@
 
 .row-link__tag {
   font-size: var(--ds-text-xs);
-  font-style: normal;
   font-weight: var(--ds-weight-black);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -164,6 +163,10 @@
   padding-inline: var(--ds-gutter);
   background: var(--ds-color-text);
   color: var(--ds-color-bg);
+}
+
+.row-link--inverted:focus-visible {
+  outline-offset: calc(-1 * var(--ds-space-2));
 }
 
 .row-link--inverted:active {
@@ -221,9 +224,22 @@
   color: var(--ds-color-accent);
 }
 
+.primary-button--outline:active:not(:disabled) {
+  background: var(--ds-color-border);
+  color: var(--ds-color-text);
+}
+
+.primary-button--outline:active:not(:disabled) .primary-button__arrow {
+  color: var(--ds-color-accent);
+}
+
 .primary-button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.primary-button[aria-busy="true"] {
+  cursor: progress;
 }
 
 /* Field */
