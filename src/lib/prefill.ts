@@ -1,22 +1,7 @@
-type Equipment = 'barbell' | 'dumbbell' | 'other'
+import type { Equipment, Exercise, LastSet, PlanExercise } from '../types/db'
 
-export interface LastSet {
-  set_number: number
-  reps: number
-  weight_kg: number
-  equipment_used: Equipment
-}
-
-export interface PrefillTarget {
-  target_sets: number
-  target_reps: number
-  suggested_weight_kg: number | null
-}
-
-export interface PrefillExercise {
-  equipment: Equipment
-  starting_weight_kg: number | null
-}
+export type PrefillTarget = Pick<PlanExercise, 'target_sets' | 'target_reps' | 'suggested_weight_kg'>
+export type PrefillExercise = Pick<Exercise, 'equipment' | 'starting_weight_kg'>
 
 export interface PrefillRow {
   set_number: number

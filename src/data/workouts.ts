@@ -1,4 +1,4 @@
-import type { SetLog, SetLogInsert, Workout } from '../types/db'
+import type { HistorySet, SetLog, SetLogInsert, Workout } from '../types/db'
 import { ensureOk, supabase, unwrap } from './client'
 
 export interface NewWorkout {
@@ -8,11 +8,6 @@ export interface NewWorkout {
   date: string
   sessionId: string | null
   sessionName: string
-}
-
-/** A logged set with the date of its workout. */
-export interface HistorySet extends SetLog {
-  date: string
 }
 
 /**

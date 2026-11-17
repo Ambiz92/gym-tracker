@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { prefillSets, type LastSet, type PrefillExercise, type PrefillTarget } from './prefill'
+import type { LastSet } from '../types/db'
+import { prefillSets, type PrefillExercise, type PrefillTarget } from './prefill'
 
 const target: PrefillTarget = { target_sets: 3, target_reps: 8, suggested_weight_kg: 20 }
 const exercise: PrefillExercise = { equipment: 'barbell', starting_weight_kg: 15 }

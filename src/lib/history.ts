@@ -1,7 +1,6 @@
-export interface HistorySet {
-  date: string
-  weight_kg: number
-}
+import type { HistorySet } from '../types/db'
+
+type HistoryInput = Pick<HistorySet, 'date' | 'weight_kg'>
 
 export interface WeekPoint {
   week: number
@@ -43,7 +42,7 @@ function mondayMs(date: string): number {
  * the last weight and the percentage change of the last week versus the first one.
  * `startingWeightKg` is the exercise's own starting weight, or the first week's max when unset.
  */
-export function buildHistory(sets: readonly HistorySet[], exerciseStartingWeightKg: number | null = null): ExerciseHistory {
+export function buildHistory(sets: readonly HistoryInput[], exerciseStartingWeightKg: number | null = null): ExerciseHistory {
   const maxByWeek = new Map<number, number>()
   for (const set of sets) {
     const week = mondayMs(set.date)
