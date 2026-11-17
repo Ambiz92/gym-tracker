@@ -30,8 +30,19 @@ test('createExercise and updateExercise return the stored row', async () => {
 })
 
 test('archiveExercise sets archived instead of deleting', async () => {
+  fakeSupabase.reset(() => ({ data: [{ id: 'e1' }] }))
   await archiveExercise('e1')
-  expect(fakeSupabase.calls[0]).toMatchObject({ op: 'update', payload: { archived: true }, filters: [['eq', 'id', 'e1']] })
+  expect(fakeSupabase.calls[0]).toMatchObject({
+    op: 'update',
+    payload: { archived: true },
+    filters: [['eq', 'id', 'e1']],
+    columns: 'id',
+  })
+})
+
+test('archiveExercise throws not_found when no row matched', async () => {
+  fakeSupabase.reset(() => ({ data: [] }))
+  await expect(archiveExercise('missing')).rejects.toMatchObject({ code: 'not_found' })
 })
 
 test('deleteExercise refuses when a set was logged and deletes nothing', async () => {
@@ -45,6 +56,16 @@ test('deleteExercise deletes an unused exercise', async () => {
   await deleteExercise('e1')
   expect(fakeSupabase.calls[0]).toMatchObject({ table: 'set_log', op: 'select' })
   expect(fakeSupabase.calls[1]).toMatchObject({ table: 'exercise', op: 'delete', filters: [['eq', 'id', 'e1']] })
+})
+
+test('deleteExercise maps a plan reference (foreign key violation) to in_use', async () => {
+  fakeSupabase.reset((call) => (call.op === 'select' ? { data: [] } : { error: { message: 'fk', code: '23503' } }))
+  await expect(deleteExercise('e1')).rejects.toMatchObject({ name: 'DataError', code: 'in_use' })
+})
+
+test('deleteExercise keeps other database errors as they are', async () => {
+  fakeSupabase.reset((call) => (call.op === 'select' ? { data: [] } : { error: { message: 'denied', code: '42501' } }))
+  await expect(deleteExercise('e1')).rejects.toMatchObject({ code: '42501' })
 })
 
 test('failures surface as DataError', async () => {

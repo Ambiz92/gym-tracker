@@ -12,6 +12,7 @@ export interface Call {
   filters: Filter[]
   orders: { column: string; ascending: boolean }[]
   limit?: number
+  range?: [from: number, to: number]
   mode: 'many' | 'single' | 'maybeSingle'
 }
 
@@ -76,6 +77,11 @@ class FakeBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
 
   limit(count: number) {
     this.call.limit = count
+    return this
+  }
+
+  range(from: number, to: number) {
+    this.call.range = [from, to]
     return this
   }
 

@@ -1,3 +1,5 @@
+import { localDateString } from './localDate'
+
 // A leading tab or carriage return is also interpreted as a formula start by spreadsheets.
 const FORMULA_START = /^[=+\-@\t\r]/
 const NEEDS_QUOTING = /[",\r\n]/
@@ -30,8 +32,5 @@ export function toJson(tables: Readonly<Record<string, readonly unknown[]>>): st
 
 /** Names an export file after the local calendar date, e.g. `gym-tracker-set_log-2026-11-17.csv`. */
 export function exportFileName(kind: string, extension: 'csv' | 'json', now: Date): string {
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `gym-tracker-${kind}-${year}-${month}-${day}.${extension}`
+  return `gym-tracker-${kind}-${localDateString(now)}.${extension}`
 }

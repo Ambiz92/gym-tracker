@@ -107,3 +107,11 @@ export interface SetLog {
   rpe: number | null
 }
 export type SetLogInsert = Insert<SetLog, 'id' | 'rpe'>
+
+/** The part of a logged set that prefill and progression read. */
+export type LastSet = Pick<SetLog, 'set_number' | 'reps' | 'weight_kg' | 'equipment_used'>
+
+/** A logged set with the date of its workout. */
+export interface HistorySet extends SetLog {
+  date: string
+}

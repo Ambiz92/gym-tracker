@@ -1,21 +1,11 @@
-type Equipment = 'barbell' | 'dumbbell' | 'other'
+import type { Equipment, LastSet, PlanExercise } from '../types/db'
 
 export const BARBELL_INCREMENT_KG = 2.5
 export const DUMBBELL_HEAVY_THRESHOLD_KG = 10
 export const DUMBBELL_HEAVY_INCREMENT_KG = 2
 export const DUMBBELL_LIGHT_INCREMENT_KG = 1
 
-export interface LastSet {
-  set_number: number
-  reps: number
-  weight_kg: number
-  equipment_used: Equipment
-}
-
-export interface ProgressionTarget {
-  target_sets: number
-  target_reps: number
-}
+export type ProgressionTarget = Pick<PlanExercise, 'target_sets' | 'target_reps'>
 
 export interface ProgressionHint {
   suggested: number | null

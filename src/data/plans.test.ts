@@ -1,16 +1,19 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { DataError } from './client'
 import { fakeSupabase } from './fakeSupabase'
-import type { Call } from './fakeSupabase'
+import type { Call, FakeResult } from './fakeSupabase'
 import {
   addPlanExercise,
   addSession,
   archivePlan,
   deletePlan,
   removeSession,
+  renamePlan,
   reorderPlanExercises,
   reorderSessions,
   setActivePlan,
+  updatePlanExercise,
+  updateSession,
 } from './plans'
 import type { PlanExercise, PlanSession } from '../types/db'
 
@@ -22,12 +25,26 @@ const summary = (c: Call) => `${c.table}.${c.op}`
 beforeEach(() => fakeSupabase.reset())
 
 describe('setActivePlan', () => {
-  test('deactivates the old plan first, then activates the new one', async () => {
-    fakeSupabase.reset((call) => (call.columns === 'id' ? { data: [{ id: 'old' }] } : undefined))
+  const isLookup = (call: Call) => call.op === 'select'
+  const isDeactivation = (call: Call) => call.op === 'update' && call.filters[0][0] === 'eq' && call.filters[0][1] === 'is_active'
+  const isActivation = (call: Call) => call.op === 'update' && (call.payload as { is_active: boolean }).is_active && !isDeactivation(call)
+
+  /** Fake where the target exists and the old plan is deactivated; `overrides` replace single steps. */
+  const scenario = (overrides: { activation?: FakeResult; restore?: FakeResult; lookup?: FakeResult } = {}) =>
+    fakeSupabase.reset((call) => {
+      if (isLookup(call)) return overrides.lookup ?? { data: { archived: false } }
+      if (isDeactivation(call)) return { data: [{ id: 'old' }] }
+      if (isActivation(call)) return overrides.activation ?? { data: [{ id: 'new' }] }
+      return overrides.restore
+    })
+
+  test('checks the target, deactivates the old plan, then activates the new one', async () => {
+    scenario()
     await setActivePlan('new')
 
-    expect(fakeSupabase.calls).toHaveLength(2)
-    expect(fakeSupabase.calls[0]).toMatchObject({
+    expect(fakeSupabase.calls).toHaveLength(3)
+    expect(fakeSupabase.calls[0]).toMatchObject({ table: 'plan', op: 'select', filters: [['eq', 'id', 'new']], mode: 'maybeSingle' })
+    expect(fakeSupabase.calls[1]).toMatchObject({
       table: 'plan',
       op: 'update',
       payload: { is_active: false },
@@ -36,51 +53,100 @@ describe('setActivePlan', () => {
         ['neq', 'id', 'new'],
       ],
     })
-    expect(fakeSupabase.calls[1]).toMatchObject({
+    expect(fakeSupabase.calls[2]).toMatchObject({
       table: 'plan',
       op: 'update',
       payload: { is_active: true },
       filters: [['eq', 'id', 'new']],
+      columns: 'id',
     })
   })
 
-  test('puts the old plan back when the activation fails, and still throws', async () => {
-    fakeSupabase.reset((call) => {
-      if (call.columns === 'id') return { data: [{ id: 'old' }] }
-      return (call.payload as { is_active: boolean }).is_active && call.filters[0][0] === 'eq' ? failure : undefined
-    })
-    await expect(setActivePlan('archived')).rejects.toMatchObject({ code: '23514' })
+  test('refuses a missing target before touching the active plan', async () => {
+    scenario({ lookup: { data: null } })
+    await expect(setActivePlan('ghost')).rejects.toMatchObject({ name: 'DataError', code: 'not_found' })
+    expect(fakeSupabase.calls).toHaveLength(1)
+  })
 
-    expect(fakeSupabase.calls).toHaveLength(3)
-    expect(fakeSupabase.calls[2]).toMatchObject({
+  test('refuses an archived target before touching the active plan', async () => {
+    scenario({ lookup: { data: { archived: true } } })
+    await expect(setActivePlan('old-news')).rejects.toMatchObject({ name: 'DataError', code: 'archived' })
+    expect(fakeSupabase.calls).toHaveLength(1)
+  })
+
+  test('puts the old plan back when the activation fails, and still throws', async () => {
+    scenario({ activation: failure })
+    await expect(setActivePlan('new')).rejects.toMatchObject({ code: '23514' })
+
+    expect(fakeSupabase.calls).toHaveLength(4)
+    expect(fakeSupabase.calls[3]).toMatchObject({
       payload: { is_active: true },
       filters: [['in', 'id', ['old']]],
     })
   })
 
-  test('reports that no plan is active when the restore fails too', async () => {
-    fakeSupabase.reset((call) => (call.columns === 'id' ? { data: [{ id: 'old' }] } : failure))
-    const error = await setActivePlan('archived').catch((e) => e)
-    expect(error).toBeInstanceOf(DataError)
-    expect(error.message).toContain('no plan is active')
+  test('puts the old plan back when the activation matches no row (RLS-hidden), and throws not_found', async () => {
+    scenario({ activation: { data: [] } })
+    await expect(setActivePlan('new')).rejects.toMatchObject({ name: 'DataError', code: 'not_found' })
+
+    expect(fakeSupabase.calls).toHaveLength(4)
+    expect(fakeSupabase.calls[3]).toMatchObject({ payload: { is_active: true }, filters: [['in', 'id', ['old']]] })
   })
 
-  test('does not touch anything else when the first request fails', async () => {
-    fakeSupabase.reset(() => failure)
+  test('reports that no plan is active when the restore fails too', async () => {
+    scenario({ activation: failure, restore: failure })
+    const error = await setActivePlan('new').catch((e) => e)
+    expect(error).toBeInstanceOf(DataError)
+    expect(error.message).toContain('no plan is active')
+    expect(error.code).toBe('23514')
+  })
+
+  test('does not activate anything when the deactivation fails', async () => {
+    fakeSupabase.reset((call) => (isLookup(call) ? { data: { archived: false } } : failure))
     await expect(setActivePlan('new')).rejects.toBeInstanceOf(DataError)
-    expect(fakeSupabase.calls).toHaveLength(1)
+    expect(fakeSupabase.calls).toHaveLength(2)
   })
 
   test('with no previously active plan there is nothing to restore', async () => {
-    fakeSupabase.reset((call) => (call.columns === 'id' ? { data: [] } : failure))
-    await expect(setActivePlan('new')).rejects.toBeInstanceOf(DataError)
-    expect(fakeSupabase.calls).toHaveLength(2)
+    fakeSupabase.reset((call) => {
+      if (isLookup(call)) return { data: { archived: false } }
+      return { data: [] }
+    })
+    await expect(setActivePlan('new')).rejects.toMatchObject({ code: 'not_found' })
+    expect(fakeSupabase.calls).toHaveLength(3)
   })
 })
 
 test('archivePlan clears is_active in the same update (check constraint)', async () => {
+  fakeSupabase.reset(() => ({ data: [{ id: 'p1' }] }))
   await archivePlan('p1')
-  expect(fakeSupabase.calls[0]).toMatchObject({ op: 'update', payload: { archived: true, is_active: false } })
+  expect(fakeSupabase.calls[0]).toMatchObject({
+    op: 'update',
+    payload: { archived: true, is_active: false },
+    columns: 'id',
+  })
+})
+
+describe('single-row updates fail when no row matches', () => {
+  const updates: [string, () => Promise<void>, object][] = [
+    ['renamePlan', () => renamePlan('p1', 'New'), { table: 'plan', payload: { name: 'New' } }],
+    ['archivePlan', () => archivePlan('p1'), { table: 'plan' }],
+    ['updateSession', () => updateSession('s1', { name: 'B' }), { table: 'plan_session', payload: { name: 'B' } }],
+    ['updatePlanExercise', () => updatePlanExercise('x1', { target_sets: 4 }), { table: 'plan_exercise', payload: { target_sets: 4 } }],
+  ]
+
+  test.each(updates)('%s updates by id, asks for the id back and succeeds on a match', async (_name, run, expected) => {
+    fakeSupabase.reset(() => ({ data: [{ id: 'row' }] }))
+    await run()
+    expect(fakeSupabase.calls[0]).toMatchObject({ ...expected, op: 'update', columns: 'id' })
+    expect(fakeSupabase.calls[0].filters).toHaveLength(1)
+    expect(fakeSupabase.calls[0].filters[0].slice(0, 2)).toEqual(['eq', 'id'])
+  })
+
+  test.each(updates)('%s throws not_found on an empty result', async (_name, run) => {
+    fakeSupabase.reset(() => ({ data: [] }))
+    await expect(run()).rejects.toMatchObject({ name: 'DataError', code: 'not_found' })
+  })
 })
 
 describe('reorder', () => {

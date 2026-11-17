@@ -1,6 +1,6 @@
 import type { PostgrestError } from '@supabase/supabase-js'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { DataError, ensureOk, inUseError, isReferenced, unwrap, unwrapOrNull } from './client'
+import { DataError, ensureAffected, ensureOk, inUseError, isReferenced, unwrap, unwrapOrNull } from './client'
 import { fakeSupabase } from './fakeSupabase'
 
 vi.mock('../lib/supabase', async () => ({ supabase: (await import('./fakeSupabase')).fakeSupabase }))
@@ -44,6 +44,27 @@ describe('ensureOk', () => {
   test('passes without error and throws with one', () => {
     expect(() => ensureOk({ error: null })).not.toThrow()
     expect(() => ensureOk({ error: pgError })).toThrow(DataError)
+  })
+})
+
+describe('ensureAffected', () => {
+  test('passes when at least one row matched', () => {
+    expect(() => ensureAffected({ data: [{ id: 'a' }], error: null })).not.toThrow()
+  })
+
+  test('throws not_found when nothing matched', () => {
+    expect(() => ensureAffected({ data: [], error: null })).toThrow(expect.objectContaining({ code: 'not_found' }))
+    expect(() => ensureAffected({ data: null, error: null })).toThrow(expect.objectContaining({ code: 'not_found' }))
+  })
+
+  test('throws the database error first', () => {
+    expect(() => ensureAffected({ data: [], error: pgError })).toThrow(expect.objectContaining({ code: '42501' }))
+  })
+})
+
+describe('error code normalization', () => {
+  test('an empty code becomes null', () => {
+    expect(() => ensureOk({ error: Object.assign({}, pgError, { code: '' }) })).toThrow(expect.objectContaining({ code: null }))
   })
 })
 

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import type { LastSet } from '../types/db'
 import {
   BARBELL_INCREMENT_KG,
   DUMBBELL_HEAVY_INCREMENT_KG,
   DUMBBELL_HEAVY_THRESHOLD_KG,
   DUMBBELL_LIGHT_INCREMENT_KG,
   suggestNextWeight,
-  type LastSet,
 } from './progression'
 
 const target = { target_sets: 3, target_reps: 8 }

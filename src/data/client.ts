@@ -21,7 +21,7 @@ interface Response<T> {
 }
 
 function toDataError(error: PostgrestError): DataError {
-  return new DataError(error.message, error.code, { cause: error })
+  return new DataError(error.message, error.code || null, { cause: error })
 }
 
 /** Returns the payload of a response, throwing a DataError on a Supabase error or an empty payload. */
@@ -42,6 +42,12 @@ export function ensureOk({ error }: { error: PostgrestError | null }): void {
   if (error) throw toDataError(error)
 }
 
+/** For writes with `.select('id')`: throws a `not_found` DataError when no row matched (unknown id, hidden by RLS). */
+export function ensureAffected({ data, error }: Response<{ id: string }[]>): void {
+  if (error) throw toDataError(error)
+  if (!data || data.length === 0) throw new DataError('No matching row was updated', 'not_found')
+}
+
 /** True when at least one row of `table` has `column` equal to one of `ids`. */
 export async function isReferenced(table: TableName, column: string, ids: string[]): Promise<boolean> {
   if (ids.length === 0) return false
@@ -49,7 +55,7 @@ export async function isReferenced(table: TableName, column: string, ids: string
   return rows.length > 0
 }
 
-/** Thrown by delete operations that would drop rows referenced by logged history. */
+/** Thrown by delete operations that would drop rows still referenced by history or a plan. */
 export function inUseError(what: string): DataError {
-  return new DataError(`${what} is used by logged workouts: archive it instead`, 'in_use')
+  return new DataError(`${what} is still in use: archive it instead`, 'in_use')
 }

@@ -1,22 +1,7 @@
-type Equipment = 'barbell' | 'dumbbell' | 'other'
+import type { Equipment, Exercise, LastSet, PlanExercise } from '../types/db'
 
-export interface LastSet {
-  set_number: number
-  reps: number
-  weight_kg: number
-  equipment_used: Equipment
-}
-
-export interface PrefillTarget {
-  target_sets: number
-  target_reps: number
-  suggested_weight_kg: number | null
-}
-
-export interface PrefillExercise {
-  equipment: Equipment
-  starting_weight_kg: number | null
-}
+export type PrefillTarget = Pick<PlanExercise, 'target_sets' | 'target_reps' | 'suggested_weight_kg'>
+export type PrefillExercise = Pick<Exercise, 'equipment' | 'starting_weight_kg'>
 
 export interface PrefillRow {
   set_number: number
@@ -27,25 +12,27 @@ export interface PrefillRow {
 
 /**
  * Proposes today's rows: one per target set, copying the same set of the last workout.
- * Sets missing from the last workout fall back to target reps, then the suggested weight
- * (lower bound of the range), then the exercise starting weight (null when none is known).
+ * A set missing from the last workout takes the target reps and the weight and equipment of the
+ * highest earlier logged set, then the suggested weight (lower bound of the range), then the
+ * exercise starting weight (null when none is known).
  */
 export function prefillSets(
   lastSets: readonly LastSet[],
   target: PrefillTarget,
   exercise: PrefillExercise,
 ): PrefillRow[] {
-  const lastBySetNumber = new Map(lastSets.map((set) => [set.set_number, set]))
+  const bySetNumber = [...lastSets].sort((a, b) => a.set_number - b.set_number)
   const fallbackWeight = target.suggested_weight_kg ?? exercise.starting_weight_kg
 
   return Array.from({ length: target.target_sets }, (_, index) => {
     const setNumber = index + 1
-    const last = lastBySetNumber.get(setNumber)
+    const logged = bySetNumber.find((set) => set.set_number === setNumber)
+    const source = logged ?? bySetNumber.filter((set) => set.set_number < setNumber).at(-1)
     return {
       set_number: setNumber,
-      reps: last?.reps ?? target.target_reps,
-      weight_kg: last?.weight_kg ?? fallbackWeight,
-      equipment_used: last?.equipment_used ?? exercise.equipment,
+      reps: logged?.reps ?? target.target_reps,
+      weight_kg: source?.weight_kg ?? fallbackWeight,
+      equipment_used: source?.equipment_used ?? exercise.equipment,
     }
   })
 }

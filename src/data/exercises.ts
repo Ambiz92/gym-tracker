@@ -1,5 +1,5 @@
 import type { Exercise, ExerciseInsert, ExerciseUpdate } from '../types/db'
-import { ensureOk, inUseError, isReferenced, supabase, unwrap } from './client'
+import { DataError, ensureAffected, ensureOk, inUseError, isReferenced, supabase, unwrap } from './client'
 
 /** Exercises of the library that are not archived, by name. */
 export async function listExercises(): Promise<Exercise[]> {
@@ -16,11 +16,21 @@ export async function updateExercise(id: string, changes: ExerciseUpdate): Promi
 
 /** Hides the exercise from the library; logged history keeps pointing at it. */
 export async function archiveExercise(id: string): Promise<void> {
-  ensureOk(await supabase.from('exercise').update({ archived: true }).eq('id', id))
+  ensureAffected(await supabase.from('exercise').update({ archived: true }).eq('id', id).select('id'))
 }
 
-/** Deletes an exercise that was never logged; refuses with an `in_use` DataError otherwise. */
+const FOREIGN_KEY_VIOLATION = '23503'
+
+/**
+ * Deletes an exercise that was never logged nor used by a plan; refuses with an `in_use`
+ * DataError otherwise (plan references are only caught by the foreign key).
+ */
 export async function deleteExercise(id: string): Promise<void> {
   if (await isReferenced('set_log', 'exercise_id', [id])) throw inUseError('The exercise')
-  ensureOk(await supabase.from('exercise').delete().eq('id', id))
+  try {
+    ensureOk(await supabase.from('exercise').delete().eq('id', id))
+  } catch (error) {
+    if (error instanceof DataError && error.code === FOREIGN_KEY_VIOLATION) throw inUseError('The exercise')
+    throw error
+  }
 }

@@ -1,5 +1,4 @@
-export type Equipment = 'barbell' | 'dumbbell' | 'other'
-export type TargetUnit = 'reps' | 'seconds' | 'meters'
+import type { Equipment, TargetUnit } from '../types/db'
 
 export const MAX_REPS_PER_SET = 10
 
