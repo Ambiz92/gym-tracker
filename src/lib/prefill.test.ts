@@ -50,13 +50,34 @@ describe('prefillSets', () => {
     expect(rows[0]).toMatchObject({ reps: 8, weight_kg: 0 })
   })
 
-  it('fills only the missing sets from the plan when the last workout was partial', () => {
+  it('fills missing sets with the target reps and the last logged weight of the highest earlier set', () => {
     const rows = prefillSets([last(1, 6, 25)], target, exercise)
     expect(rows).toEqual([
       { set_number: 1, reps: 6, weight_kg: 25, equipment_used: 'barbell' },
-      { set_number: 2, reps: 8, weight_kg: 20, equipment_used: 'barbell' },
-      { set_number: 3, reps: 8, weight_kg: 20, equipment_used: 'barbell' },
+      { set_number: 2, reps: 8, weight_kg: 25, equipment_used: 'barbell' },
+      { set_number: 3, reps: 8, weight_kg: 25, equipment_used: 'barbell' },
     ])
+  })
+
+  it('carries the equipment of the earlier set along with its weight', () => {
+    const rows = prefillSets([last(1, 10, 12, 'dumbbell'), last(2, 9, 14, 'dumbbell')], target, exercise)
+    expect(rows[2]).toEqual({ set_number: 3, reps: 8, weight_kg: 14, equipment_used: 'dumbbell' })
+  })
+
+  it('uses the highest earlier set, not the first, and ignores later ones', () => {
+    const rows = prefillSets([last(4, 8, 40), last(1, 8, 20), last(3, 8, 30)], { ...target, target_sets: 5 }, exercise)
+    expect(rows.map((row) => row.weight_kg)).toEqual([20, 20, 30, 40, 40])
+  })
+
+  it('falls back to the plan when the only logged set comes after the missing one', () => {
+    const rows = prefillSets([last(2, 8, 30)], target, exercise)
+    expect(rows.map((row) => row.weight_kg)).toEqual([20, 30, 30])
+    expect(rows[0]).toMatchObject({ reps: 8, equipment_used: 'barbell' })
+  })
+
+  it('carries a logged weight of 0 to the missing sets', () => {
+    const rows = prefillSets([last(1, 8, 0)], target, exercise)
+    expect(rows.map((row) => row.weight_kg)).toEqual([0, 0, 0])
   })
 
   it('produces exactly target_sets rows, ignoring extra logged sets', () => {
@@ -73,9 +94,10 @@ describe('prefillSets', () => {
     expect(prefillSets([last(1, 8, 20)], { ...target, target_sets: 0 }, exercise)).toEqual([])
   })
 
-  it('keeps the equipment used last time and defaults to the exercise equipment', () => {
-    const rows = prefillSets([last(1, 10, 12, 'dumbbell')], target, exercise)
-    expect(rows.map((row) => row.equipment_used)).toEqual(['dumbbell', 'barbell', 'barbell'])
+  it('keeps the equipment used last time and defaults to the exercise equipment without history', () => {
+    const rows = prefillSets([last(1, 10, 12, 'dumbbell'), last(2, 10, 12, 'dumbbell'), last(3, 10, 12, 'dumbbell')], target, exercise)
+    expect(rows.map((row) => row.equipment_used)).toEqual(['dumbbell', 'dumbbell', 'dumbbell'])
+    expect(prefillSets([], target, exercise).map((row) => row.equipment_used)).toEqual(['barbell', 'barbell', 'barbell'])
   })
 
   it('copies the target value for timed and distance exercises', () => {
