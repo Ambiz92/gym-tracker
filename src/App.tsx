@@ -1,11 +1,16 @@
 import { HashRouter, Outlet, Route, Routes } from 'react-router-dom'
+import { AuthProvider } from './auth/AuthProvider'
+import { AuthStep, RequireAuth } from './auth/RequireAuth'
 import { AuthLayout } from './components/AuthLayout'
 import { Layout } from './components/Layout'
 import { RouteAnnouncer } from './components/RouteAnnouncer'
+import { supabase } from './lib/supabase'
 import { Exercises } from './pages/Exercises'
 import { History } from './pages/History'
 import { Home } from './pages/Home'
 import { Login } from './pages/Login'
+import { MfaChallenge } from './pages/MfaChallenge'
+import { MfaEnroll } from './pages/MfaEnroll'
 import { More } from './pages/More'
 import { NotFound } from './pages/NotFound'
 import { PlanEdit } from './pages/PlanEdit'
@@ -18,29 +23,55 @@ export function AppRoutes() {
       <RouteAnnouncer />
       <Routes>
         <Route
-          path="/login"
           element={
             <AuthLayout>
-              <Login />
+              <Outlet />
             </AuthLayout>
           }
-        />
-        <Route
-          element={
-            <Layout>
-              <Outlet />
-            </Layout>
-          }
         >
-          <Route path="/" element={<Home />} />
-          <Route path="/session/:id" element={<Session />} />
-          <Route path="/plans" element={<Plans />} />
-          <Route path="/plans/:id" element={<PlanEdit />} />
-          <Route path="/exercises" element={<Exercises />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/history/:exerciseId" element={<History />} />
-          <Route path="/more" element={<More />} />
-          <Route path="*" element={<NotFound />} />
+          <Route
+            path="/login"
+            element={
+              <AuthStep path="/login">
+                <Login />
+              </AuthStep>
+            }
+          />
+          <Route
+            path="/login/code"
+            element={
+              <AuthStep path="/login/code">
+                <MfaChallenge />
+              </AuthStep>
+            }
+          />
+          <Route
+            path="/login/enroll"
+            element={
+              <AuthStep path="/login/enroll">
+                <MfaEnroll />
+              </AuthStep>
+            }
+          />
+        </Route>
+        <Route element={<RequireAuth />}>
+          <Route
+            element={
+              <Layout>
+                <Outlet />
+              </Layout>
+            }
+          >
+            <Route path="/" element={<Home />} />
+            <Route path="/session/:id" element={<Session />} />
+            <Route path="/plans" element={<Plans />} />
+            <Route path="/plans/:id" element={<PlanEdit />} />
+            <Route path="/exercises" element={<Exercises />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/history/:exerciseId" element={<History />} />
+            <Route path="/more" element={<More />} />
+            <Route path="*" element={<NotFound />} />
+          </Route>
         </Route>
       </Routes>
     </>
@@ -50,8 +81,10 @@ export function AppRoutes() {
 // HashRouter: GitHub Pages has no SPA fallback for deep links.
 export function App() {
   return (
-    <HashRouter>
-      <AppRoutes />
-    </HashRouter>
+    <AuthProvider api={supabase.auth}>
+      <HashRouter>
+        <AppRoutes />
+      </HashRouter>
+    </AuthProvider>
   )
 }

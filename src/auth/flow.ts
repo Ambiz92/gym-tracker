@@ -1,0 +1,162 @@
+import { type AuthErrorLike, type AuthFailure, type AuthStep, classifyError, failure } from './errors'
+
+export type AuthStatus = 'loading' | 'signed_out' | 'needs_mfa' | 'needs_enroll' | 'signed_in'
+
+export type Result<T> = { ok: true; value: T } | { ok: false; error: AuthFailure }
+
+export interface Enrollment {
+  factorId: string
+  /** SVG data URI, ready for an <img src>. */
+  qrCode: string
+  /** Same secret as the QR code, for typing it by hand. */
+  secret: string
+}
+
+type Reply<T> = Promise<{ data: T | null; error: AuthErrorLike | null }>
+
+/** The slice of supabase-js `auth` this app uses; tests implement it with a fake. */
+export interface AuthApi {
+  signInWithPassword(credentials: { email: string; password: string }): Promise<{ error: AuthErrorLike | null }>
+  signOut(options: { scope: 'local' }): Promise<{ error: AuthErrorLike | null }>
+  getSession(): Promise<{ data: { session: object | null }; error: AuthErrorLike | null }>
+  onAuthStateChange(callback: (event: string) => void): { data: { subscription: { unsubscribe(): void } } }
+  mfa: {
+    getAuthenticatorAssuranceLevel(): Reply<{ currentLevel: string | null; nextLevel: string | null }>
+    listFactors(): Reply<{ all: { id: string; status: string }[]; totp: { id: string }[] }>
+    enroll(params: { factorType: 'totp'; issuer: string }): Reply<{ id: string; totp: { qr_code: string; secret: string } }>
+    unenroll(params: { factorId: string }): Promise<{ error: AuthErrorLike | null }>
+    challenge(params: { factorId: string }): Reply<{ id: string }>
+    verify(params: { factorId: string; challengeId: string; code: string }): Promise<{ error: AuthErrorLike | null }>
+    challengeAndVerify(params: { factorId: string; code: string }): Promise<{ error: AuthErrorLike | null }>
+  }
+}
+
+export const CODE_LENGTH = 6
+const ISSUER = 'Gym Tracker'
+
+/** Keeps only the digits of what the user typed or an autofill pasted, capped at the code length. */
+export function normalizeCode(raw: string): string {
+  return raw.replace(/\D/g, '').slice(0, CODE_LENGTH)
+}
+
+/** Only an aal2 session is logged in; aal1 needs the code, or the enrollment when no factor is verified. */
+export function statusFromAssurance(currentLevel: string | null, nextLevel: string | null): AuthStatus {
+  if (currentLevel === 'aal2') return 'signed_in'
+  if (currentLevel === 'aal1') return nextLevel === 'aal2' ? 'needs_mfa' : 'needs_enroll'
+  return 'signed_out'
+}
+
+/** The screen each status belongs to; `null` while the stored session is still being read. */
+export function stepPath(status: AuthStatus): string | null {
+  switch (status) {
+    case 'loading':
+      return null
+    case 'signed_out':
+      return '/login'
+    case 'needs_mfa':
+      return '/login/code'
+    case 'needs_enroll':
+      return '/login/enroll'
+    case 'signed_in':
+      return '/'
+  }
+}
+
+function fail(error: AuthErrorLike, step: AuthStep): { ok: false; error: AuthFailure } {
+  return { ok: false, error: classifyError(error, step) }
+}
+
+/** A request that throws instead of returning an error is unexpected: report it, never swallow it. */
+async function guarded<T>(run: () => Promise<Result<T>>): Promise<Result<T>> {
+  try {
+    return await run()
+  } catch {
+    return { ok: false, error: failure('unavailable') }
+  }
+}
+
+/** Reads the stored session and its assurance level. */
+export function resolveStatus(api: AuthApi, step: AuthStep): Promise<Result<AuthStatus>> {
+  return guarded(async () => {
+    const { data: stored, error: sessionError } = await api.getSession()
+    if (sessionError) return fail(sessionError, step)
+    if (!stored.session) return { ok: true, value: 'signed_out' }
+
+    const { data, error } = await api.mfa.getAuthenticatorAssuranceLevel()
+    if (error || !data) return fail(error ?? { message: 'Empty assurance level' }, step)
+    return { ok: true, value: statusFromAssurance(data.currentLevel, data.nextLevel) }
+  })
+}
+
+export function signIn(api: AuthApi, email: string, password: string): Promise<Result<AuthStatus>> {
+  const trimmedEmail = email.trim()
+  if (!trimmedEmail || !password) return Promise.resolve({ ok: false, error: failure('invalid_credentials') })
+
+  return guarded(async () => {
+    const { error } = await api.signInWithPassword({ email: trimmedEmail, password })
+    if (error) return fail(error, 'password')
+    return resolveStatus(api, 'password')
+  })
+}
+
+function incompleteCode(): { ok: false; error: AuthFailure } {
+  return { ok: false, error: failure('invalid_code', `Inserisci le ${CODE_LENGTH} cifre del codice.`) }
+}
+
+/** Second factor for a user who already has a verified TOTP factor. */
+export function verifyCode(api: AuthApi, rawCode: string): Promise<Result<AuthStatus>> {
+  const code = normalizeCode(rawCode)
+  if (code.length < CODE_LENGTH) return Promise.resolve(incompleteCode())
+
+  return guarded(async () => {
+    const { data, error } = await api.mfa.listFactors()
+    if (error || !data) return fail(error ?? { message: 'Empty factor list' }, 'code')
+    const factor = data.totp[0]
+    if (!factor) return resolveStatus(api, 'code')
+
+    const verified = await api.mfa.challengeAndVerify({ factorId: factor.id, code })
+    if (verified.error) return fail(verified.error, 'code')
+    return resolveStatus(api, 'code')
+  })
+}
+
+/** Starts a TOTP enrollment, first dropping factors an earlier abandoned attempt left unverified. */
+export function startEnrollment(api: AuthApi): Promise<Result<Enrollment>> {
+  return guarded(async () => {
+    const { data: factors, error: listError } = await api.mfa.listFactors()
+    if (listError || !factors) return fail(listError ?? { message: 'Empty factor list' }, 'other')
+
+    for (const factor of factors.all.filter((f) => f.status !== 'verified')) {
+      const { error } = await api.mfa.unenroll({ factorId: factor.id })
+      if (error) return fail(error, 'other')
+    }
+
+    const { data, error } = await api.mfa.enroll({ factorType: 'totp', issuer: ISSUER })
+    if (error || !data) return fail(error ?? { message: 'Empty enrollment' }, 'other')
+    return { ok: true, value: { factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret } }
+  })
+}
+
+/** Confirms the enrollment with the first code; on success the session becomes aal2. */
+export function verifyEnrollment(api: AuthApi, factorId: string, rawCode: string): Promise<Result<AuthStatus>> {
+  const code = normalizeCode(rawCode)
+  if (code.length < CODE_LENGTH) return Promise.resolve(incompleteCode())
+
+  return guarded(async () => {
+    const { data, error } = await api.mfa.challenge({ factorId })
+    if (error || !data) return fail(error ?? { message: 'Empty challenge' }, 'code')
+
+    const verified = await api.mfa.verify({ factorId, challengeId: data.id, code })
+    if (verified.error) return fail(verified.error, 'code')
+    return resolveStatus(api, 'code')
+  })
+}
+
+/** Ends this device's session only; other devices stay signed in. */
+export function signOut(api: AuthApi): Promise<Result<AuthStatus>> {
+  return guarded(async () => {
+    const { error } = await api.signOut({ scope: 'local' })
+    if (error) return fail(error, 'other')
+    return { ok: true, value: 'signed_out' }
+  })
+}
