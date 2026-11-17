@@ -7,7 +7,7 @@ import type {
   PlanSessionInsert,
   PlanSessionUpdate,
 } from '../types/db'
-import { DataError, ensureAffected, ensureOk, inUseError, isReferenced, supabase, unwrap } from './client'
+import { DataError, ensureAffected, ensureOk, inUseError, isReferenced, supabase, unwrap, unwrapOrNull } from './client'
 
 export type NewSession = Omit<PlanSessionInsert, 'id' | 'plan_id' | 'position'>
 export type NewPlanExercise = Omit<PlanExerciseInsert, 'id' | 'session_id' | 'position'>
@@ -40,13 +40,27 @@ export async function deletePlan(id: string): Promise<void> {
 /**
  * Makes `planId` the only active plan. One active plan per owner is a unique index, so the old
  * one is deactivated first; if activating fails the old one is put back to avoid "no active plan".
+ * The target is checked up front so a missing or archived plan never touches the current one.
  */
 export async function setActivePlan(planId: string): Promise<void> {
+  const target = unwrapOrNull<Pick<Plan, 'archived'>>(
+    await supabase.from('plan').select('archived').eq('id', planId).maybeSingle(),
+  )
+  if (!target) throw new DataError('The plan does not exist', 'not_found')
+  if (target.archived) throw new DataError('An archived plan cannot be activated', 'archived')
+
   const deactivated = unwrap<{ id: string }[]>(
     await supabase.from('plan').update({ is_active: false }).eq('is_active', true).neq('id', planId).select('id'),
   )
-  const activation = await supabase.from('plan').update({ is_active: true }).eq('id', planId)
-  if (!activation.error) return
+
+  let failure: DataError
+  try {
+    ensureAffected(await supabase.from('plan').update({ is_active: true }).eq('id', planId).select('id'))
+    return
+  } catch (error) {
+    if (!(error instanceof DataError)) throw error
+    failure = error
+  }
 
   if (deactivated.length > 0) {
     const restore = await supabase
@@ -55,13 +69,13 @@ export async function setActivePlan(planId: string): Promise<void> {
       .in('id', deactivated.map((p) => p.id))
     if (restore.error) {
       throw new DataError(
-        `${activation.error.message} (and the previous plan could not be reactivated: no plan is active)`,
-        activation.error.code,
+        `${failure.message} (and the previous plan could not be reactivated: no plan is active)`,
+        failure.code,
         { cause: restore.error },
       )
     }
   }
-  ensureOk(activation)
+  throw failure
 }
 
 async function nextPosition(table: 'plan_session' | 'plan_exercise', parentColumn: string, parentId: string): Promise<number> {
@@ -90,6 +104,7 @@ export async function removeSession(id: string): Promise<void> {
 
 /**
  * Rewrites positions 0..n-1 following the order of `sessions` in one upsert keyed on id.
+ * Callers must pass the complete current list: rows left out keep their old position and can collide.
  * Positions are deferrable unique, so swaps are valid; the payload carries every not-null column.
  */
 export async function reorderSessions(sessions: PlanSession[]): Promise<void> {
@@ -120,7 +135,7 @@ export async function removePlanExercise(id: string): Promise<void> {
   ensureOk(await supabase.from('plan_exercise').delete().eq('id', id))
 }
 
-/** Same single-upsert reorder as `reorderSessions`, for the exercises of one session. */
+/** Same single-upsert reorder as `reorderSessions` (complete list required), for the exercises of one session. */
 export async function reorderPlanExercises(exercises: PlanExercise[]): Promise<void> {
   const rows = exercises.map(
     (
