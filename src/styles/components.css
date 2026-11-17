@@ -16,6 +16,11 @@
   padding: var(--ds-space-4) var(--ds-gutter);
 }
 
+/* <main> takes programmatic focus after a navigation; it is not interactive, so no ring. */
+.app__content:focus-visible {
+  outline: none;
+}
+
 /* Tab bar */
 .tab-bar {
   position: sticky;

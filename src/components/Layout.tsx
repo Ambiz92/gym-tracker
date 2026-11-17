@@ -9,7 +9,7 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   return (
     <div className="app">
-      <main className="app__content">{children}</main>
+      <main className="app__content" tabIndex={-1}>{children}</main>
       <TabBar />
     </div>
   )
