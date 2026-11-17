@@ -2,6 +2,7 @@ import { useCallback, useEffect, useSyncExternalStore } from 'react'
 import { createWorkout, deleteSet, logSet } from '../../data/workouts'
 import { deleteWorkout, saveWorkoutNotes } from '../../data/sessionLog'
 import { localDateString } from '../../lib/localDate'
+import { newUuid } from '../../lib/uuid'
 import { browserStorage, unsyncedCount } from '../../lib/sessionDraft'
 import { SessionStore, type StoreState } from '../../lib/sessionStore'
 
@@ -9,7 +10,7 @@ import { SessionStore, type StoreState } from '../../lib/sessionStore'
 export const sessionStore = new SessionStore({
   api: { createWorkout, logSet, deleteSet, saveNotes: saveWorkoutNotes, deleteWorkout },
   storage: browserStorage(),
-  uuid: () => crypto.randomUUID(),
+  uuid: newUuid,
   today: () => localDateString(new Date()),
   now: () => Date.now(),
 })
