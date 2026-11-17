@@ -1,0 +1,108 @@
+import type { Equipment, LastSet, PlanExercise, TargetUnit } from '../types/db'
+import { formatNumber } from './formatNumber'
+import type { PrefillRow } from './prefill'
+import { setsOf, type Draft, type DraftSet } from './sessionDraft'
+import type { SetValues } from './setFlow'
+
+export type PlannedExercise = Pick<PlanExercise, 'exercise_id' | 'target_sets'>
+
+const UNIT_LABEL: Record<TargetUnit, string> = { reps: 'rip', seconds: 'sec', meters: 'm' }
+
+/** Label under the reps number: "rip", "sec" or "m". */
+export const unitLabel = (unit: TargetUnit): string => UNIT_LABEL[unit]
+
+const UNIT_SUFFIX: Record<TargetUnit, string> = { reps: '', seconds: ' s', meters: ' m' }
+
+export function loggedCount(draft: Draft | null, exerciseId: string): number {
+  return draft ? setsOf(draft, exerciseId).length : 0
+}
+
+export function isExerciseDone(draft: Draft | null, exercise: PlannedExercise): boolean {
+  return loggedCount(draft, exercise.exercise_id) >= exercise.target_sets
+}
+
+export function completedExercises(draft: Draft | null, exercises: readonly PlannedExercise[]): number {
+  return exercises.filter((exercise) => isExerciseDone(draft, exercise)).length
+}
+
+interface StartingValuesInput {
+  /** Prefill row for the set about to be logged. */
+  row: PrefillRow
+  /** The set of this exercise confirmed just before, today. */
+  previous: DraftSet | undefined
+  /** Weight proposed by the progression rule, when last time was clean. */
+  suggestedKg: number | null
+}
+
+/**
+ * Values the logger opens with. After a set today, weight and equipment carry over from it (the
+ * user's decision of the day beats last workout's); the first set takes the progression
+ * suggestion, then the prefill. Reps always follow the prefill.
+ */
+export function startingValues({ row, previous, suggestedKg }: StartingValuesInput): SetValues {
+  return {
+    weight: previous?.weightKg ?? suggestedKg ?? row.weight_kg ?? 0,
+    reps: row.reps,
+    equipment: previous?.equipment ?? row.equipment_used,
+  }
+}
+
+/** "Ultima volta 12,5 kg × 10 · suggerito 15 ↑", or a first-time note. */
+export function lastTimeHint(
+  lastSets: readonly LastSet[],
+  setNumber: number,
+  unit: TargetUnit,
+  suggestedKg: number | null,
+): string {
+  const sorted = [...lastSets].sort((a, b) => a.set_number - b.set_number)
+  const reference = sorted.find((set) => set.set_number === setNumber) ?? sorted.at(-1)
+  if (!reference) return 'Prima volta con questo esercizio'
+
+  const last = `Ultima volta ${formatNumber(reference.weight_kg)} kg × ${reference.reps}${UNIT_SUFFIX[unit]}`
+  return suggestedKg === null ? last : `${last} · suggerito ${formatNumber(suggestedKg)} ↑`
+}
+
+/** "3×8 · 15 kg" or "3×10 · 6–8 kg"; the weight is left out when the plan has none. */
+export function targetLabel(
+  target: Pick<PlanExercise, 'target_sets' | 'target_reps' | 'target_unit' | 'suggested_weight_kg' | 'suggested_weight_max_kg'>,
+): string {
+  const work = `${target.target_sets}×${target.target_reps}${UNIT_SUFFIX[target.target_unit]}`
+  const { suggested_weight_kg: min, suggested_weight_max_kg: max } = target
+  if (min === null) return work
+  const weight = max !== null && max > min ? `${formatNumber(min)}–${formatNumber(max)}` : formatNumber(min)
+  return `${work} · ${weight} kg`
+}
+
+export interface SummaryRow {
+  exerciseId: string
+  name: string
+  sets: number
+  /** Heaviest weight of the session. */
+  weightKg: number
+  equipment: Equipment
+  /** Against the heaviest weight of the last workout; null without one. */
+  deltaKg: number | null
+}
+
+/** One row per exercise with sets today, in plan order. */
+export function buildSummary(
+  draft: Draft,
+  exercises: readonly { exerciseId: string; name: string; lastSets: readonly LastSet[] }[],
+): SummaryRow[] {
+  return exercises.flatMap(({ exerciseId, name, lastSets }) => {
+    const sets = setsOf(draft, exerciseId)
+    const heaviest = sets.reduce<DraftSet | undefined>((top, set) => (!top || set.weightKg > top.weightKg ? set : top), undefined)
+    if (!heaviest) return []
+    const before = lastSets.length > 0 ? Math.max(...lastSets.map((set) => set.weight_kg)) : null
+    return [
+      {
+        exerciseId,
+        name,
+        sets: sets.length,
+        weightKg: heaviest.weightKg,
+        equipment: heaviest.equipment,
+        deltaKg: before === null ? null : Math.round((heaviest.weightKg - before) * 100) / 100,
+      },
+    ]
+  })
+}
