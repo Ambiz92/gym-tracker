@@ -7,7 +7,7 @@ import type {
   PlanSessionInsert,
   PlanSessionUpdate,
 } from '../types/db'
-import { DataError, ensureOk, inUseError, isReferenced, supabase, unwrap } from './client'
+import { DataError, ensureAffected, ensureOk, inUseError, isReferenced, supabase, unwrap } from './client'
 
 export type NewSession = Omit<PlanSessionInsert, 'id' | 'plan_id' | 'position'>
 export type NewPlanExercise = Omit<PlanExerciseInsert, 'id' | 'session_id' | 'position'>
@@ -22,12 +22,12 @@ export async function createPlan(name: string): Promise<Plan> {
 }
 
 export async function renamePlan(id: string, name: string): Promise<void> {
-  ensureOk(await supabase.from('plan').update({ name }).eq('id', id))
+  ensureAffected(await supabase.from('plan').update({ name }).eq('id', id).select('id'))
 }
 
 /** Archived plans cannot be active (check constraint), so both flags change together. */
 export async function archivePlan(id: string): Promise<void> {
-  ensureOk(await supabase.from('plan').update({ archived: true, is_active: false }).eq('id', id))
+  ensureAffected(await supabase.from('plan').update({ archived: true, is_active: false }).eq('id', id).select('id'))
 }
 
 /** Deletes a plan whose sessions were never logged; refuses with an `in_use` DataError otherwise. */
@@ -79,7 +79,7 @@ export async function addSession(planId: string, session: NewSession): Promise<P
 }
 
 export async function updateSession(id: string, changes: PlanSessionUpdate): Promise<void> {
-  ensureOk(await supabase.from('plan_session').update(changes).eq('id', id))
+  ensureAffected(await supabase.from('plan_session').update(changes).eq('id', id).select('id'))
 }
 
 /** Removes a session that was never logged; refuses with an `in_use` DataError otherwise. */
@@ -112,7 +112,7 @@ export async function addPlanExercise(sessionId: string, exercise: NewPlanExerci
 }
 
 export async function updatePlanExercise(id: string, changes: PlanExerciseUpdate): Promise<void> {
-  ensureOk(await supabase.from('plan_exercise').update(changes).eq('id', id))
+  ensureAffected(await supabase.from('plan_exercise').update(changes).eq('id', id).select('id'))
 }
 
 /** Plan rows are templates: logged sets point at the exercise, so removing one is always safe. */

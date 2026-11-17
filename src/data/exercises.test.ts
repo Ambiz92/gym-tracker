@@ -30,8 +30,19 @@ test('createExercise and updateExercise return the stored row', async () => {
 })
 
 test('archiveExercise sets archived instead of deleting', async () => {
+  fakeSupabase.reset(() => ({ data: [{ id: 'e1' }] }))
   await archiveExercise('e1')
-  expect(fakeSupabase.calls[0]).toMatchObject({ op: 'update', payload: { archived: true }, filters: [['eq', 'id', 'e1']] })
+  expect(fakeSupabase.calls[0]).toMatchObject({
+    op: 'update',
+    payload: { archived: true },
+    filters: [['eq', 'id', 'e1']],
+    columns: 'id',
+  })
+})
+
+test('archiveExercise throws not_found when no row matched', async () => {
+  fakeSupabase.reset(() => ({ data: [] }))
+  await expect(archiveExercise('missing')).rejects.toMatchObject({ code: 'not_found' })
 })
 
 test('deleteExercise refuses when a set was logged and deletes nothing', async () => {

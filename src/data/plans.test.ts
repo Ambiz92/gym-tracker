@@ -8,9 +8,12 @@ import {
   archivePlan,
   deletePlan,
   removeSession,
+  renamePlan,
   reorderPlanExercises,
   reorderSessions,
   setActivePlan,
+  updatePlanExercise,
+  updateSession,
 } from './plans'
 import type { PlanExercise, PlanSession } from '../types/db'
 
@@ -79,8 +82,35 @@ describe('setActivePlan', () => {
 })
 
 test('archivePlan clears is_active in the same update (check constraint)', async () => {
+  fakeSupabase.reset(() => ({ data: [{ id: 'p1' }] }))
   await archivePlan('p1')
-  expect(fakeSupabase.calls[0]).toMatchObject({ op: 'update', payload: { archived: true, is_active: false } })
+  expect(fakeSupabase.calls[0]).toMatchObject({
+    op: 'update',
+    payload: { archived: true, is_active: false },
+    columns: 'id',
+  })
+})
+
+describe('single-row updates fail when no row matches', () => {
+  const updates: [string, () => Promise<void>, object][] = [
+    ['renamePlan', () => renamePlan('p1', 'New'), { table: 'plan', payload: { name: 'New' } }],
+    ['archivePlan', () => archivePlan('p1'), { table: 'plan' }],
+    ['updateSession', () => updateSession('s1', { name: 'B' }), { table: 'plan_session', payload: { name: 'B' } }],
+    ['updatePlanExercise', () => updatePlanExercise('x1', { target_sets: 4 }), { table: 'plan_exercise', payload: { target_sets: 4 } }],
+  ]
+
+  test.each(updates)('%s updates by id, asks for the id back and succeeds on a match', async (_name, run, expected) => {
+    fakeSupabase.reset(() => ({ data: [{ id: 'row' }] }))
+    await run()
+    expect(fakeSupabase.calls[0]).toMatchObject({ ...expected, op: 'update', columns: 'id' })
+    expect(fakeSupabase.calls[0].filters).toHaveLength(1)
+    expect(fakeSupabase.calls[0].filters[0].slice(0, 2)).toEqual(['eq', 'id'])
+  })
+
+  test.each(updates)('%s throws not_found on an empty result', async (_name, run) => {
+    fakeSupabase.reset(() => ({ data: [] }))
+    await expect(run()).rejects.toMatchObject({ name: 'DataError', code: 'not_found' })
+  })
 })
 
 describe('reorder', () => {

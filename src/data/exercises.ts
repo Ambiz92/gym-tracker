@@ -1,5 +1,5 @@
 import type { Exercise, ExerciseInsert, ExerciseUpdate } from '../types/db'
-import { ensureOk, inUseError, isReferenced, supabase, unwrap } from './client'
+import { ensureAffected, ensureOk, inUseError, isReferenced, supabase, unwrap } from './client'
 
 /** Exercises of the library that are not archived, by name. */
 export async function listExercises(): Promise<Exercise[]> {
@@ -16,7 +16,7 @@ export async function updateExercise(id: string, changes: ExerciseUpdate): Promi
 
 /** Hides the exercise from the library; logged history keeps pointing at it. */
 export async function archiveExercise(id: string): Promise<void> {
-  ensureOk(await supabase.from('exercise').update({ archived: true }).eq('id', id))
+  ensureAffected(await supabase.from('exercise').update({ archived: true }).eq('id', id).select('id'))
 }
 
 /** Deletes an exercise that was never logged; refuses with an `in_use` DataError otherwise. */

@@ -21,7 +21,7 @@ interface Response<T> {
 }
 
 function toDataError(error: PostgrestError): DataError {
-  return new DataError(error.message, error.code, { cause: error })
+  return new DataError(error.message, error.code || null, { cause: error })
 }
 
 /** Returns the payload of a response, throwing a DataError on a Supabase error or an empty payload. */
@@ -40,6 +40,12 @@ export function unwrapOrNull<T>({ data, error }: Response<T>): T | null {
 /** For writes that return no rows: only checks for an error. */
 export function ensureOk({ error }: { error: PostgrestError | null }): void {
   if (error) throw toDataError(error)
+}
+
+/** For writes with `.select('id')`: throws a `not_found` DataError when no row matched (unknown id, hidden by RLS). */
+export function ensureAffected({ data, error }: Response<{ id: string }[]>): void {
+  if (error) throw toDataError(error)
+  if (!data || data.length === 0) throw new DataError('No matching row was updated', 'not_found')
 }
 
 /** True when at least one row of `table` has `column` equal to one of `ids`. */
