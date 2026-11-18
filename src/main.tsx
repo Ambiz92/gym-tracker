@@ -9,6 +9,12 @@ import './styles/desktop.css'
 const root = document.getElementById('root')
 if (!root) throw new Error('Missing #root element')
 
+// A <meta> CSP cannot express frame-ancestors, so refuse to run inside someone else's frame.
+if (window.top !== window.self) {
+  root.textContent = 'Questa pagina non può essere aperta in un frame.'
+  throw new Error('Framed: refusing to start')
+}
+
 createRoot(root).render(
   <StrictMode>
     <App />

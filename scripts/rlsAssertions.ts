@@ -66,6 +66,18 @@ export function isPrivilegedKey(key: string): boolean {
   }
 }
 
+/** Tables that the migrations, applied in order, leave in the public schema. */
+export function publicTablesFrom(migrations: string[]): string[] {
+  const tables = new Set<string>()
+  for (const sql of migrations) {
+    for (const [, kind, name] of sql.matchAll(/\b(create|drop)\s+table\s+(?:if\s+(?:not\s+)?exists\s+)?public\.(\w+)/gi)) {
+      if (kind.toLowerCase() === 'create') tables.add(name)
+      else tables.delete(name)
+    }
+  }
+  return [...tables]
+}
+
 export function formatTable(checks: Check[]): string {
   const width = (pick: (check: Check) => string) => Math.max(...checks.map((check) => pick(check).length))
   const targetWidth = width((check) => check.target)
