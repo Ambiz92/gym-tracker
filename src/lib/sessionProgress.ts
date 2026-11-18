@@ -74,15 +74,9 @@ export function lastTimeHint(
   return suggestedKg === null ? last : `${last} · suggerito ${formatNumber(suggestedKg)} ↑`
 }
 
-/** "3×8 · 15 kg" or "3×10 · 6–8 kg"; the weight is left out when the plan has none. */
-export function targetLabel(
-  target: Pick<PlanExercise, 'target_sets' | 'target_reps' | 'target_unit' | 'suggested_weight_kg' | 'suggested_weight_max_kg'>,
-): string {
-  const work = `${target.target_sets}×${target.target_reps}${UNIT_SUFFIX[target.target_unit]}`
-  const { suggested_weight_kg: min, suggested_weight_max_kg: max } = target
-  if (min === null) return work
-  const weight = max !== null && max > min ? `${formatNumber(min)}–${formatNumber(max)}` : formatNumber(min)
-  return `${work} · ${weight} kg`
+/** "3×8" or "3×30 s"; the weight lives in the set logger and in the history, not on the rows. */
+export function targetLabel(target: Pick<PlanExercise, 'target_sets' | 'target_reps' | 'target_unit'>): string {
+  return `${target.target_sets}×${target.target_reps}${UNIT_SUFFIX[target.target_unit]}`
 }
 
 export interface SummaryRow {

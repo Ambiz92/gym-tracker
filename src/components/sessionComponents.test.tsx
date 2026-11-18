@@ -34,7 +34,7 @@ describe('SyncBanner', () => {
 
 describe('ExerciseCard', () => {
   it('links to the set logger and says in text that the exercise is done', () => {
-    const html = render(<ExerciseCard to="/session/s1?es=e1" name="Panca piana" detail="3×8 · 15 kg" done />)
+    const html = render(<ExerciseCard to="/session/s1?es=e1" name="Panca piana" detail="3×8" done />)
     expect(html).toContain('href="/session/s1?es=e1"')
     expect(html).toContain('exercise-card--done')
     expect(html).toContain('Completato.')

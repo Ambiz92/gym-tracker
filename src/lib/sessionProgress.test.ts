@@ -77,13 +77,11 @@ describe('lastTimeHint', () => {
 })
 
 describe('labels', () => {
-  const target = { target_sets: 3, target_reps: 8, target_unit: 'reps' as const, suggested_weight_kg: 15, suggested_weight_max_kg: null }
+  const target = { target_sets: 3, target_reps: 8, target_unit: 'reps' as const }
 
-  it('writes the target with its weight or weight range', () => {
-    expect(targetLabel(target)).toBe('3×8 · 15 kg')
-    expect(targetLabel({ ...target, suggested_weight_kg: 6, suggested_weight_max_kg: 8 })).toBe('3×8 · 6–8 kg')
-    expect(targetLabel({ ...target, suggested_weight_kg: null })).toBe('3×8')
-    expect(targetLabel({ ...target, target_unit: 'seconds', target_reps: 30, suggested_weight_kg: null })).toBe('3×30 s')
+  it('writes the target as sets and reps, without the weight', () => {
+    expect(targetLabel(target)).toBe('3×8')
+    expect(targetLabel({ ...target, target_unit: 'seconds', target_reps: 30 })).toBe('3×30 s')
   })
 
   it('names the unit under the reps number', () => {
