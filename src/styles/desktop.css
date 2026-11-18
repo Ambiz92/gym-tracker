@@ -8,7 +8,8 @@
   display: contents;
 }
 
-.sidebar__brand {
+.sidebar__brand,
+.sidebar__account {
   display: none;
 }
 
@@ -65,6 +66,32 @@
     font-weight: var(--ds-weight-black);
     letter-spacing: 0.1em;
     text-transform: uppercase;
+  }
+
+  .sidebar__account {
+    display: block;
+    margin-top: auto;
+    padding: var(--ds-space-4) var(--ds-space-6);
+    border-top: var(--ds-rule) solid var(--ds-color-border-strong);
+    font-size: var(--ds-text-sm);
+    color: var(--ds-color-text-muted);
+  }
+
+  .sidebar__email {
+    display: block;
+    overflow-wrap: anywhere;
+    color: var(--ds-color-text);
+  }
+
+  .sidebar__logout {
+    padding: 0;
+    font-weight: var(--ds-weight-bold);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .sidebar__logout:hover {
+    color: var(--ds-color-accent);
   }
 
   .tab-bar {

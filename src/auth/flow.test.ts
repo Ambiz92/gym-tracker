@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { CODE, createFakeAuth, EMAIL, PASSWORD } from './fakeAuth'
 import {
   type AuthStatus,
+  currentEmail,
   normalizeCode,
   resolveStatus,
   signIn,
@@ -67,6 +68,21 @@ describe('resolveStatus', () => {
     fake.state.fail.getAuthenticatorAssuranceLevel = { message: 'x', name: 'AuthRetryableFetchError', status: 0 }
 
     expect(await resolveStatus(fake.api, 'other')).toMatchObject({ ok: false, error: { kind: 'network' } })
+  })
+})
+
+describe('currentEmail', () => {
+  test('is the email of the stored session, and null without one', async () => {
+    const { api } = createFakeAuth()
+    expect(await currentEmail(api)).toBeNull()
+    await signIn(api, EMAIL, PASSWORD)
+    expect(await currentEmail(api)).toBe(EMAIL)
+  })
+
+  test('is null when the session cannot be read', async () => {
+    const { api, state } = createFakeAuth()
+    state.crash.add('getSession')
+    expect(await currentEmail(api)).toBeNull()
   })
 })
 

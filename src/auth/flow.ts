@@ -18,7 +18,7 @@ type Reply<T> = Promise<{ data: T | null; error: AuthErrorLike | null }>
 export interface AuthApi {
   signInWithPassword(credentials: { email: string; password: string }): Promise<{ error: AuthErrorLike | null }>
   signOut(options: { scope: 'local' }): Promise<{ error: AuthErrorLike | null }>
-  getSession(): Promise<{ data: { session: object | null }; error: AuthErrorLike | null }>
+  getSession(): Promise<{ data: { session: { user: { email?: string } } | null }; error: AuthErrorLike | null }>
   onAuthStateChange(callback: (event: string) => void): { data: { subscription: { unsubscribe(): void } } }
   mfa: {
     getAuthenticatorAssuranceLevel(): Reply<{ currentLevel: string | null; nextLevel: string | null }>
@@ -86,6 +86,16 @@ export function resolveStatus(api: AuthApi, step: AuthStep): Promise<Result<Auth
     if (error || !data) return fail(error ?? { message: 'Empty assurance level' }, step)
     return { ok: true, value: statusFromAssurance(data.currentLevel, data.nextLevel) }
   })
+}
+
+/** Email of the stored session; null without one or when it cannot be read (it is only shown, never relied on). */
+export async function currentEmail(api: AuthApi): Promise<string | null> {
+  try {
+    const { data } = await api.getSession()
+    return data.session?.user.email ?? null
+  } catch {
+    return null
+  }
 }
 
 export function signIn(api: AuthApi, email: string, password: string): Promise<Result<AuthStatus>> {

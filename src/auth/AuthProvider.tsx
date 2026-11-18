@@ -4,6 +4,7 @@ import {
   type AuthApi,
   type AuthStatus,
   type Enrollment,
+  currentEmail,
   type Result,
   resolveStatus,
   signIn,
@@ -16,6 +17,8 @@ import {
 /** Actions resolve to `null` on success and to the failure to show otherwise. */
 export interface AuthContextValue {
   status: AuthStatus
+  /** Account of the signed-in user; null until it is read and when signed out. */
+  email: string | null
   signIn(email: string, password: string): Promise<AuthFailure | null>
   verifyCode(code: string): Promise<AuthFailure | null>
   startEnrollment(): Promise<Result<Enrollment>>
@@ -39,6 +42,7 @@ interface AuthProviderProps {
 /** Holds the auth status; the session itself persists through supabase-js (localStorage, auto refresh). */
 export function AuthProvider({ api, children }: AuthProviderProps) {
   const [status, setStatus] = useState<AuthStatus>('loading')
+  const [email, setEmail] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -56,6 +60,17 @@ export function AuthProvider({ api, children }: AuthProviderProps) {
     }
   }, [api])
 
+  useEffect(() => {
+    if (status !== 'signed_in') return
+    let active = true
+    void currentEmail(api).then((value) => {
+      if (active) setEmail(value)
+    })
+    return () => {
+      active = false
+    }
+  }, [api, status])
+
   const actions = useMemo(() => {
     const apply = async (pending: Promise<Result<AuthStatus>>) => {
       const result = await pending
@@ -72,6 +87,9 @@ export function AuthProvider({ api, children }: AuthProviderProps) {
     }
   }, [api])
 
-  const value = useMemo(() => ({ status, ...actions }), [status, actions])
+  const value = useMemo(
+    () => ({ status, email: status === 'signed_in' ? email : null, ...actions }),
+    [status, email, actions],
+  )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
