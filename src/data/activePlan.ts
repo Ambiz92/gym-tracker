@@ -10,8 +10,14 @@ export interface SessionDetail extends PlanSession {
   warmup: WarmupItem[]
 }
 
+/** `sessions` holds the live sessions only: archived ones are hidden from the plan, Oggi and the next-session logic. */
 export interface PlanDetail extends Plan {
   sessions: SessionDetail[]
+}
+
+/** What the plan editor needs on top: the archived sessions, to offer their restore. */
+export interface EditablePlan extends PlanDetail {
+  archivedSessions: SessionDetail[]
 }
 
 interface RawPlan extends Plan {
@@ -25,13 +31,17 @@ const byPosition = <T extends { position: number }>(rows: T[]): T[] => [...rows]
 
 const PLAN_TREE = '*, plan_session(*, plan_exercise(*, exercise(*)), warmup_item(*))'
 
-function shapePlan({ plan_session, ...plan }: RawPlan): PlanDetail {
+function shapePlan({ plan_session, ...plan }: RawPlan): EditablePlan {
   const sessions = byPosition(plan_session).map(({ plan_exercise, warmup_item, ...session }) => ({
     ...session,
     exercises: byPosition(plan_exercise),
     warmup: byPosition(warmup_item),
   }))
-  return { ...plan, sessions }
+  return {
+    ...plan,
+    sessions: sessions.filter((session) => !session.archived),
+    archivedSessions: sessions.filter((session) => session.archived),
+  }
 }
 
 /** The active plan with sessions, exercises and warm-ups ordered by position; null when none is active. */
@@ -40,8 +50,8 @@ export async function getActivePlan(): Promise<PlanDetail | null> {
   return raw && shapePlan(raw)
 }
 
-/** Any plan (archived included) in the same shape as the active one; null when it does not exist. */
-export async function getPlanById(id: string): Promise<PlanDetail | null> {
+/** Any plan (archived included) with its archived sessions listed apart; null when it does not exist. */
+export async function getPlanById(id: string): Promise<EditablePlan | null> {
   const raw = unwrapOrNull<RawPlan>(await supabase.from('plan').select(PLAN_TREE).eq('id', id).maybeSingle())
   return raw && shapePlan(raw)
 }

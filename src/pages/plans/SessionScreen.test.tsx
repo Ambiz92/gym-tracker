@@ -119,6 +119,7 @@ test('the session screen shows the header, the bonus tag, the exercises and the 
     subtitle: null,
     position: 0,
     is_optional: true,
+    archived: false,
     exercises: [row('a')],
     warmup: [],
   }

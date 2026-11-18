@@ -1,4 +1,4 @@
-// Hand-written row types mirroring supabase/migrations/0001_schema.sql.
+// Hand-written row types mirroring supabase/migrations/0001_schema.sql and the later ones.
 // numeric columns arrive as JSON numbers, uuid/date columns as strings.
 
 export type Equipment = 'barbell' | 'dumbbell' | 'other'
@@ -51,8 +51,9 @@ export interface PlanSession {
   subtitle: string | null
   position: number
   is_optional: boolean
+  archived: boolean
 }
-export type PlanSessionInsert = Insert<PlanSession, 'id' | 'subtitle' | 'is_optional'>
+export type PlanSessionInsert = Insert<PlanSession, 'id' | 'subtitle' | 'is_optional' | 'archived'>
 export type PlanSessionUpdate = Update<PlanSession>
 
 export interface PlanExercise {

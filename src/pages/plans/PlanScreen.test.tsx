@@ -15,6 +15,7 @@ function session(id: string, overrides: Partial<SessionDetail> = {}): SessionDet
     subtitle: null,
     position: 0,
     is_optional: false,
+    archived: false,
     exercises: [],
     warmup: [],
     ...overrides,
