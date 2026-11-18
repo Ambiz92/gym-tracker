@@ -95,3 +95,7 @@ Free GitHub Pages needs a public repository. For a private one you need a paid p
 ## Personal data
 
 The `private/` directory holds personal notes and reference files. It is in `.gitignore` and is never committed.
+
+## License
+
+[MIT](LICENSE).
