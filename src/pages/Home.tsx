@@ -12,6 +12,7 @@ import { nextSessionId } from '../lib/nextSession'
 import { activeSets, type Draft } from '../lib/sessionDraft'
 import { completedExercises } from '../lib/sessionProgress'
 import { sessionPath } from './session/paths'
+import { SessionTable } from './session/SessionTable'
 import { useFlushOnMount, useSessionState, useSyncStatus } from './session/sessionStore'
 import '../styles/session.css'
 
@@ -74,7 +75,7 @@ export function Home() {
           <PrimaryButton onClick={state.reload}>Riprova</PrimaryButton>
         </>
       )}
-      {state.status === 'ready' && <PlanSessions {...state.data} />}
+      {state.status === 'ready' && <PlanSessions {...state.data} isDesktop={isDesktop} />}
     </>
   )
 }
@@ -95,7 +96,7 @@ function ResumeRow({ draft, plan }: { draft: Draft; plan: PlanDetail | null }) {
   )
 }
 
-function PlanSessions({ plan, lastDates }: HomeData) {
+function PlanSessions({ plan, lastDates, isDesktop }: HomeData & { isDesktop: boolean }) {
   if (!plan) {
     return (
       <section className="session-empty">
@@ -123,6 +124,8 @@ function PlanSessions({ plan, lastDates }: HomeData) {
           <p className="session-note">Questa scheda non ha ancora sessioni.</p>
           <RowLink to={`/plans/${plan.id}`} title="Aggiungi una sessione" />
         </>
+      ) : isDesktop ? (
+        <SessionTable sessions={plan.sessions} lastDates={lastDates} nextId={next} />
       ) : (
         <ul className="session-list">
           {plan.sessions.map((session, index) => {
