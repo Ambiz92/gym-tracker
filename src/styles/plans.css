@@ -188,3 +188,48 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* Plan list row: activation radio, then the link to the plan. */
+.plan-pick {
+  display: grid;
+  grid-template-columns: var(--ds-size-touch) 1fr;
+  align-items: center;
+  border-top: var(--ds-rule) solid var(--ds-color-border-strong);
+}
+
+.plan-pick .row-link {
+  border-top: 0;
+}
+
+.plan-radio {
+  display: grid;
+  place-items: center;
+  height: var(--ds-size-touch);
+}
+
+.plan-radio input {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  margin: 0;
+  border: var(--ds-rule) solid var(--ds-color-border-strong);
+  border-radius: 50%;
+}
+
+.plan-radio input:checked {
+  background: var(--ds-color-text);
+}
+
+.plan-radio input:checked::after {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--ds-color-bg);
+}
+
+.plan-radio input:disabled {
+  opacity: 0.45;
+}

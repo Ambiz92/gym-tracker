@@ -7,7 +7,7 @@ import { useAsync } from '../hooks/useAsync'
 import { LoadState } from './history/LoadState'
 import { NameForm } from './plans/NameForm'
 import { describePlanError } from './plans/errors'
-import { PlanGroups } from './plans/PlanGroups'
+import { PlanList } from './plans/PlanList'
 import '../styles/plans.css'
 
 /** Plan list: create a plan, open one to edit it, reach the exercise library. */
@@ -48,7 +48,7 @@ export function Plans() {
         />
       )}
       <LoadState state={plans} what="le schede">
-        {(data) => <PlanGroups plans={data} />}
+        {(data) => <PlanList initial={data} />}
       </LoadState>
     </>
   )

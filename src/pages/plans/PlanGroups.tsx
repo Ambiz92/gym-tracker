@@ -3,12 +3,39 @@ import type { PlanSummary } from '../../data/plans'
 import { groupPlans, planDetail } from '../../lib/planList'
 import '../../styles/plans.css'
 
-function PlanRows({ plans, tag }: { plans: readonly PlanSummary[]; tag?: string }) {
+interface PlanGroupsProps {
+  plans: readonly PlanSummary[]
+  /** A request is in flight: the radios are blocked. */
+  busy: boolean
+  /** Failure of the last activation, announced to screen readers. */
+  error: string | null
+  onActivate: (id: string) => void
+}
+
+interface PlanRowsProps {
+  plans: readonly PlanSummary[]
+  busy: boolean
+  onActivate: (id: string) => void
+}
+
+/** Rows of live plans: a radio to make one active, then the link to its editor. */
+function PlanRows({ plans, busy, onActivate }: PlanRowsProps) {
   return (
     <ul className="plans-list">
       {plans.map((plan) => (
-        <li key={plan.id}>
-          <RowLink to={`/plans/${plan.id}`} title={plan.name} detail={planDetail(plan)} tag={tag} />
+        <li key={plan.id} className="plan-pick">
+          <label className="plan-radio">
+            {/* One native radio group across both lists: arrow keys move between plans, a tap activates. */}
+            <input
+              type="radio"
+              name="active-plan"
+              aria-label={`Attiva ${plan.name}`}
+              checked={plan.is_active}
+              disabled={busy}
+              onChange={() => onActivate(plan.id)}
+            />
+          </label>
+          <RowLink to={`/plans/${plan.id}`} title={plan.name} detail={planDetail(plan)} />
         </li>
       ))}
     </ul>
@@ -16,30 +43,42 @@ function PlanRows({ plans, tag }: { plans: readonly PlanSummary[]; tag?: string 
 }
 
 /** The plans of the list screen: the active one, the others, then the archived ones. */
-export function PlanGroups({ plans }: { plans: readonly PlanSummary[] }) {
+export function PlanGroups({ plans, busy, error, onActivate }: PlanGroupsProps) {
   if (plans.length === 0) return <p className="plans-note">Nessuna scheda. Creane una per iniziare.</p>
 
   const { active, others, archived } = groupPlans(plans)
   return (
     <>
+      {error && (
+        <p role="alert" className="plans-error">
+          {error}
+        </p>
+      )}
       <h2 className="plans-label">Scheda attiva</h2>
       {active ? (
-        <PlanRows plans={[active]} tag="Attiva" />
+        <PlanRows plans={[active]} busy={busy} onActivate={onActivate} />
       ) : (
         <p className="plans-note" role="status">
-          Nessuna scheda attiva: apri una scheda e attivala per vederla in Oggi.
+          Nessuna scheda attiva: tocca il cerchio di una scheda per vederla in Oggi.
         </p>
       )}
       {others.length > 0 && (
         <>
           <h2 className="plans-label">Altre schede</h2>
-          <PlanRows plans={others} />
+          <PlanRows plans={others} busy={busy} onActivate={onActivate} />
         </>
       )}
+      <p className="plans-note">Tocca il cerchio per attivare una scheda. Lo storico non cambia mai.</p>
       {archived.length > 0 && (
         <>
           <h2 className="plans-label">Archiviate</h2>
-          <PlanRows plans={archived} tag="Archiviata" />
+          <ul className="plans-list">
+            {archived.map((plan) => (
+              <li key={plan.id}>
+                <RowLink to={`/plans/${plan.id}`} title={plan.name} detail={planDetail(plan)} tag="Archiviata" />
+              </li>
+            ))}
+          </ul>
         </>
       )}
     </>
