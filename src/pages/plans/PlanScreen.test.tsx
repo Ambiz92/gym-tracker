@@ -31,7 +31,7 @@ test('sessions link to their editor and show the exercise count and the bonus fl
       planId="p1"
       sessions={[session('a'), session('b', { is_optional: true, exercises: [{} as SessionDetail['exercises'][number]] })]}
       busy={false}
-      onMove={() => {}}
+      onMove={() => {}} onReorder={() => {}}
     />,
   )
   expect(html).toContain('href="/plans/p1/sessions/a"')
@@ -40,19 +40,19 @@ test('sessions link to their editor and show the exercise count and the bonus fl
 })
 
 test('the first session cannot go up and the last cannot go down', () => {
-  const html = inRouter(<SessionRows planId="p1" sessions={[session('a'), session('b')]} busy={false} onMove={() => {}} />)
+  const html = inRouter(<SessionRows planId="p1" sessions={[session('a'), session('b')]} busy={false} onMove={() => {}} onReorder={() => {}} />)
   expect(html).toMatch(/<button[^>]*aria-label="Sposta su Sessione a"[^>]*disabled/)
   expect(html).not.toMatch(/<button(?=[^>]*aria-label="Sposta giù Sessione a")(?=[^>]*disabled)/)
   expect(html).toMatch(/<button(?=[^>]*aria-label="Sposta giù Sessione b")(?=[^>]*disabled)/)
 })
 
 test('every move button is blocked while a request is in flight', () => {
-  const html = inRouter(<SessionRows planId="p1" sessions={[session('a'), session('b')]} busy onMove={() => {}} />)
+  const html = inRouter(<SessionRows planId="p1" sessions={[session('a'), session('b')]} busy onMove={() => {}} onReorder={() => {}} />)
   expect(html.match(/<button[^>]*disabled/g)).toHaveLength(4)
 })
 
 test('a plan without sessions says so', () => {
-  expect(inRouter(<SessionRows planId="p1" sessions={[]} busy={false} onMove={() => {}} />)).toContain('non ha ancora sessioni')
+  expect(inRouter(<SessionRows planId="p1" sessions={[]} busy={false} onMove={() => {}} onReorder={() => {}} />)).toContain('non ha ancora sessioni')
 })
 
 test('manage offers archive or restore and a delete that needs a confirmation', () => {
@@ -118,4 +118,11 @@ test('without archived sessions the section is absent', () => {
 test('restore buttons are blocked while a request is in flight', () => {
   const html = inRouter(<ArchivedSessions sessions={[session('z')]} busy onRestore={() => {}} />)
   expect(html).toMatch(/<button(?=[^>]*aria-label="Ripristina Sessione z")(?=[^>]*disabled)/)
+})
+
+test('every session row has a pointer-only drag handle and keeps the move buttons', () => {
+  const html = inRouter(<SessionRows planId="p1" sessions={[session('a'), session('b')]} busy={false} onMove={() => {}} onReorder={() => {}} />)
+  expect(html.match(/<span[^>]*class="plan-row__grip"[^>]*aria-hidden="true"/g)).toHaveLength(2)
+  expect(html).toContain('aria-label="Sposta giù Sessione a"')
+  expect(html).toContain('aria-label="Sposta su Sessione b"')
 })

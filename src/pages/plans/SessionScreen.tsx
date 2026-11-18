@@ -15,7 +15,7 @@ import {
 import { useAction } from '../../hooks/useAction'
 import { countLabel } from '../../lib/planList'
 import { defaultTarget, sessionFormFrom, type PlanTarget } from '../../lib/planForm'
-import { moveItem } from '../../lib/reorder'
+import { moveItem, moveTo } from '../../lib/reorder'
 import type { Exercise, ExerciseInsert, PlanSessionUpdate } from '../../types/db'
 import { AddExercise } from './AddExercise'
 import { describePlanError } from './errors'
@@ -78,11 +78,13 @@ export function SessionScreen({ planId, planName, initial }: SessionScreenProps)
     setEditingId(null)
   }
 
-  async function handleMove(index: number, offset: -1 | 1) {
-    const reordered = moveItem(session.exercises, index, offset)
+  async function applyOrder(reordered: SessionDetail['exercises']) {
     const done = await list.run(() => reorderPlanExercises(reordered), 'Riordino non riuscito. Riprova.')
     if (done) setSession((current) => ({ ...current, exercises: reordered }))
   }
+
+  const handleMove = (index: number, offset: -1 | 1) => applyOrder(moveItem(session.exercises, index, offset))
+  const handleReorder = (from: number, to: number) => applyOrder(moveTo(session.exercises, from, to))
 
   async function handleRemoveExercise(id: string) {
     const done = await list.run(() => removePlanExercise(id), 'Rimozione non riuscita. Riprova.')
@@ -136,6 +138,7 @@ export function SessionScreen({ planId, planName, initial }: SessionScreenProps)
         onEdit={setEditingId}
         onSave={handleSaveTarget}
         onMove={handleMove}
+        onReorder={handleReorder}
         onRemove={handleRemoveExercise}
       />
       <div className="plans-actions">

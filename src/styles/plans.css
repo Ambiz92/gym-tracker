@@ -74,7 +74,7 @@
 /* Row of a sessions/exercises list: text on the left, one touch target per action. */
 .plan-row {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1.75rem 1fr;
   grid-auto-flow: column;
   grid-auto-columns: var(--ds-size-touch);
   align-items: center;
@@ -232,4 +232,45 @@
 
 .plan-radio input:disabled {
   opacity: 0.45;
+}
+
+/* Drag handle of a reorderable row: pointer-only, the move buttons are the keyboard path. */
+.plan-row__grip {
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  color: var(--ds-color-text-muted);
+  font-size: var(--ds-text-lg);
+  letter-spacing: -0.15em;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+[data-drag] {
+  position: relative;
+}
+
+[data-drag="source"] {
+  z-index: 1;
+  background: var(--ds-color-bg);
+  outline: var(--ds-rule) solid var(--ds-color-border-strong);
+  pointer-events: none;
+}
+
+[data-drag="before"]::before,
+[data-drag="after"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: var(--ds-rule-thick);
+  background: var(--ds-color-accent);
+}
+
+[data-drag="before"]::before {
+  top: calc(-0.5 * var(--ds-rule-thick));
+}
+
+[data-drag="after"]::after {
+  bottom: calc(-0.5 * var(--ds-rule-thick));
 }

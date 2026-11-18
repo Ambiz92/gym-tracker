@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { SessionHeader } from '../../components/SessionHeader'
-import type { EditablePlan } from '../../data/activePlan'
+import type { EditablePlan, PlanDetail } from '../../data/activePlan'
 import {
   addSession,
   archivePlan,
@@ -16,7 +16,7 @@ import {
 } from '../../data/plans'
 import { useAction } from '../../hooks/useAction'
 import { countLabel } from '../../lib/planList'
-import { moveItem } from '../../lib/reorder'
+import { moveItem, moveTo } from '../../lib/reorder'
 import { ArchivedSessions } from './ArchivedSessions'
 import { describePlanError } from './errors'
 import { NameForm } from './NameForm'
@@ -74,8 +74,7 @@ export function PlanScreen({ initial }: { initial: EditablePlan }) {
     if (added) setPanel(null)
   }
 
-  async function handleMove(index: number, offset: -1 | 1) {
-    const reordered = moveItem(plan.sessions, index, offset)
+  async function applyOrder(reordered: PlanDetail['sessions']) {
     // The archived sessions go last in the payload: they keep their rows in the unique position index.
     const done = await sessions.run(
       () => reorderSessions([...reordered, ...plan.archivedSessions]),
@@ -83,6 +82,9 @@ export function PlanScreen({ initial }: { initial: EditablePlan }) {
     )
     if (done) setPlan((current) => ({ ...current, sessions: reordered }))
   }
+
+  const handleMove = (index: number, offset: -1 | 1) => applyOrder(moveItem(plan.sessions, index, offset))
+  const handleReorder = (from: number, to: number) => applyOrder(moveTo(plan.sessions, from, to))
 
   async function handleRestoreSession(id: string) {
     let position = 0
@@ -155,7 +157,7 @@ export function PlanScreen({ initial }: { initial: EditablePlan }) {
           {sessions.error}
         </p>
       )}
-      <SessionRows planId={plan.id} sessions={plan.sessions} busy={busy} onMove={handleMove} />
+      <SessionRows planId={plan.id} sessions={plan.sessions} busy={busy} onMove={handleMove} onReorder={handleReorder} />
       {panel === 'add-session' ? (
         <NameForm
           noun="sessione"

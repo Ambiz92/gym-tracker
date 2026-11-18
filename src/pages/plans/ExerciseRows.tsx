@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { ReorderButtons } from '../../components/ReorderButtons'
 import type { PlanExerciseDetail } from '../../data/activePlan'
+import { useDragReorder } from '../../hooks/useDragReorder'
 import { targetFormFrom, type PlanTarget } from '../../lib/planForm'
 import { targetLabel } from '../../lib/sessionProgress'
 import { TargetForm } from './TargetForm'
@@ -18,24 +19,28 @@ interface ExerciseRowsProps {
   onEdit: (id: string | null) => void
   onSave: (id: string, target: PlanTarget) => void
   onMove: (index: number, offset: -1 | 1) => void
+  /** A row was dragged onto another one. */
+  onReorder: (from: number, to: number) => void
   onRemove: (id: string) => void
 }
 
-/** Exercises of a session in execution order: sets×reps only (weights live in the edit form), reorder and remove. */
-export function ExerciseRows({ exercises, editingId, busy, error, onEdit, onSave, onMove, onRemove }: ExerciseRowsProps) {
+/** Exercises of a session in execution order: sets×reps only (weights live in the edit form), reorder (drag or buttons) and remove. */
+export function ExerciseRows({ exercises, editingId, busy, error, onEdit, onSave, onMove, onReorder, onRemove }: ExerciseRowsProps) {
+  const drag = useDragReorder({ disabled: busy, onReorder })
   // The remove button sits next to the move buttons, so removing asks for a second tap.
   const [removingId, setRemovingId] = useState<string | null>(null)
 
   if (exercises.length === 0) return <p className="plans-note">Questa sessione non ha ancora esercizi.</p>
 
   return (
-    <ul className="plans-list">
+    <ul ref={drag.listRef} className="plans-list">
       {exercises.map((row, index) => {
         const { name } = row.exercise
         const open = row.id === editingId
         return (
-          <li key={row.id}>
+          <li key={row.id} {...drag.rowProps(index)}>
             <div className="plan-row">
+              <span {...drag.gripProps(index)}>⋮⋮</span>
               <button
                 type="button"
                 className="plan-row__main"
