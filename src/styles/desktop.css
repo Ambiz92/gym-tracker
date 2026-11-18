@@ -1,0 +1,489 @@
+/*
+ * Desktop layout: sidebar navigation and wider pages, from 64rem up (keep in step with DESKTOP_QUERY
+ * in hooks/useIsDesktop.ts). Loaded last so it overrides the phone rules; the phone layout is the default.
+ */
+
+/* On a phone the wrapper disappears, so the tab bar stays a direct child of .app. */
+.sidebar {
+  display: contents;
+}
+
+.sidebar__brand,
+.sidebar__account {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  :root {
+    --ds-gutter: var(--ds-space-8);
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: var(--ds-size-sidebar) minmax(0, 1fr);
+    max-width: none;
+    padding: 0;
+  }
+
+  /* Signed-out screens: no sidebar, a centred form that fills the screen height. */
+  .app--auth {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    max-width: none;
+  }
+
+  .app--auth .app__content {
+    width: 100%;
+    max-width: var(--ds-size-column);
+    padding-inline: var(--ds-space-5);
+  }
+
+  .app__content {
+    grid-column: 2;
+    grid-row: 1;
+    padding-block: var(--ds-space-5) var(--ds-space-8);
+  }
+
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    grid-column: 1;
+    grid-row: 1;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100dvh;
+    padding-top: var(--ds-space-5);
+    border-right: var(--ds-rule-thick) solid var(--ds-color-border-strong);
+  }
+
+  .sidebar__brand {
+    display: block;
+    padding: 0 var(--ds-space-6) var(--ds-space-4);
+    font-size: var(--ds-text-xs);
+    font-weight: var(--ds-weight-black);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .sidebar__account {
+    display: block;
+    margin-top: auto;
+    padding: var(--ds-space-4) var(--ds-space-6);
+    border-top: var(--ds-rule) solid var(--ds-color-border-strong);
+    font-size: var(--ds-text-sm);
+    color: var(--ds-color-text-muted);
+  }
+
+  .sidebar__email {
+    display: block;
+    overflow-wrap: anywhere;
+    color: var(--ds-color-text);
+  }
+
+  .sidebar__logout {
+    padding: 0;
+    font-weight: var(--ds-weight-bold);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .sidebar__logout:hover {
+    color: var(--ds-color-accent);
+  }
+
+  .tab-bar {
+    position: static;
+    padding-bottom: 0;
+    border-top: 0;
+  }
+
+  .tab-bar__list {
+    display: block;
+  }
+
+  .tab-bar__link {
+    min-height: 0;
+    padding: var(--ds-space-4) var(--ds-space-6);
+    border-top: var(--ds-rule) solid var(--ds-color-border-strong);
+    font-size: 1.625rem;
+    letter-spacing: -0.03em;
+    text-transform: none;
+  }
+
+  .tab-bar__link:hover:not([aria-current="page"]) {
+    background: var(--ds-color-border);
+  }
+
+  /* Session, read-only: exercise list and the selected exercise side by side */
+  .desktop-session {
+    display: grid;
+    grid-template-columns: 20.625rem minmax(0, 1fr);
+    margin-top: var(--ds-space-4);
+    border-top: var(--ds-rule) solid var(--ds-color-border-strong);
+  }
+
+  .desktop-session__list {
+    list-style: none;
+    border-right: var(--ds-rule) solid var(--ds-color-border-strong);
+  }
+
+  .desktop-session__item {
+    display: block;
+    min-height: 4rem;
+    padding: var(--ds-space-3) var(--ds-space-3) var(--ds-space-3) 0;
+    border-bottom: 1px solid var(--ds-color-border);
+  }
+
+  .desktop-session__item:hover:not([aria-current]) {
+    background: var(--ds-color-border);
+  }
+
+  .desktop-session__item[aria-current] {
+    padding-left: var(--ds-space-3);
+    background: var(--ds-color-text);
+    color: var(--ds-color-bg);
+  }
+
+  .desktop-session__item[aria-current] .exercise-card__detail {
+    color: inherit;
+    opacity: 0.75;
+  }
+
+  .desktop-session__item[aria-current]:focus-visible {
+    outline-offset: calc(-1 * var(--ds-space-2));
+  }
+
+  .desktop-session__detail {
+    padding: var(--ds-space-2) var(--ds-space-8);
+  }
+
+  .exercise-detail__title {
+    margin: var(--ds-space-2) 0 var(--ds-space-3);
+    font-size: var(--ds-text-2xl);
+    font-weight: var(--ds-weight-black);
+    letter-spacing: -0.04em;
+    line-height: var(--ds-leading-tight);
+    overflow-wrap: anywhere;
+  }
+
+  .exercise-detail__suggestion {
+    font-size: var(--ds-text-xs);
+    font-weight: var(--ds-weight-black);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ds-color-accent);
+  }
+
+  .exercise-detail__steps {
+    max-width: 40rem;
+    margin-top: var(--ds-space-2);
+    list-style: none;
+    counter-reset: step;
+  }
+
+  .exercise-detail__steps li {
+    display: grid;
+    grid-template-columns: 1.875rem 1fr;
+    padding: var(--ds-space-3) 0;
+    border-top: 1px solid var(--ds-color-border);
+    counter-increment: step;
+  }
+
+  .exercise-detail__steps li::before {
+    content: counter(step);
+    font-weight: var(--ds-weight-black);
+    color: var(--ds-color-accent);
+  }
+
+  .exercise-detail__empty {
+    margin-top: var(--ds-space-2);
+    color: var(--ds-color-text-muted);
+    font-weight: var(--ds-weight-bold);
+  }
+
+  .exercise-detail__label {
+    margin-top: var(--ds-space-6);
+    padding-top: var(--ds-space-2);
+    border-top: var(--ds-rule) solid var(--ds-color-border-strong);
+    font-size: var(--ds-text-xs);
+    font-weight: var(--ds-weight-black);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .exercise-detail__sets {
+    width: 100%;
+    max-width: 28rem;
+    margin-top: var(--ds-space-2);
+    border-collapse: collapse;
+  }
+
+  .exercise-detail__sets th {
+    padding: var(--ds-space-2) 0;
+    border-bottom: var(--ds-rule) solid var(--ds-color-border-strong);
+    font-size: var(--ds-text-xs);
+    letter-spacing: 0.1em;
+    text-align: left;
+    text-transform: uppercase;
+    color: var(--ds-color-text-muted);
+  }
+
+  .exercise-detail__sets td {
+    padding: var(--ds-space-3) 0;
+    border-bottom: 1px solid var(--ds-color-border);
+    font-weight: var(--ds-weight-bold);
+  }
+
+  .exercise-detail__sets :is(th, td):last-child {
+    text-align: right;
+  }
+
+  /* Oggi */
+  .desktop-note {
+    margin: var(--ds-space-3) 0;
+    padding: var(--ds-space-3) var(--ds-space-4);
+    border: var(--ds-rule) solid var(--ds-color-border-strong);
+    font-size: var(--ds-text-sm);
+  }
+
+  .desktop-note strong {
+    color: var(--ds-color-accent);
+  }
+
+  .session-list .row-link:hover:not(.row-link--inverted) {
+    background: var(--ds-color-border);
+  }
+
+  .session-table {
+    width: 100%;
+    margin-top: var(--ds-space-2);
+    border-collapse: collapse;
+  }
+
+  .session-table th {
+    padding: var(--ds-space-2) 0;
+    border-bottom: var(--ds-rule) solid var(--ds-color-border-strong);
+    font-size: var(--ds-text-xs);
+    letter-spacing: 0.1em;
+    text-align: left;
+    text-transform: uppercase;
+    color: var(--ds-color-text-muted);
+  }
+
+  .session-table td {
+    position: relative;
+    padding: var(--ds-space-4) 0;
+    border-bottom: 1px solid var(--ds-color-border);
+    font-weight: var(--ds-weight-bold);
+  }
+
+  .session-table__index {
+    width: 5rem;
+    font-size: var(--ds-text-3xl);
+    font-weight: var(--ds-weight-black);
+    letter-spacing: -0.05em;
+    line-height: 1;
+  }
+
+  .session-table__name {
+    font-size: var(--ds-text-xl);
+    font-weight: var(--ds-weight-black);
+    letter-spacing: -0.02em;
+  }
+
+  /* The whole row is the click target. */
+  .session-table__name::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+
+  .session-table__tag,
+  .session-table__bonus {
+    margin-left: var(--ds-space-2);
+    font-size: var(--ds-text-xs);
+    font-weight: var(--ds-weight-black);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .session-table__tag {
+    color: var(--ds-color-accent);
+  }
+
+  .session-table__bonus {
+    color: var(--ds-color-text-muted);
+  }
+
+  .session-table td.session-table__go {
+    padding-right: var(--ds-space-3);
+    font-size: var(--ds-text-xl);
+    text-align: right;
+  }
+
+  .session-table__row:hover:not(.session-table__row--next) {
+    background: var(--ds-color-border);
+  }
+
+  .session-table__row--next {
+    background: var(--ds-color-text);
+    color: var(--ds-color-bg);
+  }
+
+  .session-table__row--next td {
+    border-color: var(--ds-color-text);
+  }
+
+  .session-table__row--next td:first-child {
+    padding-left: var(--ds-space-3);
+  }
+
+  .session-table__row--next .session-table__index,
+  .session-table__row--next .session-table__tag {
+    color: var(--ds-color-accent-on-inverse);
+  }
+
+  .exercise-row:hover:not([aria-current]) {
+    background: var(--ds-color-border);
+  }
+
+  .exercise-row[aria-current] {
+    padding-inline: var(--ds-space-3);
+    background: var(--ds-color-text);
+    color: var(--ds-color-bg);
+  }
+
+  .exercise-row[aria-current] .exercise-row__detail {
+    color: inherit;
+    opacity: 0.75;
+  }
+
+  .exercise-row[aria-current] .exercise-row__tag {
+    color: var(--ds-color-accent-on-inverse);
+  }
+
+  .exercise-row[aria-current]:focus-visible {
+    outline-offset: calc(-1 * var(--ds-space-2));
+  }
+
+  /* Library editor: "Salva" and "Archivia" side by side */
+  .exercise-form__actions--split {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .exercise-form__actions--split > * {
+    flex: 1 1 12rem;
+  }
+
+  .exercise-form__actions--split > [role="alert"] {
+    flex-basis: 100%;
+  }
+
+  /* Altro: the three groups side by side */
+  .more-sections {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--ds-space-8);
+  }
+
+  .more-factor {
+    padding: var(--ds-space-3) 0;
+    border-bottom: 1px solid var(--ds-color-border);
+  }
+
+  /* Master-detail pages: Storico, Libreria */
+  .split {
+    display: grid;
+    grid-template-columns: minmax(21rem, 28rem) minmax(0, 1fr);
+  }
+
+  /* Schede: the list is narrower, the editor beside it holds two panes of its own */
+  .split--plans {
+    grid-template-columns: minmax(14rem, 17rem) minmax(0, 1fr);
+  }
+
+  .split__list {
+    padding-right: var(--ds-space-6);
+    border-right: var(--ds-rule) solid var(--ds-color-border-strong);
+  }
+
+  .split__detail {
+    padding-left: var(--ds-space-8);
+  }
+
+  .split__hint {
+    margin-top: var(--ds-space-6);
+    color: var(--ds-color-text-muted);
+    font-weight: var(--ds-weight-bold);
+  }
+
+  /* The list is always beside the detail, so the way back is not needed. */
+  .split__detail .history-back {
+    display: none;
+  }
+
+  .split .row-link--inverted {
+    margin-inline: 0;
+    padding-inline: var(--ds-space-3);
+  }
+
+  /* Plan editor: sessions of the plan | exercises of the open session */
+  .plan-panes {
+    display: grid;
+    grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr);
+  }
+
+  .plan-panes__sessions {
+    padding-right: var(--ds-space-5);
+    border-right: var(--ds-rule) solid var(--ds-color-border-strong);
+  }
+
+  .plan-panes__editor {
+    padding-left: var(--ds-space-5);
+  }
+
+  .plan-panes__sessions .page-header__title {
+    font-size: var(--ds-text-xl);
+  }
+
+  /* Both panes are always visible, so the way back is not needed. */
+  .plan-panes .session-header__back {
+    display: none;
+  }
+
+  .plan-row--selected {
+    background: var(--ds-color-text);
+    color: var(--ds-color-bg);
+  }
+
+  .plan-row--selected .plan-row__grip {
+    color: inherit;
+  }
+
+  .plan-row--selected .row-link__detail {
+    color: inherit;
+    opacity: 0.75;
+  }
+
+  /* Plan list: the whole row of the open plan, activation radio included */
+  .plan-pick--selected {
+    background: var(--ds-color-text);
+    color: var(--ds-color-bg);
+  }
+
+  .plan-pick--selected .plan-radio input {
+    border-color: var(--ds-color-bg);
+  }
+
+  .plan-pick--selected .plan-radio input:checked {
+    background: var(--ds-color-bg);
+  }
+
+  .plan-pick--selected .plan-radio input:checked::after {
+    background: var(--ds-color-text);
+  }
+}

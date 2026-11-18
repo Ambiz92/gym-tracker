@@ -1,0 +1,354 @@
+/* Plan editor: plan list, plan and session screens. Reuses .field, .primary-button and .row-link text from components.css. */
+
+.plans-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--ds-space-2);
+}
+
+.plans-bar__action {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--ds-size-touch);
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-black);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.plans-bar__action--accent {
+  color: var(--ds-color-accent);
+}
+
+.plans-note,
+.plans-error {
+  margin-top: var(--ds-space-4);
+  font-weight: var(--ds-weight-bold);
+}
+
+.plans-note {
+  color: var(--ds-color-text-muted);
+}
+
+.plans-error {
+  padding: var(--ds-space-3);
+  border: var(--ds-rule) solid var(--ds-color-accent);
+  color: var(--ds-color-accent);
+}
+
+.plans-label {
+  margin-top: var(--ds-space-6);
+  padding-top: var(--ds-space-2);
+  border-top: var(--ds-rule) solid var(--ds-color-border-strong);
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-black);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.plans-form {
+  display: grid;
+  gap: var(--ds-space-3);
+  margin-top: var(--ds-space-4);
+}
+
+.plans-form .field {
+  margin-top: 0;
+}
+
+.plans-actions {
+  display: grid;
+  gap: var(--ds-space-3);
+  margin-top: var(--ds-space-4);
+}
+
+.plans-list {
+  list-style: none;
+}
+
+.plans-list > li:last-child {
+  border-bottom: var(--ds-rule) solid var(--ds-color-border-strong);
+}
+
+/* Row of a sessions/exercises list: text on the left, one touch target per action. */
+.plan-row {
+  display: grid;
+  grid-template-columns: 1.75rem 1fr;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--ds-size-touch);
+  align-items: center;
+  min-height: 3.875rem;
+  border-top: var(--ds-rule) solid var(--ds-color-border-strong);
+}
+
+.plan-row__main {
+  display: block;
+  min-width: 0;
+  padding: var(--ds-space-3) 0;
+  text-align: left;
+}
+
+.plan-row__main:active {
+  background: var(--ds-color-border);
+}
+
+.plan-row__button {
+  display: grid;
+  place-items: center;
+  min-height: var(--ds-size-touch);
+  font-size: var(--ds-text-lg);
+  font-weight: var(--ds-weight-black);
+}
+
+.plan-row__button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.plan-editor {
+  padding: var(--ds-space-2) 0 var(--ds-space-4);
+}
+
+.plan-editor .field:first-child {
+  margin-top: 0;
+}
+
+.plan-editor__numbers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ds-space-3);
+}
+
+.plan-editor__fieldset {
+  min-inline-size: 0;
+  margin-top: var(--ds-space-4);
+  border: 0;
+}
+
+/* Checkbox row, e.g. the bonus flag. */
+.plans-check {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-3);
+  min-height: var(--ds-size-touch);
+  margin-top: var(--ds-space-4);
+  font-weight: var(--ds-weight-black);
+}
+
+.plans-check input {
+  width: 1.5rem;
+  height: 1.5rem;
+  accent-color: var(--ds-color-accent);
+}
+
+.plans-check small {
+  display: block;
+  color: var(--ds-color-text-muted);
+  font-weight: var(--ds-weight-bold);
+}
+
+.plans-danger {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--ds-size-touch);
+  color: var(--ds-color-accent);
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-black);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.plans-danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Row without grip or arrows (archived sessions): text and one text button. */
+.plan-row--plain {
+  grid-template-columns: 1fr auto;
+  grid-auto-columns: auto;
+}
+
+.plan-row__text-button {
+  min-height: var(--ds-size-touch);
+  padding-inline: var(--ds-space-3);
+  color: var(--ds-color-accent);
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-black);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.plan-row__text-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Plan list row: activation radio, then the link to the plan. */
+.plan-pick {
+  display: grid;
+  grid-template-columns: var(--ds-size-touch) 1fr;
+  align-items: center;
+  border-top: var(--ds-rule) solid var(--ds-color-border-strong);
+}
+
+.plan-pick .row-link {
+  border-top: 0;
+}
+
+.plan-radio {
+  display: grid;
+  place-items: center;
+  height: var(--ds-size-touch);
+}
+
+.plan-radio input {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  margin: 0;
+  border: var(--ds-rule) solid var(--ds-color-border-strong);
+  border-radius: 50%;
+}
+
+.plan-radio input:checked {
+  background: var(--ds-color-text);
+}
+
+.plan-radio input:checked::after {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--ds-color-bg);
+}
+
+.plan-radio input:disabled {
+  opacity: 0.45;
+}
+
+/* Drag handle of a reorderable row: pointer-only, the move buttons are the keyboard path. */
+.plan-row__grip {
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  color: var(--ds-color-text-muted);
+  font-size: var(--ds-text-lg);
+  letter-spacing: -0.15em;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+[data-drag] {
+  position: relative;
+}
+
+[data-drag="source"] {
+  z-index: 1;
+  background: var(--ds-color-bg);
+  outline: var(--ds-rule) solid var(--ds-color-border-strong);
+  pointer-events: none;
+}
+
+[data-drag="before"]::before,
+[data-drag="after"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: var(--ds-rule-thick);
+  background: var(--ds-color-accent);
+}
+
+[data-drag="before"]::before {
+  top: calc(-0.5 * var(--ds-rule-thick));
+}
+
+[data-drag="after"]::after {
+  bottom: calc(-0.5 * var(--ds-rule-thick));
+}
+
+/* Desktop session editor: one line per exercise, edited in place; the inputs wrap under the name when the pane is narrow. */
+.plan-grid__row {
+  padding: var(--ds-space-3) 0;
+  border-top: var(--ds-rule) solid var(--ds-color-border-strong);
+}
+
+.plan-grid__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--ds-space-2) var(--ds-space-4);
+}
+
+.plan-grid__name {
+  flex: 1 1 9rem;
+  align-self: center;
+  min-width: 0;
+}
+
+.plan-grid__fields {
+  display: flex;
+  align-items: end;
+  gap: var(--ds-space-2);
+}
+
+.plan-grid__cell {
+  display: grid;
+  gap: 2px;
+}
+
+.plan-grid__label {
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-black);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ds-color-text-muted);
+}
+
+.plan-grid__input {
+  width: 3.25rem;
+  min-height: 2.5rem;
+  padding: 0 var(--ds-space-2);
+  border: var(--ds-rule) solid var(--ds-color-border-strong);
+  border-radius: 0;
+  background: transparent;
+  font-size: var(--ds-text-md);
+  font-weight: var(--ds-weight-black);
+  text-align: center;
+}
+
+.plan-grid__input--unit {
+  width: auto;
+  text-align: left;
+}
+
+.plan-grid__input[aria-invalid="true"] {
+  border-color: var(--ds-color-accent);
+}
+
+.plan-grid__kg {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-1);
+}
+
+.plan-grid__kg .plan-grid__input {
+  width: 3.75rem;
+}
+
+.plan-grid__actions {
+  display: flex;
+  align-items: center;
+}
+
+.plan-grid__actions .plan-row__button {
+  min-width: 2.25rem;
+}

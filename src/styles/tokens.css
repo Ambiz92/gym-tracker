@@ -1,0 +1,95 @@
+/*
+ * Design tokens, Swiss poster style: flat, thick black rules, one red accent, square corners,
+ * no shadows. Components read only these --ds-* variables.
+ * Dark follows the OS unless <html data-theme="light|dark"> is set.
+ *
+ * Contrast (WCAG), checked numerically:
+ *   light: text/bg 17.7, text-muted/bg 6.2, accent/bg 4.6, on-accent/accent 5.0, accent-on-inverse/text 5.99
+ *   dark:  text/bg 17.7, text-muted/bg 7.8, accent/bg 6.0, on-accent/accent 6.0, accent-on-inverse/text 4.6
+ * Controls and focus use --ds-color-border-strong / --ds-color-focus (>= 3:1 on bg).
+ * --ds-color-border is decorative (row dividers, progress track) and intentionally lighter.
+ */
+
+:root {
+  --ds-color-page: #cfccc1;
+  --ds-color-bg: #f6f5f0;
+  --ds-color-text: #0e0e0e;
+  --ds-color-text-muted: #5c5b55;
+  --ds-color-border: #cfcbbe;
+  --ds-color-border-strong: #0e0e0e;
+  --ds-color-accent: #d92216;
+  --ds-color-on-accent: #ffffff;
+  --ds-color-accent-on-inverse: #ff5144;
+  --ds-color-focus: #d92216;
+
+  --ds-font-body: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --ds-text-xs: 0.75rem;
+  --ds-text-sm: 0.8125rem;
+  --ds-text-base: 0.9375rem;
+  --ds-text-md: 1.0625rem;
+  --ds-text-lg: 1.1875rem;
+  --ds-text-xl: 1.375rem;
+  --ds-text-2xl: 2.125rem;
+  --ds-text-3xl: 2.875rem;
+  --ds-text-4xl: 3.625rem;
+  --ds-leading-tight: 0.9;
+  --ds-leading-normal: 1.35;
+  --ds-weight-medium: 600;
+  --ds-weight-bold: 700;
+  --ds-weight-black: 800;
+
+  --ds-space-1: 0.25rem;
+  --ds-space-2: 0.5rem;
+  --ds-space-3: 0.75rem;
+  --ds-space-4: 1rem;
+  --ds-space-5: 1.25rem;
+  --ds-space-6: 1.5rem;
+  --ds-space-8: 2rem;
+
+  --ds-rule: 2px;
+  --ds-rule-thick: 5px;
+  --ds-focus-width: 3px;
+
+  --ds-duration-fast: 120ms;
+  --ds-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  --ds-size-touch: 2.75rem;
+  --ds-size-column: 30rem;
+  --ds-size-tab: 3.625rem;
+  --ds-size-sidebar: 15.625rem;
+  --ds-size-desktop: 90rem;
+  --ds-gutter: var(--ds-space-5);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ds-color-page: #050505;
+    --ds-color-bg: #0e0e0e;
+    --ds-color-text: #f6f5f0;
+    --ds-color-text-muted: #a6a59d;
+    --ds-color-border: #34342f;
+    --ds-color-border-strong: #f6f5f0;
+    --ds-color-accent: #ff5144;
+    --ds-color-on-accent: #0e0e0e;
+    --ds-color-accent-on-inverse: #d92216;
+    --ds-color-focus: #ff5144;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --ds-color-page: #050505;
+  --ds-color-bg: #0e0e0e;
+  --ds-color-text: #f6f5f0;
+  --ds-color-text-muted: #a6a59d;
+  --ds-color-border: #34342f;
+  --ds-color-border-strong: #f6f5f0;
+  --ds-color-accent: #ff5144;
+  --ds-color-on-accent: #0e0e0e;
+  --ds-color-accent-on-inverse: #d92216;
+  --ds-color-focus: #ff5144;
+  color-scheme: dark;
+}
