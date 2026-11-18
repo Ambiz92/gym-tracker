@@ -17,3 +17,14 @@ Not covered, to test by hand with a logged-in session:
 - an authenticated user sees and changes only their own rows;
 - an aal1 session (no TOTP challenge) is refused by the restrictive aal2 policies;
 - an aal2 session works normally.
+
+## check-secrets.ts
+
+Fails when a private Supabase credential appears where only public values belong: an `sb_secret_` key, a `service_role` JWT, a `SERVICE_ROLE_KEY=...` assignment, or any JWT other than the value of `VITE_SUPABASE_ANON_KEY`. It also scans every `VITE_*` environment variable, because those end up in the bundle.
+
+```
+npm run check:secrets        # files tracked by git
+npm run check:secrets:dist   # the built bundle (run after npm run build)
+```
+
+Findings print as `file:line  kind  first 8 characters`, never the whole value. The CI workflow runs both. The new `sb_publishable_` key format is public and is never flagged.
