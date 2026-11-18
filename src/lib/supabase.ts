@@ -8,4 +8,5 @@ if (!url || !anonKey) {
 }
 
 // Anon key only: the service_role key must never reach the front end.
-export const supabase = createClient(url, anonKey)
+// detectSessionInUrl is off: there is no OAuth or magic-link flow, and the hash belongs to the router.
+export const supabase = createClient(url, anonKey, { auth: { detectSessionInUrl: false } })
