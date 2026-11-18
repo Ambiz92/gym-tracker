@@ -376,6 +376,11 @@
     gap: var(--ds-space-8);
   }
 
+  .more-factor {
+    padding: var(--ds-space-3) 0;
+    border-bottom: 1px solid var(--ds-color-border);
+  }
+
   /* Master-detail pages: Storico, Libreria */
   .split {
     display: grid;

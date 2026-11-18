@@ -1,5 +1,7 @@
+import { useAuth } from '../auth/AuthProvider'
 import { LogoutButton } from '../auth/LogoutButton'
 import { PageHeader } from '../components/PageHeader'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 import '../styles/history.css'
 import { ExportActions } from './more/ExportActions'
 import { ThemeSetting } from './more/ThemeSetting'
@@ -9,9 +11,12 @@ import { applyStoredTheme } from './more/theme'
 applyStoredTheme()
 
 export function More() {
+  const { email } = useAuth()
+  const isDesktop = useIsDesktop()
+
   return (
     <>
-      <PageHeader meta="Altro" title="Altro" />
+      <PageHeader meta="Altro" metaEnd={isDesktop && email ? email : undefined} title="Altro" />
       <div className="more-sections">
         <section>
           <h2 className="history-label">Dati</h2>
@@ -23,6 +28,12 @@ export function More() {
         </section>
         <section>
           <h2 className="history-label">Account</h2>
+          {isDesktop && (
+            <p className="more-factor">
+              <span className="row-link__title">Secondo fattore</span>
+              <span className="row-link__detail">Authenticator attivo</span>
+            </p>
+          )}
           <LogoutButton />
         </section>
       </div>
