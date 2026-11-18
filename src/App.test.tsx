@@ -53,7 +53,7 @@ test('a login screen is not shown to a user it does not belong to', () => {
   expect(renderAt('/login/code', 'signed_out')).not.toContain('Il codice.')
 })
 
-test.each(['/', '/session/1', '/plans', '/plans/1', '/exercises', '/history', '/history/1', '/more'])(
+test.each(['/', '/session/1', '/plans', '/plans/1', '/plans/1/sessions/2', '/exercises', '/history', '/history/1', '/more'])(
   '%s renders in the app layout: a main landmark and the navigation',
   (path) => {
     const html = renderAt(path)

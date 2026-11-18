@@ -14,6 +14,7 @@ import { MfaEnroll } from './pages/MfaEnroll'
 import { More } from './pages/More'
 import { NotFound } from './pages/NotFound'
 import { PlanEdit } from './pages/PlanEdit'
+import { PlanSessionEdit } from './pages/PlanSessionEdit'
 import { Plans } from './pages/Plans'
 import { Session } from './pages/Session'
 
@@ -66,6 +67,7 @@ export function AppRoutes() {
             <Route path="/session/:id" element={<Session />} />
             <Route path="/plans" element={<Plans />} />
             <Route path="/plans/:id" element={<PlanEdit />} />
+            <Route path="/plans/:id/sessions/:sessionId" element={<PlanSessionEdit />} />
             <Route path="/exercises" element={<Exercises />} />
             <Route path="/history" element={<History />} />
             <Route path="/history/:exerciseId" element={<History />} />
