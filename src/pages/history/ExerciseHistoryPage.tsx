@@ -3,6 +3,7 @@ import { ExerciseHistoryTable } from '../../components/ExerciseHistoryTable'
 import { KpiRow } from '../../components/KpiRow'
 import { LineChart } from '../../components/LineChart'
 import { PageHeader } from '../../components/PageHeader'
+import { PageHeading } from '../../components/PageHeading'
 import { getHistoryExercise } from '../../data/history'
 import { getExerciseHistory } from '../../data/workouts'
 import { useAsync } from '../../hooks/useAsync'
@@ -38,7 +39,7 @@ export function ExerciseHistoryPage({ exerciseId }: { exerciseId: string }) {
 function NotFound() {
   return (
     <section className="history-empty">
-      <h1 className="history-empty__title">Esercizio non trovato.</h1>
+      <PageHeading className="history-empty__title">Esercizio non trovato.</PageHeading>
       <p className="history-empty__text">Potrebbe essere stato rimosso, oppure il link non è corretto.</p>
     </section>
   )

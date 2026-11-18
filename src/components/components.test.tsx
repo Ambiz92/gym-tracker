@@ -6,6 +6,7 @@ import { Field } from './Field'
 import { PageHeader } from './PageHeader'
 import { PrimaryButton } from './PrimaryButton'
 import { RowLink } from './RowLink'
+import { SplitView } from './SplitView'
 
 function renderAt(path: string, ui: ReactElement) {
   return renderToStaticMarkup(<MemoryRouter initialEntries={[path]}>{ui}</MemoryRouter>)
@@ -20,6 +21,15 @@ test('PageHeader renders the title as the h1 and the meta row', () => {
   expect(html).toContain('Gym Tracker')
   expect(html).toContain('Gio 17.11')
   expect(html).toContain('Tre sessioni')
+})
+
+test('a split view keeps one h1: the list owns it, the detail title becomes an h2', () => {
+  const html = renderAt(
+    '/',
+    <SplitView list={<PageHeader meta="Storico" title="Storico" />} detail={<PageHeader meta="Esercizio" title="Rematore" />} />,
+  )
+  expect(html.match(/<h1/g)).toHaveLength(1)
+  expect(html).toContain('<h2 class="page-header__title">Rematore</h2>')
 })
 
 test('RowLink links to its target and hides the decorative numeral', () => {
