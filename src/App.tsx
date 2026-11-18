@@ -66,8 +66,9 @@ export function AppRoutes() {
             <Route path="/" element={<Home />} />
             <Route path="/session/:id" element={<Session />} />
             <Route path="/plans" element={<PlansSplit />}>
-              <Route path=":id" element={<PlanEdit />} />
-              <Route path=":id/sessions/:sessionId" element={<PlanSessionEdit />} />
+              <Route path=":id" element={<PlanEdit />}>
+                <Route path="sessions/:sessionId" element={<PlanSessionEdit />} />
+              </Route>
             </Route>
             <Route path="/exercises" element={<Exercises />} />
             <Route path="/history" element={<History />} />

@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { PrimaryButton } from '../../components/PrimaryButton'
 import { ReorderButtons } from '../../components/ReorderButtons'
 import type { PlanExerciseDetail } from '../../data/activePlan'
 import { useDragReorder } from '../../hooks/useDragReorder'
 import { targetFormFrom, type PlanTarget } from '../../lib/planForm'
 import { targetLabel } from '../../lib/sessionProgress'
+import { RemoveConfirm } from './RemoveConfirm'
 import { TargetForm } from './TargetForm'
 import '../../styles/plans.css'
 
@@ -27,7 +27,6 @@ interface ExerciseRowsProps {
 /** Exercises of a session in execution order: sets×reps only (weights live in the edit form), reorder (drag or buttons) and remove. */
 export function ExerciseRows({ exercises, editingId, busy, error, onEdit, onSave, onMove, onReorder, onRemove }: ExerciseRowsProps) {
   const drag = useDragReorder({ disabled: busy, onReorder })
-  // The remove button sits next to the move buttons, so removing asks for a second tap.
   const [removingId, setRemovingId] = useState<string | null>(null)
 
   if (exercises.length === 0) return <p className="plans-note">Questa sessione non ha ancora esercizi.</p>
@@ -63,17 +62,7 @@ export function ExerciseRows({ exercises, editingId, busy, error, onEdit, onSave
               </button>
             </div>
             {row.id === removingId && (
-              <div role="group" aria-label={`Conferma rimozione di ${name}`} className="plan-editor">
-                <p className="plans-note">Rimuovere «{name}» dalla sessione? Lo storico non cambia.</p>
-                <div className="plans-actions">
-                  <PrimaryButton busy={busy} onClick={() => onRemove(row.id)}>
-                    Rimuovi
-                  </PrimaryButton>
-                  <PrimaryButton variant="outline" disabled={busy} onClick={() => setRemovingId(null)}>
-                    Non rimuovere
-                  </PrimaryButton>
-                </div>
-              </div>
+              <RemoveConfirm name={name} busy={busy} onRemove={() => onRemove(row.id)} onCancel={() => setRemovingId(null)} />
             )}
             {open && (
               <TargetForm

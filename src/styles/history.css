@@ -126,6 +126,32 @@
   font-weight: var(--ds-weight-black);
 }
 
+/* Desktop switch between the exercise and the session list: two segments, the pressed one inverted */
+.history-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: var(--ds-space-4);
+  border: var(--ds-rule) solid var(--ds-color-border-strong);
+}
+
+.history-switch__option {
+  min-height: var(--ds-size-touch);
+  padding: var(--ds-space-2) var(--ds-space-3);
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-black);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.history-switch__option + .history-switch__option {
+  border-left: var(--ds-rule) solid var(--ds-color-border-strong);
+}
+
+.history-switch__option[aria-pressed="true"] {
+  background: var(--ds-color-text);
+  color: var(--ds-color-bg);
+}
+
 /* Big numbers */
 .kpi-row {
   display: grid;

@@ -45,23 +45,28 @@ export async function deleteSet(setId: string): Promise<void> {
   ensureOk(await supabase.from('set_log').delete().eq('id', setId))
 }
 
+export interface PastWorkout {
+  date: string
+  sets: SetLog[]
+}
+
 /**
- * Sets of the `count` most recent workouts that contain the exercise, newest first, each in set order.
+ * The `count` most recent workouts that contain the exercise, newest first, each with its sets in set order.
  * Pass the open workout as `excludeWorkoutId` so it is not mistaken for a previous one.
  * One request: the inner join keeps only the exercise's rows inside each workout.
  */
-export async function getLastWorkoutsSets(exerciseId: string, count: number, excludeWorkoutId?: string): Promise<SetLog[][]> {
+export async function getLastWorkoutsSets(exerciseId: string, count: number, excludeWorkoutId?: string): Promise<PastWorkout[]> {
   let query = supabase
     .from('workout')
-    .select('id, set_log!inner(*)')
+    .select('id, date, set_log!inner(*)')
     .eq('set_log.exercise_id', exerciseId)
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(count)
   if (excludeWorkoutId) query = query.neq('id', excludeWorkoutId)
 
-  const workouts = unwrap<{ set_log: SetLog[] }[]>(await query)
-  return workouts.map(({ set_log }) => [...set_log].sort((a, b) => a.set_number - b.set_number))
+  const workouts = unwrap<{ date: string; set_log: SetLog[] }[]>(await query)
+  return workouts.map(({ date, set_log }) => ({ date, sets: [...set_log].sort((a, b) => a.set_number - b.set_number) }))
 }
 
 // PostgREST caps a response at 1000 rows by default, so history is read in pages of this size.

@@ -34,7 +34,7 @@ function render(nextId: string | null) {
 test('lists each session with the last date, the exercise count and a link to it', () => {
   const html = render('s2')
   expect(html).toContain('href="/session/s1"')
-  expect(html).toContain('<td>13.11</td>')
+  expect(html).toContain('<td>13 nov</td>')
   expect(html).toContain('<td>7</td>')
   expect(html).toContain('<td>mai fatta</td>')
 })

@@ -1,3 +1,4 @@
+import { dayMonthName } from '../lib/formatDate'
 import { formatNumber } from '../lib/formatNumber'
 import { equipmentLabel, splitSteps, unitLabel } from '../lib/sessionProgress'
 import type { Equipment, LastSet, TargetUnit } from '../types/db'
@@ -9,12 +10,14 @@ interface ExerciseDetailProps {
   executionSteps: string | null
   unit: TargetUnit
   lastSets: readonly LastSet[]
+  /** Date (YYYY-MM-DD) of the workout the last sets come from. */
+  lastDate?: string
   /** Text of the progression hint, when the rule fired. */
   suggestion?: string
 }
 
 /** Read-only view of an exercise: how to do it, the progression hint and the sets of the last workout. */
-export function ExerciseDetail({ name, equipment, muscles, executionSteps, unit, lastSets, suggestion }: ExerciseDetailProps) {
+export function ExerciseDetail({ name, equipment, muscles, executionSteps, unit, lastSets, lastDate, suggestion }: ExerciseDetailProps) {
   const steps = splitSteps(executionSteps)
   const sets = [...lastSets].sort((a, b) => a.set_number - b.set_number)
 
@@ -34,7 +37,7 @@ export function ExerciseDetail({ name, equipment, muscles, executionSteps, unit,
       ) : (
         <p className="exercise-detail__empty">Nessuna indicazione scritta per questo esercizio.</p>
       )}
-      <h3 className="exercise-detail__label">Ultima volta</h3>
+      <h3 className="exercise-detail__label">{lastDate ? `Ultima volta · ${dayMonthName(lastDate)}` : 'Ultima volta'}</h3>
       {sets.length === 0 ? (
         <p className="exercise-detail__empty">Prima volta con questo esercizio.</p>
       ) : (

@@ -30,3 +30,14 @@ export function exerciseDetail(exercise: Pick<Exercise, 'equipment' | 'muscles'>
   const label = EQUIPMENT_LABELS[exercise.equipment]
   return exercise.muscles ? `${label} · ${exercise.muscles}` : label
 }
+
+/** "in 2 schede", "in 1 scheda" or "non usato": how many plans use an exercise. */
+export function usageLabel(planCount: number): string {
+  if (planCount === 0) return 'non usato'
+  return planCount === 1 ? 'in 1 scheda' : `in ${planCount} schede`
+}
+
+/** Second line of a library row on desktop: equipment and plan usage. */
+export function exerciseUsageDetail(exercise: Pick<Exercise, 'equipment'>, planCount: number): string {
+  return `${EQUIPMENT_LABELS[exercise.equipment]} · ${usageLabel(planCount)}`
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Exercise } from '../types/db'
-import { exerciseDetail, filterExercises, sortExercises } from './exerciseList'
+import { exerciseDetail, exerciseUsageDetail, filterExercises, sortExercises, usageLabel } from './exerciseList'
 
 function exercise(name: string, overrides: Partial<Exercise> = {}): Exercise {
   return {
@@ -68,5 +68,17 @@ describe('exerciseDetail', () => {
     expect(exerciseDetail({ equipment: 'dumbbell', muscles: null })).toBe('Manubri')
     expect(exerciseDetail({ equipment: 'barbell', muscles: 'Dorsali' })).toBe('Bilanciere · Dorsali')
     expect(exerciseDetail({ equipment: 'other', muscles: '' })).toBe('Altro')
+  })
+})
+
+describe('usage labels', () => {
+  it('counts plans in Italian, with a plain label for an unused exercise', () => {
+    expect(usageLabel(0)).toBe('non usato')
+    expect(usageLabel(1)).toBe('in 1 scheda')
+    expect(usageLabel(3)).toBe('in 3 schede')
+  })
+
+  it('replaces the muscles with the usage in the desktop row detail', () => {
+    expect(exerciseUsageDetail(exercise('Step-up', { equipment: 'dumbbell', muscles: 'Quadricipiti' }), 0)).toBe('Manubri · non usato')
   })
 })

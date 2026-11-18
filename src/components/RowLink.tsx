@@ -8,6 +8,7 @@ interface RowLinkProps {
   index?: number
   /** Replaces the trailing arrow with a short red label. */
   tag?: string
+  /** The row of the item open next to the list (desktop): highlighted and marked as current. */
   inverted?: boolean
 }
 
@@ -18,7 +19,7 @@ export function RowLink({ to, title, detail, index, tag, inverted = false }: Row
   if (inverted) classes.push('row-link--inverted')
 
   return (
-    <Link to={to} className={classes.join(' ')}>
+    <Link to={to} className={classes.join(' ')} aria-current={inverted ? 'true' : undefined}>
       {index !== undefined && <span className="row-link__index" aria-hidden="true">{index}</span>}
       <span>
         <span className="row-link__title">{title}</span>

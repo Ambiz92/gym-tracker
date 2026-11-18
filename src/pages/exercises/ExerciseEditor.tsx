@@ -4,6 +4,7 @@ import { PageHeader } from '../../components/PageHeader'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { archiveExercise, createExercise, deleteExercise, updateExercise } from '../../data/exercises'
 import { useAction } from '../../hooks/useAction'
+import { useIsDesktop } from '../../hooks/useIsDesktop'
 import { emptyForm, formFromExercise } from '../../lib/exerciseForm'
 import type { Exercise, ExerciseInsert } from '../../types/db'
 import { describeError } from './errors'
@@ -22,6 +23,7 @@ export function ExerciseEditor({ exercise, onCancel, onDone }: ExerciseEditorPro
   const manage = useAction(describeError)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const busy = save.busy || manage.busy
+  const isDesktop = useIsDesktop()
 
   async function handleSave(values: ExerciseInsert) {
     const saved = await save.run(
@@ -50,6 +52,18 @@ export function ExerciseEditor({ exercise, onCancel, onDone }: ExerciseEditorPro
     setConfirmingDelete(false)
   }
 
+  // Beside "Salva" on desktop, in the manage section on the phone.
+  const archiveButton = exercise && (
+    <PrimaryButton
+      variant="outline"
+      busy={manage.busy && !confirmingDelete}
+      disabled={busy}
+      onClick={() => handleArchive(!exercise.archived)}
+    >
+      {exercise.archived ? 'Ripristina' : 'Archivia'}
+    </PrimaryButton>
+  )
+
   return (
     <>
       <div className="exercises__bar">
@@ -69,6 +83,7 @@ export function ExerciseEditor({ exercise, onCancel, onDone }: ExerciseEditorPro
         busy={busy}
         error={save.error}
         submitLabel={exercise ? 'Salva modifiche' : 'Crea esercizio'}
+        extraActions={isDesktop ? archiveButton : undefined}
         onSubmit={handleSave}
       />
       {exercise && (
@@ -86,14 +101,7 @@ export function ExerciseEditor({ exercise, onCancel, onDone }: ExerciseEditorPro
             </p>
           )}
           <div className="exercise-form__actions">
-            <PrimaryButton
-              variant="outline"
-              busy={manage.busy && !confirmingDelete}
-              disabled={busy}
-              onClick={() => handleArchive(!exercise.archived)}
-            >
-              {exercise.archived ? 'Ripristina' : 'Archivia'}
-            </PrimaryButton>
+            {!isDesktop && archiveButton}
             {confirmingDelete ? (
               <div role="group" aria-label="Conferma eliminazione">
                 <p className="exercise-editor__confirm-text">

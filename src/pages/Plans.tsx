@@ -10,9 +10,18 @@ import { describePlanError } from './plans/errors'
 import { PlanList } from './plans/PlanList'
 import '../styles/plans.css'
 
+interface PlansProps {
+  /** The plan open next to the list (desktop); its row is highlighted. */
+  selectedId?: string
+  /** Changes when the list is stale: it loads again. */
+  refreshKey?: number
+  /** A plan was made active from the list. */
+  onActivated?: () => void
+}
+
 /** Plan list: create a plan (it appears in the list), open one to edit it, reach the exercise library. */
-export function Plans() {
-  const plans = useAsync(listPlanSummaries, [])
+export function Plans({ selectedId, refreshKey = 0, onActivated }: PlansProps) {
+  const plans = useAsync(listPlanSummaries, [refreshKey])
   const create = useAction(describePlanError)
   const [creating, setCreating] = useState(false)
 
@@ -48,7 +57,7 @@ export function Plans() {
         />
       )}
       <LoadState state={plans} what="le schede">
-        {(data) => <PlanList initial={data} />}
+        {(data) => <PlanList initial={data} selectedId={selectedId} onActivated={onActivated} />}
       </LoadState>
     </>
   )

@@ -70,16 +70,19 @@ describe('getLastWorkoutsSets', () => {
   test('reads the latest workouts with the exercise in one request, newest first', async () => {
     fakeSupabase.reset(() => ({
       data: [
-        { id: 'w9', set_log: [set('l2', 2), set('l1', 1)] },
-        { id: 'w8', set_log: [set('l3', 1)] },
+        { id: 'w9', date: '2026-11-13', set_log: [set('l2', 2), set('l1', 1)] },
+        { id: 'w8', date: '2026-11-06', set_log: [set('l3', 1)] },
       ],
     }))
-    expect(await getLastWorkoutsSets('e1', 2)).toEqual([[set('l1', 1), set('l2', 2)], [set('l3', 1)]])
+    expect(await getLastWorkoutsSets('e1', 2)).toEqual([
+      { date: '2026-11-13', sets: [set('l1', 1), set('l2', 2)] },
+      { date: '2026-11-06', sets: [set('l3', 1)] },
+    ])
 
     expect(fakeSupabase.calls).toHaveLength(1)
     expect(fakeSupabase.calls[0]).toMatchObject({
       table: 'workout',
-      columns: 'id, set_log!inner(*)',
+      columns: 'id, date, set_log!inner(*)',
       filters: [['eq', 'set_log.exercise_id', 'e1']],
       orders: [
         { column: 'date', ascending: false },

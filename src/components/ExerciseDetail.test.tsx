@@ -16,6 +16,12 @@ test('labels the last-time column with the unit of the target', () => {
   expect(html).toContain('<td>40</td>')
 })
 
+test('names the day of the last workout in the label of the last sets', () => {
+  const lastSets = [{ set_number: 1, reps: 10, weight_kg: 12.5, equipment_used: 'barbell' }] as const
+  expect(renderToStaticMarkup(<ExerciseDetail {...base} lastSets={lastSets} lastDate="2026-11-13" />)).toContain('Ultima volta · 13 nov')
+  expect(renderToStaticMarkup(<ExerciseDetail {...base} lastSets={lastSets} />)).toContain('>Ultima volta<')
+})
+
 test('says so without written steps', () => {
   expect(renderToStaticMarkup(<ExerciseDetail {...base} />)).toContain('Nessuna indicazione scritta')
 })

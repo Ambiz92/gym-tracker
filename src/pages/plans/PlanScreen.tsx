@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type Dispatch, type SetStateAction } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { SessionHeader } from '../../components/SessionHeader'
@@ -31,11 +31,15 @@ function statusLabel(plan: EditablePlan): string {
 
 type Panel = 'rename' | 'add-session' | null
 
+interface PlanScreenProps {
+  plan: EditablePlan
+  /** Patches the plan held by the parent; called only once a request succeeded, so nothing reloads under the user's finger. */
+  onChange: Dispatch<SetStateAction<EditablePlan>>
+}
+
 /** One plan: rename, activate, duplicate, archive or delete it, and add, reorder or restore its sessions. */
-export function PlanScreen({ initial }: { initial: EditablePlan }) {
+export function PlanScreen({ plan, onChange: setPlan }: PlanScreenProps) {
   const navigate = useNavigate()
-  // Edits update this copy once the request succeeds, so the list never reloads under the user's finger.
-  const [plan, setPlan] = useState(initial)
   const [panel, setPanel] = useState<Panel>(null)
   const edit = useAction(describePlanError)
   const danger = useAction(describePlanError)

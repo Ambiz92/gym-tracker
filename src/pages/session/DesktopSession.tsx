@@ -12,7 +12,7 @@ const WARM_UP = 'riscaldamento'
 
 /** Read-only session for the desktop: the exercises on the left, the selected one on the right. Sets are logged on the phone. */
 export function DesktopSession({ loaded }: { loaded: LoadedSession }) {
-  const { plan, session, lastSets, recentSets } = loaded
+  const { plan, session, lastSets, lastDates, recentSets } = loaded
   const [params] = useSearchParams()
   // The summary ends a workout, which only the phone does.
   if (params.has('fine')) return <Navigate to={sessionPath(session.id)} replace />
@@ -68,6 +68,7 @@ export function DesktopSession({ loaded }: { loaded: LoadedSession }) {
                 executionSteps={selectedExercise.exercise.execution_steps}
                 unit={selectedExercise.target_unit}
                 lastSets={lastSets.get(selectedExercise.exercise_id) ?? []}
+                lastDate={lastDates.get(selectedExercise.exercise_id)}
                 suggestion={progressionChip(recentSets.get(selectedExercise.exercise_id) ?? [], selectedExercise)?.description}
               />
             ) : (

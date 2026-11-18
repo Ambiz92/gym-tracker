@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { SessionDetail } from '../../data/activePlan'
-import { dayMonth } from '../../lib/formatDate'
+import { dayMonthName } from '../../lib/formatDate'
 import { sessionPath } from './paths'
 
 interface SessionTableProps {
@@ -41,7 +41,7 @@ export function SessionTable({ sessions, lastDates, nextId }: SessionTableProps)
                 {session.id === nextId && <span className="session-table__tag">prossima</span>}
                 {session.is_optional && <span className="session-table__bonus">bonus</span>}
               </td>
-              <td>{lastDate ? dayMonth(lastDate) : 'mai fatta'}</td>
+              <td>{lastDate ? dayMonthName(lastDate) : 'mai fatta'}</td>
               <td>{session.exercises.length}</td>
               <td className="session-table__go" aria-hidden="true">
                 Vedi →

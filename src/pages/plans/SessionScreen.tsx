@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { startTransition, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { SessionHeader } from '../../components/SessionHeader'
@@ -9,16 +9,19 @@ import {
   removePlanExercise,
   removeSession,
   reorderPlanExercises,
+  type SessionRemoval,
   updatePlanExercise,
   updateSession,
 } from '../../data/plans'
 import { useAction } from '../../hooks/useAction'
+import { useIsDesktop } from '../../hooks/useIsDesktop'
 import { countLabel } from '../../lib/planList'
 import { defaultTarget, sessionFormFrom, type PlanTarget } from '../../lib/planForm'
 import { moveItem, moveTo } from '../../lib/reorder'
 import type { Exercise, ExerciseInsert, PlanSessionUpdate } from '../../types/db'
 import { AddExercise } from './AddExercise'
 import { describePlanError } from './errors'
+import { ExerciseGrid } from './ExerciseGrid'
 import { ExerciseRows } from './ExerciseRows'
 import { SessionFields } from './SessionFields'
 import { SessionRemove } from './SessionRemove'
@@ -27,14 +30,17 @@ import '../../styles/plans.css'
 interface SessionScreenProps {
   planId: string
   planName: string
-  initial: SessionDetail
+  session: SessionDetail
+  /** Patches the session held by the parent; called only once a request succeeded, so nothing reloads under the user's finger. */
+  onChange: (update: (session: SessionDetail) => SessionDetail) => void
+  /** The session was deleted or archived: the parent drops it from its plan. */
+  onRemoved: (removal: SessionRemoval) => void
 }
 
 /** One session of a plan: its name and bonus flag, and its exercises with sets, reps, unit and weight. */
-export function SessionScreen({ planId, planName, initial }: SessionScreenProps) {
+export function SessionScreen({ planId, planName, session, onChange: setSession, onRemoved }: SessionScreenProps) {
   const navigate = useNavigate()
-  // Edits update this copy once the request succeeds, so the list never reloads under the user's finger.
-  const [session, setSession] = useState(initial)
+  const isDesktop = useIsDesktop()
   const [adding, setAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -68,14 +74,15 @@ export function SessionScreen({ planId, planName, initial }: SessionScreenProps)
     if (created) setAdding(false)
   }
 
-  async function handleSaveTarget(id: string, changes: PlanTarget) {
+  async function handleSaveTarget(id: string, changes: PlanTarget): Promise<boolean> {
     const saved = await target.run(() => updatePlanExercise(id, changes), 'Salvataggio non riuscito. Riprova.')
-    if (!saved) return
+    if (!saved) return false
     setSession((current) => ({
       ...current,
       exercises: current.exercises.map((row) => (row.id === id ? { ...row, ...changes } : row)),
     }))
     setEditingId(null)
+    return true
   }
 
   async function applyOrder(reordered: SessionDetail['exercises']) {
@@ -94,7 +101,16 @@ export function SessionScreen({ planId, planName, initial }: SessionScreenProps)
   }
 
   async function handleRemoveSession() {
-    if (await removal.run(() => removeSession(session.id), 'Rimozione non riuscita. Riprova.')) navigate(`/plans/${planId}`)
+    let removed: SessionRemoval = 'deleted'
+    const done = await removal.run(async () => {
+      removed = await removeSession(session.id)
+    }, 'Rimozione non riuscita. Riprova.')
+    if (!done) return
+    // One transition: the session route is left in the same render that drops the session from the plan.
+    startTransition(() => {
+      navigate(`/plans/${planId}`)
+      onRemoved(removed)
+    })
   }
 
   if (adding) {
@@ -130,17 +146,28 @@ export function SessionScreen({ planId, planName, initial }: SessionScreenProps)
           {list.error}
         </p>
       )}
-      <ExerciseRows
-        exercises={session.exercises}
-        editingId={editingId}
-        busy={busy}
-        error={target.error}
-        onEdit={setEditingId}
-        onSave={handleSaveTarget}
-        onMove={handleMove}
-        onReorder={handleReorder}
-        onRemove={handleRemoveExercise}
-      />
+      {isDesktop ? (
+        <ExerciseGrid
+          exercises={session.exercises}
+          busy={busy}
+          error={target.error}
+          onSave={handleSaveTarget}
+          onMove={handleMove}
+          onRemove={handleRemoveExercise}
+        />
+      ) : (
+        <ExerciseRows
+          exercises={session.exercises}
+          editingId={editingId}
+          busy={busy}
+          error={target.error}
+          onEdit={setEditingId}
+          onSave={handleSaveTarget}
+          onMove={handleMove}
+          onReorder={handleReorder}
+          onRemove={handleRemoveExercise}
+        />
+      )}
       <div className="plans-actions">
         <PrimaryButton
           variant="outline"
