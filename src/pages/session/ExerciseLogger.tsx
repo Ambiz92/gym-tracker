@@ -27,7 +27,7 @@ interface ExerciseLoggerProps {
 
 /** Opens the logger on the next set of an exercise with its starting values; renders nothing for an unknown exercise. */
 export function ExerciseLogger({ loaded, exerciseId, draft, restored, toast, onConfirm }: ExerciseLoggerProps) {
-  const { session, lastSets } = loaded
+  const { session, lastSets, recentSets } = loaded
   const index = session.exercises.findIndex((candidate) => candidate.exercise_id === exerciseId)
   const planExercise = session.exercises[index]
   if (!planExercise) return null
@@ -38,7 +38,7 @@ export function ExerciseLogger({ loaded, exerciseId, draft, restored, toast, onC
   const previous = draft ? setsOf(draft, exerciseId).at(-1) : undefined
   // Prefill rows run 1..setNumber, so the last one is the set about to be logged.
   const [row] = prefillSets(last, { ...planExercise, target_sets: setNumber }, exercise).slice(-1)
-  const suggestedKg = suggestedWeight(last, planExercise)
+  const suggestedKg = suggestedWeight(recentSets.get(exerciseId) ?? [], planExercise)
   const restoredHere = restored?.exerciseId === exerciseId && restored.setNumber === setNumber ? restored : null
   const initial = restoredHere?.values ?? startingValues({ row, previous, suggestedKg })
 

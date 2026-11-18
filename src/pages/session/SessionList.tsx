@@ -22,7 +22,7 @@ interface SessionListProps {
 
 /** Ordered exercises of the session with ticks, progress and the way to the summary. */
 export function SessionList({ loaded, draft, toast }: SessionListProps) {
-  const { plan, session, lastSets } = loaded
+  const { plan, session, recentSets } = loaded
   const navigate = useNavigate()
   const sync = useSyncStatus()
   const done = completedExercises(draft, session.exercises)
@@ -55,7 +55,7 @@ export function SessionList({ loaded, draft, toast }: SessionListProps) {
                   name={planExercise.exercise.name}
                   detail={partial ? `${target} · ${logged}/${planExercise.target_sets} serie` : target}
                   done={isExerciseDone(draft, planExercise)}
-                  chip={progressionChip(lastSets.get(planExercise.exercise_id) ?? [], planExercise)}
+                  chip={progressionChip(recentSets.get(planExercise.exercise_id) ?? [], planExercise)}
                 />
               </li>
             )
