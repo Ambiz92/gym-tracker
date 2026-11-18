@@ -24,36 +24,63 @@ function incrementFor(equipment: Equipment, currentKg: number): number | null {
   return null
 }
 
-/**
- * Suggests the next weight when last time was clean: every target set logged with at least
- * the target value (reps, seconds or meters), all at the same weight and equipment.
- */
-export function suggestNextWeight(lastSets: readonly LastSet[], target: ProgressionTarget): ProgressionHint {
-  if (lastSets.length === 0) {
-    return { suggested: null, reason: 'Primo allenamento: nessun suggerimento' }
-  }
+/** Consecutive clean workouts at the same weight and equipment before an increase is suggested. */
+export const CLEAN_WORKOUTS_REQUIRED = 2
 
+type Load = Pick<LastSet, 'weight_kg' | 'equipment_used'>
+
+/** The single load of a clean workout (every target set logged with at least the target value), else null. */
+function cleanLoad(sets: readonly LastSet[], target: ProgressionTarget): Load | null {
   const targetSets: LastSet[] = []
   for (let setNumber = 1; setNumber <= target.target_sets; setNumber++) {
-    const set = lastSets.find((candidate) => candidate.set_number === setNumber)
-    if (!set || set.reps < target.target_reps) {
-      return { suggested: null, reason: 'Ultima volta non tutte le serie completate' }
-    }
+    const set = sets.find((candidate) => candidate.set_number === setNumber)
+    if (!set || set.reps < target.target_reps) return null
     targetSets.push(set)
   }
 
   const [first] = targetSets
-  if (!first || targetSets.some((set) => set.weight_kg !== first.weight_kg || set.equipment_used !== first.equipment_used)) {
-    return { suggested: null, reason: 'Ultima volta serie con pesi o attrezzi diversi' }
+  if (!first || targetSets.some((set) => !sameLoad(set, first))) return null
+  return first
+}
+
+function sameLoad(a: Load, b: Load): boolean {
+  return a.weight_kg === b.weight_kg && a.equipment_used === b.equipment_used
+}
+
+/**
+ * Suggests the next weight once the last `CLEAN_WORKOUTS_REQUIRED` workouts were all clean at the
+ * same weight and equipment. `recentWorkouts` holds the sets of each workout, newest first.
+ */
+export function suggestNextWeight(
+  recentWorkouts: readonly (readonly LastSet[])[],
+  target: ProgressionTarget,
+): ProgressionHint {
+  const [latest] = recentWorkouts
+  if (!latest) {
+    return { suggested: null, reason: 'Primo allenamento: nessun suggerimento' }
   }
 
-  const increment = incrementFor(first.equipment_used, first.weight_kg)
+  const load = cleanLoad(latest, target)
+  if (!load) return { suggested: null, reason: 'Ripeti questo peso' }
+
+  const increment = incrementFor(load.equipment_used, load.weight_kg)
   if (increment === null) {
     return { suggested: null, reason: 'Nessun incremento previsto per questo attrezzo' }
   }
 
+  const lastWorkouts = recentWorkouts.slice(0, CLEAN_WORKOUTS_REQUIRED)
+  const streakComplete =
+    lastWorkouts.length === CLEAN_WORKOUTS_REQUIRED &&
+    lastWorkouts.every((sets) => {
+      const candidate = cleanLoad(sets, target)
+      return candidate !== null && sameLoad(candidate, load)
+    })
+  if (!streakComplete) {
+    return { suggested: null, reason: 'Ancora un allenamento pulito a questo peso prima di aumentare' }
+  }
+
   return {
-    suggested: Math.round((first.weight_kg + increment) * 100) / 100,
-    reason: `Ultima volta tutte le serie completate: +${formatKg(increment)} kg`,
+    suggested: Math.round((load.weight_kg + increment) * 100) / 100,
+    reason: `Ultimi ${CLEAN_WORKOUTS_REQUIRED} allenamenti puliti a questo peso: +${formatKg(increment)} kg`,
   }
 }

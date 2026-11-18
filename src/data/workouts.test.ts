@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { DataError } from './client'
 import { fakeSupabase } from './fakeSupabase'
-import { createWorkout, deleteSet, getExerciseHistory, getLastSets, logSet } from './workouts'
+import { createWorkout, deleteSet, getExerciseHistory, getLastWorkoutsSets, logSet } from './workouts'
 
 vi.mock('../lib/supabase', async () => ({ supabase: (await import('./fakeSupabase')).fakeSupabase }))
 
@@ -64,41 +64,45 @@ test('deleteSet deletes by id', async () => {
   expect(fakeSupabase.calls[0]).toMatchObject({ table: 'set_log', op: 'delete', filters: [['eq', 'id', 'l1']] })
 })
 
-describe('getLastSets', () => {
-  test('finds the latest workout with the exercise, then reads its sets in order', async () => {
-    fakeSupabase.reset((call) => (call.table === 'workout' ? { data: [{ id: 'w9' }] } : { data: [{ id: 'l1' }] }))
-    expect(await getLastSets('e1')).toEqual([{ id: 'l1' }])
+describe('getLastWorkoutsSets', () => {
+  const set = (id: string, set_number: number) => ({ id, set_number })
 
-    const [find, read] = fakeSupabase.calls
-    expect(find).toMatchObject({
+  test('reads the latest workouts with the exercise in one request, newest first', async () => {
+    fakeSupabase.reset(() => ({
+      data: [
+        { id: 'w9', set_log: [set('l2', 2), set('l1', 1)] },
+        { id: 'w8', set_log: [set('l3', 1)] },
+      ],
+    }))
+    expect(await getLastWorkoutsSets('e1', 2)).toEqual([[set('l1', 1), set('l2', 2)], [set('l3', 1)]])
+
+    expect(fakeSupabase.calls).toHaveLength(1)
+    expect(fakeSupabase.calls[0]).toMatchObject({
       table: 'workout',
+      columns: 'id, set_log!inner(*)',
       filters: [['eq', 'set_log.exercise_id', 'e1']],
       orders: [
         { column: 'date', ascending: false },
         { column: 'created_at', ascending: false },
       ],
-      limit: 1,
-    })
-    expect(read).toMatchObject({
-      table: 'set_log',
-      filters: [
-        ['eq', 'workout_id', 'w9'],
-        ['eq', 'exercise_id', 'e1'],
-      ],
-      orders: [{ column: 'set_number', ascending: true }],
+      limit: 2,
     })
   })
 
   test('excludes the open workout', async () => {
     fakeSupabase.reset(() => ({ data: [] }))
-    await getLastSets('e1', 'w-open')
+    await getLastWorkoutsSets('e1', 2, 'w-open')
     expect(fakeSupabase.calls[0].filters).toContainEqual(['neq', 'id', 'w-open'])
   })
 
-  test('returns an empty list without a second query when the exercise was never logged', async () => {
+  test('returns an empty list when the exercise was never logged', async () => {
     fakeSupabase.reset(() => ({ data: [] }))
-    expect(await getLastSets('e1')).toEqual([])
-    expect(fakeSupabase.calls).toHaveLength(1)
+    expect(await getLastWorkoutsSets('e1', 2)).toEqual([])
+  })
+
+  test('surfaces failures as DataError', async () => {
+    fakeSupabase.reset(() => failure)
+    await expect(getLastWorkoutsSets('e1', 2)).rejects.toBeInstanceOf(DataError)
   })
 })
 
