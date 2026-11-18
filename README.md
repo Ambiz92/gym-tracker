@@ -79,7 +79,7 @@ There is no seed. The repo contains no plan data, so you create your plan in the
 - Sign-ups are disabled. Otherwise anyone holding the public anon key could register and write into the project.
 - The build injects a Content-Security-Policy whose `connect-src` is limited to the Supabase URL. There are no third-party scripts and no analytics.
 - `check:secrets` fails the CI build if a private key shows up in tracked files or in the bundle.
-- If the phone is lost or stolen, follow [docs/phone-lost.md](docs/phone-lost.md).
+- Keep a written procedure for a lost or stolen phone (end all sessions, change the password, re-enroll TOTP). Mine lives outside the repo.
 
 ## Deploy
 
