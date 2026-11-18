@@ -7,6 +7,7 @@ import {
   equipmentLabel,
   isExerciseDone,
   lastTimeHint,
+  loadLabel,
   loggedCount,
   splitSteps,
   startingValues,
@@ -89,6 +90,14 @@ describe('labels', () => {
   })
 })
 
+describe('loadLabel', () => {
+  it('collapses runs of the same weight', () => {
+    expect(loadLabel([15, 15, 12.5])).toBe('2 × 15 kg · 1 × 12,5 kg')
+    expect(loadLabel([30, 30, 30])).toBe('3 × 30 kg')
+    expect(loadLabel([20, 22.5, 20])).toBe('1 × 20 kg · 1 × 22,5 kg · 1 × 20 kg')
+  })
+})
+
 describe('buildSummary', () => {
   const exercises = [
     { exerciseId: 'e1', name: 'Panca', lastSets: [last(1, 8, 15)] },
@@ -104,6 +113,11 @@ describe('buildSummary', () => {
       { name: 'Rematore', sets: 2, weightKg: 27.5, deltaKg: 2.5 },
       { name: 'Curl', sets: 1, weightKg: 10, deltaKg: null },
     ])
+  })
+
+  it('lists the weight of every set in set order', () => {
+    const unordered = logged(logged(base, 'a', 'e2', 2, 27.5), 'b', 'e2', 1, 25)
+    expect(buildSummary(unordered, exercises)[0]?.weightsKg).toEqual([25, 27.5])
   })
 })
 

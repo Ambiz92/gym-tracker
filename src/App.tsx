@@ -5,6 +5,7 @@ import { AuthLayout } from './components/AuthLayout'
 import { Layout } from './components/Layout'
 import { RouteAnnouncer } from './components/RouteAnnouncer'
 import { supabase } from './lib/supabase'
+import { PlansSplit } from './pages/desktop/PlansSplit'
 import { Exercises } from './pages/Exercises'
 import { History } from './pages/History'
 import { Home } from './pages/Home'
@@ -15,7 +16,6 @@ import { More } from './pages/More'
 import { NotFound } from './pages/NotFound'
 import { PlanEdit } from './pages/PlanEdit'
 import { PlanSessionEdit } from './pages/PlanSessionEdit'
-import { Plans } from './pages/Plans'
 import { Session } from './pages/Session'
 
 export function AppRoutes() {
@@ -65,9 +65,10 @@ export function AppRoutes() {
           >
             <Route path="/" element={<Home />} />
             <Route path="/session/:id" element={<Session />} />
-            <Route path="/plans" element={<Plans />} />
-            <Route path="/plans/:id" element={<PlanEdit />} />
-            <Route path="/plans/:id/sessions/:sessionId" element={<PlanSessionEdit />} />
+            <Route path="/plans" element={<PlansSplit />}>
+              <Route path=":id" element={<PlanEdit />} />
+              <Route path=":id/sessions/:sessionId" element={<PlanSessionEdit />} />
+            </Route>
             <Route path="/exercises" element={<Exercises />} />
             <Route path="/history" element={<History />} />
             <Route path="/history/:exerciseId" element={<History />} />

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { PageHeading } from './PageHeading'
 
 interface SessionHeaderProps {
   backTo: string
@@ -13,7 +14,7 @@ interface SessionHeaderProps {
   size?: 'title' | 'exercise'
 }
 
-/** Meta row with a back link and a counter under a thick rule, then the page's h1. */
+/** Meta row with a back link and a counter under a thick rule, then the page's title (h1, or h2 in a secondary pane). */
 export function SessionHeader({ backTo, back, backLabel, onBack, end, title, subtitle, size = 'title' }: SessionHeaderProps) {
   return (
     <header className={`page-header page-header--title session-header session-header--${size}`}>
@@ -23,7 +24,7 @@ export function SessionHeader({ backTo, back, backLabel, onBack, end, title, sub
         </Link>
         <span>{end}</span>
       </div>
-      <h1 className="page-header__title">{title}</h1>
+      <PageHeading className="page-header__title">{title}</PageHeading>
       {subtitle && <p className="page-header__subtitle">{subtitle}</p>}
     </header>
   )

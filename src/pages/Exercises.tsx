@@ -43,6 +43,7 @@ export function Exercises() {
   const view = (
     <LibraryView
       library={library}
+      selectedId={editing?.id}
       notice={notice}
       onNew={() => {
         setNotice(null)

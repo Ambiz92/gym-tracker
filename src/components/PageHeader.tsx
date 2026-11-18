@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { PageHeading } from './PageHeading'
 
 interface PageHeaderProps {
   meta: string
@@ -9,7 +10,7 @@ interface PageHeaderProps {
   size?: 'display' | 'title'
 }
 
-/** Meta row under a thick rule, then the big page title (the page's h1). */
+/** Meta row under a thick rule, then the big page title (the page's h1, an h2 in a secondary pane). */
 export function PageHeader({ meta, metaEnd, title, subtitle, size = 'display' }: PageHeaderProps) {
   return (
     <header className={`page-header page-header--${size}`}>
@@ -17,7 +18,7 @@ export function PageHeader({ meta, metaEnd, title, subtitle, size = 'display' }:
         <span>{meta}</span>
         {metaEnd && <span>{metaEnd}</span>}
       </div>
-      <h1 className="page-header__title">{title}</h1>
+      <PageHeading className="page-header__title">{title}</PageHeading>
       {subtitle && <p className="page-header__subtitle">{subtitle}</p>}
     </header>
   )

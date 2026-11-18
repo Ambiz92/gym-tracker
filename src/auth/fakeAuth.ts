@@ -61,7 +61,7 @@ export function createFakeAuth({ enrolled = false }: { enrolled?: boolean } = {}
     },
     async getSession() {
       const injected = enter('getSession')
-      return { data: { session: state.session }, error: injected }
+      return { data: { session: state.session && { ...state.session, user: { email: EMAIL } } }, error: injected }
     },
     onAuthStateChange(callback) {
       state.listener = callback
