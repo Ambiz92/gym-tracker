@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { SplitView } from '../components/SplitView'
 import { listExercises } from '../data/exercises'
 import { listArchivedExercises } from '../data/exercisesArchived'
 import { useAsync } from '../hooks/useAsync'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 import { sortExercises } from '../lib/exerciseList'
 import type { Exercise } from '../types/db'
 import { ExerciseEditor } from './exercises/ExerciseEditor'
@@ -13,19 +15,20 @@ async function loadLibrary(): Promise<Exercise[]> {
   return sortExercises([...active, ...archived])
 }
 
-/** Exercise library: browse and search, then create or edit one in place of the list. */
+/** Exercise library: browse and search, then create or edit one in place of the list (next to it on desktop). */
 export function Exercises() {
   const library = useAsync(loadLibrary, [])
   // undefined: the list; null: a new exercise; otherwise the exercise being edited.
   const [editing, setEditing] = useState<Exercise | null | undefined>(undefined)
   const [notice, setNotice] = useState<string | null>(null)
+  const isDesktop = useIsDesktop()
 
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [editing])
 
-  if (editing !== undefined) {
-    return (
+  const editor =
+    editing === undefined ? null : (
       <ExerciseEditor
         key={editing?.id ?? 'new'}
         exercise={editing}
@@ -37,9 +40,7 @@ export function Exercises() {
         }}
       />
     )
-  }
-
-  return (
+  const view = (
     <LibraryView
       library={library}
       notice={notice}
@@ -51,6 +52,14 @@ export function Exercises() {
         setNotice(null)
         setEditing(exercise)
       }}
+    />
+  )
+
+  if (!isDesktop) return editor ?? view
+  return (
+    <SplitView
+      list={view}
+      detail={editor ?? <p className="split__hint">Scegli un esercizio da modificare, o creane uno nuovo.</p>}
     />
   )
 }

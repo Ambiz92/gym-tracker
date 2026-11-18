@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { Field } from '../../components/Field'
 import { PageHeader } from '../../components/PageHeader'
 import { RowLink } from '../../components/RowLink'
@@ -104,6 +104,7 @@ function SessionList({ sessions }: { sessions: readonly SessionSummary[] }) {
 
 function ExerciseList({ exercises }: { exercises: readonly ExerciseSummary[] }) {
   const [query, setQuery] = useState('')
+  const { exerciseId } = useParams()
   const shown = filterSummaries(exercises, query)
 
   return (
@@ -125,6 +126,7 @@ function ExerciseList({ exercises }: { exercises: readonly ExerciseSummary[] }) 
           title={summary.name}
           detail={summaryDetail(summary)}
           tag={summary.variationPct === null ? undefined : formatVariation(summary.variationPct)}
+          inverted={summary.id === exerciseId}
         />
       ))}
     </section>

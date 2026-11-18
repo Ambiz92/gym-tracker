@@ -221,4 +221,35 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--ds-space-8);
   }
+
+  /* Master-detail pages: Storico, Libreria */
+  .split {
+    display: grid;
+    grid-template-columns: 21rem minmax(0, 1fr);
+  }
+
+  .split__list {
+    padding-right: var(--ds-space-6);
+    border-right: var(--ds-rule) solid var(--ds-color-border-strong);
+  }
+
+  .split__detail {
+    padding-left: var(--ds-space-8);
+  }
+
+  .split__hint {
+    margin-top: var(--ds-space-6);
+    color: var(--ds-color-text-muted);
+    font-weight: var(--ds-weight-bold);
+  }
+
+  /* The list is always beside the detail, so the way back is not needed. */
+  .split__detail .history-back {
+    display: none;
+  }
+
+  .split .row-link--inverted {
+    margin-inline: 0;
+    padding-inline: var(--ds-space-3);
+  }
 }
