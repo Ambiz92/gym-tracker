@@ -6,6 +6,7 @@ import {
   judgeSelect,
   judgeSignUp,
   judgeWrite,
+  publicTablesFrom,
 } from './rlsAssertions'
 
 const denied = { data: null, error: { code: '42501', message: 'permission denied for table plan' } }
@@ -90,5 +91,17 @@ describe('formatTable', () => {
       'PASS  plan     select  empty result',
       'FAIL  workout  insert  oops',
     ])
+  })
+})
+
+describe('publicTablesFrom', () => {
+  it('lists created tables across migrations and drops the removed ones', () => {
+    const first = 'create table public.plan (id uuid);\nCREATE TABLE IF NOT EXISTS public.set_log (id uuid);'
+    const second = 'alter table public.plan add column x int;\ndrop table if exists public.set_log;'
+    expect(publicTablesFrom([first, second])).toEqual(['plan'])
+  })
+
+  it('ignores tables outside the public schema', () => {
+    expect(publicTablesFrom(['create table private.audit (id int);'])).toEqual([])
   })
 })

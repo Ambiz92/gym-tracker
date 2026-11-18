@@ -1,8 +1,8 @@
 /**
  * Verifies that the public anon key, with no login, can neither read nor write any table,
- * and that the project refuses sign-ups. Run: `npm run verify:rls` with
- * VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in the environment
- * (for example `npx tsx --env-file=.env scripts/verify-rls.ts`).
+ * and that the project refuses sign-ups. Run: `npm run verify:rls` (reads .env;
+ * VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY can also come from the environment).
+ * It fails if a migration creates a table that PROBE_ROWS does not probe.
  *
  * What this does NOT prove (follow-up manual tests, they need a logged-in session):
  *  - an authenticated user sees and changes only their own rows (auth.uid() = owner_id);
@@ -11,6 +11,7 @@
  * Update and delete probes filter on a nil id, so they only prove the operation is denied,
  * not that existing rows are unreachable.
  */
+import { readdirSync, readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
 import {
   type Check,
@@ -21,6 +22,7 @@ import {
   judgeSelect,
   judgeSignUp,
   judgeWrite,
+  publicTablesFrom,
 } from './rlsAssertions'
 
 const NIL_UUID = '00000000-0000-0000-0000-000000000000'
@@ -43,12 +45,28 @@ const PROBE_ROWS: Record<string, Record<string, unknown>> = {
   },
 }
 
+const MIGRATIONS_DIR = new URL('../supabase/migrations/', import.meta.url)
+
+/** A table the migrations create but this script does not probe would pass unnoticed. */
+function assertProbesCoverMigrations(): void {
+  const sql = readdirSync(MIGRATIONS_DIR)
+    .filter((file) => file.endsWith('.sql'))
+    .sort()
+    .map((file) => readFileSync(new URL(file, MIGRATIONS_DIR), 'utf8'))
+  const tables = publicTablesFrom(sql)
+  const unprobed = tables.filter((table) => !(table in PROBE_ROWS))
+  const unknown = Object.keys(PROBE_ROWS).filter((table) => !tables.includes(table))
+  if (unprobed.length > 0) throw new Error(`Add a PROBE_ROWS entry for: ${unprobed.join(', ')}`)
+  if (unknown.length > 0) throw new Error(`PROBE_ROWS names tables no migration creates: ${unknown.join(', ')}`)
+}
+
 function requireEnv(name: string): string {
   const value = process.env[name]
   if (!value) throw new Error(`Missing ${name} (see .env.example)`)
   return value
 }
 
+assertProbesCoverMigrations()
 const url = requireEnv('VITE_SUPABASE_URL')
 const anonKey = requireEnv('VITE_SUPABASE_ANON_KEY')
 if (isPrivilegedKey(anonKey)) {
