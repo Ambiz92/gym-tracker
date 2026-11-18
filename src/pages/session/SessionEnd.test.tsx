@@ -47,6 +47,7 @@ const loaded: LoadedSession = {
     subtitle: null,
     position: 0,
     is_optional: false,
+    archived: false,
     exercises: [planExercise('e1', 'Panca piana'), planExercise('e2', 'Curl con bilanciere')],
     warmup: [],
   },

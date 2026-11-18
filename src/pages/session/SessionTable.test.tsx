@@ -13,6 +13,7 @@ function session(id: string, name: string, exercises: number, isOptional = false
     subtitle: null,
     position: 0,
     is_optional: isOptional,
+    archived: false,
     exercises: Array.from({ length: exercises }, () => ({}) as SessionDetail['exercises'][number]),
     warmup: [],
   }
