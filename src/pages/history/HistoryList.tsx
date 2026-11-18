@@ -5,6 +5,7 @@ import { PageHeader } from '../../components/PageHeader'
 import { RowLink } from '../../components/RowLink'
 import { listHistoryExercises, listLoggedSets, listRecentWorkouts } from '../../data/history'
 import { useAsync } from '../../hooks/useAsync'
+import { useIsDesktop } from '../../hooks/useIsDesktop'
 import { localDateString } from '../../lib/localDate'
 import { formatVariation } from './format'
 import { LoadState } from './LoadState'
@@ -16,6 +17,7 @@ import {
   type ExerciseSummary,
   type SessionSummary,
 } from './model'
+import { ViewSwitch, type HistoryView } from './ViewSwitch'
 
 const RECENT_SESSIONS = 10
 
@@ -37,7 +39,7 @@ async function loadHistoryList(): Promise<HistoryListData> {
   }
 }
 
-/** Storico tab: recent sessions, then every logged exercise with its last weight and trend. */
+/** Storico tab: recent sessions, then every logged exercise with its last weight and trend (one or the other on desktop). */
 export function HistoryList() {
   const state = useAsync(loadHistoryList, [])
 
@@ -45,7 +47,7 @@ export function HistoryList() {
     <>
       <PageHeader meta="Storico" title="Storico" />
       <LoadState state={state} what="lo storico">
-        {(data) => (data.sessions.length === 0 && data.exercises.length === 0 ? <EmptyHistory /> : <Loaded {...data} />)}
+        {(data) => (data.sessions.length === 0 && data.exercises.length === 0 ? <EmptyHistory /> : <HistoryLoaded {...data} />)}
       </LoadState>
     </>
   )
@@ -61,11 +63,30 @@ function EmptyHistory() {
   )
 }
 
-function Loaded({ sessions, exercises }: HistoryListData) {
+/** The phone stacks both lists; desktop shows one at a time, picked with a switch. */
+export function HistoryLoaded({ sessions, exercises }: HistoryListData) {
+  const isDesktop = useIsDesktop()
+  const [view, setView] = useState<HistoryView>('exercises')
+
+  if (!isDesktop) {
+    return (
+      <>
+        <SessionList sessions={sessions} />
+        <ExerciseList exercises={exercises} />
+      </>
+    )
+  }
   return (
     <>
-      <SessionList sessions={sessions} />
-      <ExerciseList exercises={exercises} />
+      <ViewSwitch value={view} onChange={setView} />
+      {view === 'exercises' ? (
+        <ExerciseList exercises={exercises} />
+      ) : (
+        <>
+          <SessionList sessions={sessions} />
+          {sessions.length === 0 && <p className="history-note">Nessuna sessione registrata.</p>}
+        </>
+      )}
     </>
   )
 }
