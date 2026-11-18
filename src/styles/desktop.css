@@ -24,6 +24,21 @@
     padding: 0;
   }
 
+  /* Signed-out screens: no sidebar, a centred form that fills the screen height. */
+  .app--auth {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    max-width: none;
+  }
+
+  .app--auth .app__content {
+    width: 100%;
+    max-width: var(--ds-size-column);
+    padding-inline: var(--ds-space-5);
+  }
+
   .app__content {
     grid-column: 2;
     grid-row: 1;
