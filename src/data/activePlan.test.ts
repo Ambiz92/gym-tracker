@@ -72,3 +72,22 @@ test('getPlanById filters on the id, shapes the plan like the active one and ret
   expect(plan?.sessions.map((s) => s.id)).toEqual(['s1'])
   expect(plan).not.toHaveProperty('plan_session')
 })
+
+test('archived sessions are left out of `sessions` and listed apart', async () => {
+  fakeSupabase.reset(() => ({
+    data: {
+      id: 'p1',
+      plan_session: [
+        { id: 's1', position: 0, archived: false, plan_exercise: [], warmup_item: [] },
+        { id: 's2', position: 1, archived: true, plan_exercise: [], warmup_item: [] },
+        { id: 's3', position: 2, archived: false, plan_exercise: [], warmup_item: [] },
+      ],
+    },
+  }))
+
+  const plan = await getPlanById('p1')
+
+  expect(plan?.sessions.map((s) => s.id)).toEqual(['s1', 's3'])
+  expect(plan?.archivedSessions.map((s) => s.id)).toEqual(['s2'])
+  expect((await getActivePlan())?.sessions.map((s) => s.id)).toEqual(['s1', 's3'])
+})

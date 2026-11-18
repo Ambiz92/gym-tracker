@@ -35,7 +35,7 @@ function row(id: string, overrides: Partial<PlanExerciseDetail> = {}): PlanExerc
   }
 }
 
-const rowsProps = { editingId: null, busy: false, error: null, onEdit: noop, onSave: noop, onMove: noop, onRemove: noop }
+const rowsProps = { editingId: null, busy: false, error: null, onEdit: noop, onSave: noop, onMove: noop, onReorder: noop, onRemove: noop }
 
 test('rows show sets and reps only, never the weight', () => {
   const html = renderToStaticMarkup(<ExerciseRows {...rowsProps} exercises={[row('a')]} />)
@@ -98,7 +98,7 @@ test('removing a session says a logged one is refused', () => {
   )
   expect(html).toContain('role="alert"')
   expect(html).toContain('Rimuovi la sessione')
-  expect(html).not.toContain('Rimuovi definitivamente')
+  expect(html).not.toContain('Non rimuovere')
 })
 
 test('the add screen announces what was added and starts on the picker', () => {
@@ -119,6 +119,7 @@ test('the session screen shows the header, the bonus tag, the exercises and the 
     subtitle: null,
     position: 0,
     is_optional: true,
+    archived: false,
     exercises: [row('a')],
     warmup: [],
   }
@@ -130,4 +131,11 @@ test('the session screen shows the header, the bonus tag, the exercises and the 
   expect(html).toContain('3×8')
   expect(html).toContain('Aggiungi esercizio')
   expect(html).toContain('Rimuovi la sessione')
+})
+
+test('every exercise row has a pointer-only drag handle and keeps the move buttons', () => {
+  const html = renderToStaticMarkup(<ExerciseRows {...rowsProps} exercises={[row('a'), row('b')]} />)
+  expect(html.match(/<span[^>]*class="plan-row__grip"[^>]*aria-hidden="true"/g)).toHaveLength(2)
+  expect(html).toContain('aria-label="Sposta giù Esercizio e-a"')
+  expect(html).toContain('aria-label="Sposta su Esercizio e-b"')
 })

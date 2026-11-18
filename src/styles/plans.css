@@ -74,7 +74,7 @@
 /* Row of a sessions/exercises list: text on the left, one touch target per action. */
 .plan-row {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1.75rem 1fr;
   grid-auto-flow: column;
   grid-auto-columns: var(--ds-size-touch);
   align-items: center;
@@ -164,4 +164,113 @@
 .plans-danger:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+/* Row without grip or arrows (archived sessions): text and one text button. */
+.plan-row--plain {
+  grid-template-columns: 1fr auto;
+  grid-auto-columns: auto;
+}
+
+.plan-row__text-button {
+  min-height: var(--ds-size-touch);
+  padding-inline: var(--ds-space-3);
+  color: var(--ds-color-accent);
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-black);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.plan-row__text-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Plan list row: activation radio, then the link to the plan. */
+.plan-pick {
+  display: grid;
+  grid-template-columns: var(--ds-size-touch) 1fr;
+  align-items: center;
+  border-top: var(--ds-rule) solid var(--ds-color-border-strong);
+}
+
+.plan-pick .row-link {
+  border-top: 0;
+}
+
+.plan-radio {
+  display: grid;
+  place-items: center;
+  height: var(--ds-size-touch);
+}
+
+.plan-radio input {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  margin: 0;
+  border: var(--ds-rule) solid var(--ds-color-border-strong);
+  border-radius: 50%;
+}
+
+.plan-radio input:checked {
+  background: var(--ds-color-text);
+}
+
+.plan-radio input:checked::after {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--ds-color-bg);
+}
+
+.plan-radio input:disabled {
+  opacity: 0.45;
+}
+
+/* Drag handle of a reorderable row: pointer-only, the move buttons are the keyboard path. */
+.plan-row__grip {
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  color: var(--ds-color-text-muted);
+  font-size: var(--ds-text-lg);
+  letter-spacing: -0.15em;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+[data-drag] {
+  position: relative;
+}
+
+[data-drag="source"] {
+  z-index: 1;
+  background: var(--ds-color-bg);
+  outline: var(--ds-rule) solid var(--ds-color-border-strong);
+  pointer-events: none;
+}
+
+[data-drag="before"]::before,
+[data-drag="after"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: var(--ds-rule-thick);
+  background: var(--ds-color-accent);
+}
+
+[data-drag="before"]::before {
+  top: calc(-0.5 * var(--ds-rule-thick));
+}
+
+[data-drag="after"]::after {
+  bottom: calc(-0.5 * var(--ds-rule-thick));
 }

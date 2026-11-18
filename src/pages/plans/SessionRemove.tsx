@@ -10,7 +10,7 @@ interface SessionRemoveProps {
   onRemove: () => void
 }
 
-/** Removes a session from its plan after a confirmation; one with logged workouts is refused by the data layer. */
+/** Removes a session from its plan after a confirmation; one with logged workouts is archived, not deleted. */
 export function SessionRemove({ name, busy, error, onRemove }: SessionRemoveProps) {
   const [confirming, setConfirming] = useState(false)
 
@@ -26,10 +26,13 @@ export function SessionRemove({ name, busy, error, onRemove }: SessionRemoveProp
       )}
       {confirming ? (
         <div role="group" aria-label="Conferma rimozione">
-          <p className="plans-note">Rimuovere «{name}» e i suoi esercizi dalla scheda? Non si può annullare.</p>
+          <p className="plans-note">
+            Rimuovere «{name}» e i suoi esercizi dalla scheda? Se ha allenamenti nello storico viene archiviata e puoi
+            ripristinarla dalla scheda; altrimenti viene eliminata per sempre.
+          </p>
           <div className="plans-actions">
             <PrimaryButton busy={busy} onClick={onRemove}>
-              Rimuovi definitivamente
+              Rimuovi
             </PrimaryButton>
             <PrimaryButton variant="outline" disabled={busy} onClick={() => setConfirming(false)}>
               Non rimuovere
