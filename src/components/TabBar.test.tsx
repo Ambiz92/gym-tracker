@@ -28,3 +28,13 @@ test('Oggi is current only on the home route', () => {
 test('Storico stays current on an exercise history route', () => {
   expect(renderAt('/history/abc')).toMatch(/aria-current="page"[^>]*>Storico</)
 })
+
+test('Schede stays current on the exercise library and on a plan', () => {
+  expect(renderAt('/exercises')).toMatch(/aria-current="page"[^>]*>Schede</)
+  expect(renderAt('/plans/p1/sessions/s1')).toMatch(/aria-current="page"[^>]*>Schede</)
+  expect(renderAt('/exercises').match(/aria-current="page"/g)).toHaveLength(1)
+})
+
+test('a route that only starts with a tab path does not light it up', () => {
+  expect(renderAt('/plansible')).not.toContain('aria-current')
+})
