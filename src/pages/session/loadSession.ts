@@ -8,6 +8,8 @@ export interface LoadedSession {
   session: SessionDetail
   /** Sets of the previous workout per exercise id, for prefill and the summary. */
   lastSets: ReadonlyMap<string, SetLog[]>
+  /** Date (YYYY-MM-DD) of that previous workout per exercise id; exercises never done are absent. */
+  lastDates: ReadonlyMap<string, string>
   /** Sets of the last workouts per exercise id, newest first, for the progression rule. */
   recentSets: ReadonlyMap<string, SetLog[][]>
 }
@@ -24,7 +26,8 @@ export async function loadSession(sessionId: string, openWorkoutId?: string): Pr
         [exercise_id, await getLastWorkoutsSets(exercise_id, CLEAN_WORKOUTS_REQUIRED, openWorkoutId)] as const,
     ),
   )
-  const recentSets = new Map(entries)
-  const lastSets = new Map(entries.map(([exerciseId, workouts]) => [exerciseId, workouts[0] ?? []]))
-  return { plan, session, lastSets, recentSets }
+  const recentSets = new Map(entries.map(([exerciseId, workouts]) => [exerciseId, workouts.map((workout) => workout.sets)]))
+  const lastSets = new Map(entries.map(([exerciseId, [last]]) => [exerciseId, last?.sets ?? []]))
+  const lastDates = new Map(entries.flatMap(([exerciseId, [last]]) => (last ? [[exerciseId, last.date] as const] : [])))
+  return { plan, session, lastSets, lastDates, recentSets }
 }

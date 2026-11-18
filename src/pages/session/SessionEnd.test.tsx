@@ -52,6 +52,7 @@ const loaded: LoadedSession = {
     warmup: [],
   },
   lastSets: new Map([['e2', [lastSet('e2', 12.5)]]]),
+  lastDates: new Map([['e2', '2026-11-13']]),
   recentSets: new Map(),
 }
 

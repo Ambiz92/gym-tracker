@@ -62,6 +62,7 @@ function loaded(warmup: LoadedSession['session']['warmup'] = []): LoadedSession 
       warmup,
     },
     lastSets: new Map([['e2', lastCurl]]),
+    lastDates: new Map([['e2', '2026-11-13']]),
     recentSets: new Map(),
   }
 }
@@ -94,6 +95,7 @@ test('shows the selected exercise with its steps and the sets of the last workou
   const html = renderAt('/session/s1?es=e2')
   expect(html).toContain('Curl con bilanciere</h2>')
   expect(html).toContain('<li>Gomiti fermi</li>')
+  expect(html).toContain('Ultima volta · 13 nov')
   expect(html).toContain('12,5')
   expect(html.indexOf('<td>1</td>')).toBeLessThan(html.indexOf('<td>2</td>'))
 })
