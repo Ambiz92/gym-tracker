@@ -1,27 +1,31 @@
 import { useEffect, useState } from 'react'
 import { SplitView } from '../components/SplitView'
-import { listExercises } from '../data/exercises'
+import { listExerciseUsage, listExercises } from '../data/exercises'
 import { listArchivedExercises } from '../data/exercisesArchived'
 import { useAsync } from '../hooks/useAsync'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { sortExercises } from '../lib/exerciseList'
 import type { Exercise } from '../types/db'
 import { ExerciseEditor } from './exercises/ExerciseEditor'
-import { LibraryView } from './exercises/LibraryView'
+import { LibraryView, type Library } from './exercises/LibraryView'
 
-/** Active exercises first, then the archived ones (restorable from their editor). */
-async function loadLibrary(): Promise<Exercise[]> {
-  const [active, archived] = await Promise.all([listExercises(), listArchivedExercises()])
-  return sortExercises([...active, ...archived])
+/** Active exercises first, then the archived ones (restorable from their editor); plan usage only when shown. */
+async function loadLibrary(withUsage: boolean): Promise<Library> {
+  const [active, archived, usage] = await Promise.all([
+    listExercises(),
+    listArchivedExercises(),
+    withUsage ? listExerciseUsage() : null,
+  ])
+  return { exercises: sortExercises([...active, ...archived]), usage }
 }
 
 /** Exercise library: browse and search, then create or edit one in place of the list (next to it on desktop). */
 export function Exercises() {
-  const library = useAsync(loadLibrary, [])
+  const isDesktop = useIsDesktop()
+  const library = useAsync(() => loadLibrary(isDesktop), [isDesktop])
   // undefined: the list; null: a new exercise; otherwise the exercise being edited.
   const [editing, setEditing] = useState<Exercise | null | undefined>(undefined)
   const [notice, setNotice] = useState<string | null>(null)
-  const isDesktop = useIsDesktop()
 
   useEffect(() => {
     window.scrollTo(0, 0)

@@ -42,7 +42,7 @@ test('shows a retry and reassures about the data when loading fails', () => {
 })
 
 test('first use: an empty library offers to create the first exercise', () => {
-  const html = render({ status: 'ready', data: [], reload: () => {} })
+  const html = render({ status: 'ready', data: { exercises: [], usage: null }, reload: () => {} })
   expect(html).toContain('La libreria è vuota')
   expect(html).toContain('Crea esercizio')
   expect(html).toContain('0 esercizi')
@@ -51,7 +51,7 @@ test('first use: an empty library offers to create the first exercise', () => {
 test('counts only active exercises and tags archived ones', () => {
   const html = render({
     status: 'ready',
-    data: [exercise('a'), exercise('b'), exercise('c', { archived: true })],
+    data: { exercises: [exercise('a'), exercise('b'), exercise('c', { archived: true })], usage: null },
     reload: () => {},
   })
   expect(html).toContain('2 esercizi')
@@ -59,7 +59,18 @@ test('counts only active exercises and tags archived ones', () => {
 })
 
 test('announces the notice of the last action', () => {
-  const html = render({ status: 'ready', data: [exercise('a')], reload: () => {} }, 'Esercizio salvato.')
+  const html = render({ status: 'ready', data: { exercises: [exercise('a')], usage: null }, reload: () => {} }, 'Esercizio salvato.')
   expect(html).toMatch(/<div role="status"><p class="exercises__status">Esercizio salvato\.<\/p><\/div>/)
   expect(html).toContain('href="/plans"')
+})
+
+test('on desktop each row says how many plans use the exercise', () => {
+  const html = render({
+    status: 'ready',
+    data: { exercises: [exercise('a'), exercise('b'), exercise('c')], usage: new Map([['a', 1], ['b', 2]]) },
+    reload: () => {},
+  })
+  expect(html).toContain('Bilanciere · in 1 scheda')
+  expect(html).toContain('Bilanciere · in 2 schede')
+  expect(html).toContain('Bilanciere · non usato')
 })

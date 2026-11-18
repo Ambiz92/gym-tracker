@@ -8,8 +8,14 @@ import type { AsyncState } from '../../hooks/useAsync'
 import { filterExercises } from '../../lib/exerciseList'
 import type { Exercise } from '../../types/db'
 
+export interface Library {
+  exercises: Exercise[]
+  /** Plans using each exercise; null where the rows do not show it (the phone). */
+  usage: ReadonlyMap<string, number> | null
+}
+
 interface LibraryViewProps {
-  library: AsyncState<Exercise[]> & { reload: () => void }
+  library: AsyncState<Library> & { reload: () => void }
   /** The exercise being edited next to the list, highlighted in it. */
   selectedId?: string
   /** Confirmation of the last action, announced politely. */
@@ -24,7 +30,7 @@ function countLabel(count: number): string {
 
 /** The library screen: header, search, and the list with its loading, error and empty states. */
 export function LibraryView({ library, selectedId, notice, onNew, onSelect }: LibraryViewProps) {
-  const exercises = library.status === 'ready' ? library.data : []
+  const exercises = library.status === 'ready' ? library.data.exercises : []
   const activeCount = exercises.filter((exercise) => !exercise.archived).length
 
   return (
@@ -63,9 +69,10 @@ function Body({ library, selectedId, onNew, onSelect }: Omit<LibraryViewProps, '
     )
   }
 
-  const visible = filterExercises(library.data, query)
+  const { exercises, usage } = library.data
+  const visible = filterExercises(exercises, query)
   const empty =
-    library.data.length === 0 ? (
+    exercises.length === 0 ? (
       <>
         <p>La libreria è vuota. Crea il tuo primo esercizio.</p>
         <PrimaryButton onClick={onNew}>Crea esercizio</PrimaryButton>
@@ -82,7 +89,7 @@ function Body({ library, selectedId, onNew, onSelect }: Omit<LibraryViewProps, '
   return (
     <>
       <ExerciseSearch value={query} onChange={setQuery} />
-      <ExerciseList exercises={visible} selectedId={selectedId} onSelect={onSelect} empty={empty} />
+      <ExerciseList exercises={visible} selectedId={selectedId} usage={usage} onSelect={onSelect} empty={empty} />
     </>
   )
 }

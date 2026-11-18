@@ -1,7 +1,7 @@
 import { beforeEach, expect, test, vi } from 'vitest'
 import { DataError } from './client'
 import { fakeSupabase } from './fakeSupabase'
-import { archiveExercise, createExercise, deleteExercise, listExercises, updateExercise } from './exercises'
+import { archiveExercise, createExercise, deleteExercise, listExerciseUsage, listExercises, updateExercise } from './exercises'
 
 vi.mock('../lib/supabase', async () => ({ supabase: (await import('./fakeSupabase')).fakeSupabase }))
 
@@ -14,6 +14,17 @@ test('listExercises reads non-archived rows ordered by name', async () => {
     table: 'exercise',
     filters: [['eq', 'archived', false]],
     orders: [{ column: 'name', ascending: true }],
+  })
+})
+
+test('listExerciseUsage counts each plan once per exercise, filtering archived sessions and plans in the query', async () => {
+  const row = (exercise_id: string, plan_id: string) => ({ exercise_id, plan_session: { plan_id } })
+  fakeSupabase.reset(() => ({ data: [row('e1', 'p1'), row('e1', 'p1'), row('e1', 'p2'), row('e2', 'p1')] }))
+  expect(await listExerciseUsage()).toEqual(new Map([['e1', 2], ['e2', 1]]))
+  expect(fakeSupabase.calls).toHaveLength(1)
+  expect(fakeSupabase.calls[0]).toMatchObject({
+    table: 'plan_exercise',
+    filters: [['eq', 'plan_session.archived', false], ['eq', 'plan_session.plan.archived', false]],
   })
 })
 
@@ -71,5 +82,6 @@ test('deleteExercise keeps other database errors as they are', async () => {
 test('failures surface as DataError', async () => {
   fakeSupabase.reset(() => ({ error: { message: 'boom', code: 'XX000' } }))
   await expect(listExercises()).rejects.toBeInstanceOf(DataError)
+  await expect(listExerciseUsage()).rejects.toBeInstanceOf(DataError)
   await expect(archiveExercise('e1')).rejects.toBeInstanceOf(DataError)
 })
