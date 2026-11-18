@@ -10,7 +10,7 @@ export interface SessionDetail extends PlanSession {
   warmup: WarmupItem[]
 }
 
-export interface ActivePlan extends Plan {
+export interface PlanDetail extends Plan {
   sessions: SessionDetail[]
 }
 
@@ -24,7 +24,7 @@ interface RawPlan extends Plan {
 const byPosition = <T extends { position: number }>(rows: T[]): T[] => [...rows].sort((a, b) => a.position - b.position)
 
 /** The active plan with sessions, exercises and warm-ups ordered by position; null when none is active. */
-export async function getActivePlan(): Promise<ActivePlan | null> {
+export async function getActivePlan(): Promise<PlanDetail | null> {
   const raw = unwrapOrNull<RawPlan>(
     await supabase
       .from('plan')

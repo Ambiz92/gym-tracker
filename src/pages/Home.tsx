@@ -3,7 +3,7 @@ import { PageHeader } from '../components/PageHeader'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { RowLink } from '../components/RowLink'
 import { SyncBanner } from '../components/SyncBanner'
-import { getActivePlan, type ActivePlan } from '../data/activePlan'
+import { getActivePlan, type PlanDetail } from '../data/activePlan'
 import { getLastWorkoutDates } from '../data/sessionLog'
 import { useAsync } from '../hooks/useAsync'
 import { dayMonth, weekdayDayMonth } from '../lib/formatDate'
@@ -15,7 +15,7 @@ import { useFlushOnMount, useSessionState, useSyncStatus } from './session/sessi
 import '../styles/session.css'
 
 interface HomeData {
-  plan: ActivePlan | null
+  plan: PlanDetail | null
   lastDates: ReadonlyMap<string, string>
 }
 
@@ -63,7 +63,7 @@ export function Home() {
   )
 }
 
-function ResumeRow({ draft, plan }: { draft: Draft; plan: ActivePlan | null }) {
+function ResumeRow({ draft, plan }: { draft: Draft; plan: PlanDetail | null }) {
   const session = plan?.sessions.find((candidate) => candidate.id === draft.sessionId)
   const detail = session
     ? `${completedExercises(draft, session.exercises)} / ${session.exercises.length} esercizi`
