@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react'
-import { describeError } from './errors'
 
-/** Runs one async action at a time: `busy` drives the button, `error` the alert. */
-export function useAction() {
+/**
+ * Runs one async action at a time: `busy` drives the button, `error` the alert.
+ * `describe` turns a failure into the Italian message (`failureMessage` is its fallback).
+ */
+export function useAction(describe: (cause: unknown, fallback: string) => string) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inFlight = useRef(false)
@@ -18,7 +20,7 @@ export function useAction() {
       return true
     } catch (cause) {
       console.error(cause)
-      setError(describeError(cause, failureMessage))
+      setError(describe(cause, failureMessage))
       return false
     } finally {
       inFlight.current = false
