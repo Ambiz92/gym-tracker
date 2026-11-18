@@ -198,4 +198,27 @@
   .exercise-detail__sets :is(th, td):last-child {
     text-align: right;
   }
+
+  /* Oggi */
+  .desktop-note {
+    margin: var(--ds-space-3) 0;
+    padding: var(--ds-space-3) var(--ds-space-4);
+    border: var(--ds-rule) solid var(--ds-color-border-strong);
+    font-size: var(--ds-text-sm);
+  }
+
+  .desktop-note strong {
+    color: var(--ds-color-accent);
+  }
+
+  .session-list .row-link:hover:not(.row-link--inverted) {
+    background: var(--ds-color-border);
+  }
+
+  /* Altro: the three groups side by side */
+  .more-sections {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--ds-space-8);
+  }
 }

@@ -12,12 +12,20 @@ export function More() {
   return (
     <>
       <PageHeader meta="Altro" title="Altro" />
-      <h2 className="history-label">Dati</h2>
-      <ExportActions />
-      <h2 className="history-label">Aspetto</h2>
-      <ThemeSetting />
-      <h2 className="history-label">Account</h2>
-      <LogoutButton />
+      <div className="more-sections">
+        <section>
+          <h2 className="history-label">Dati</h2>
+          <ExportActions />
+        </section>
+        <section>
+          <h2 className="history-label">Aspetto</h2>
+          <ThemeSetting />
+        </section>
+        <section>
+          <h2 className="history-label">Account</h2>
+          <LogoutButton />
+        </section>
+      </div>
     </>
   )
 }
