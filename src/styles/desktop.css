@@ -346,6 +346,29 @@
     color: var(--ds-color-accent-on-inverse);
   }
 
+  .exercise-row:hover:not([aria-current]) {
+    background: var(--ds-color-border);
+  }
+
+  .exercise-row[aria-current] {
+    padding-inline: var(--ds-space-3);
+    background: var(--ds-color-text);
+    color: var(--ds-color-bg);
+  }
+
+  .exercise-row[aria-current] .exercise-row__detail {
+    color: inherit;
+    opacity: 0.75;
+  }
+
+  .exercise-row[aria-current] .exercise-row__tag {
+    color: var(--ds-color-accent-on-inverse);
+  }
+
+  .exercise-row[aria-current]:focus-visible {
+    outline-offset: calc(-1 * var(--ds-space-2));
+  }
+
   /* Altro: the three groups side by side */
   .more-sections {
     display: grid;

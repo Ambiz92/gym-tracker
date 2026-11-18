@@ -46,6 +46,14 @@ test('ExerciseList tags archived rows and shows the empty state when there are n
   expect(empty).not.toContain('<ul')
 })
 
+test('ExerciseList marks only the selected row as current', () => {
+  const html = renderToStaticMarkup(
+    <ExerciseList exercises={[exercise('a'), exercise('b', { name: 'Squat' })]} selectedId="b" onSelect={() => {}} empty={null} />,
+  )
+  expect(html.match(/aria-current="true"/g)).toHaveLength(1)
+  expect(html).toMatch(/aria-current="true"[^>]*><span><span class="exercise-row__name">Squat/)
+})
+
 test('ExercisePicker hides excluded exercises and labels the add buttons', () => {
   const html = renderToStaticMarkup(
     <ExercisePicker exercises={[exercise('a'), exercise('b')]} excludeIds={['a']} onPick={() => {}} />,

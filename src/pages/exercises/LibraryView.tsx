@@ -10,6 +10,8 @@ import type { Exercise } from '../../types/db'
 
 interface LibraryViewProps {
   library: AsyncState<Exercise[]> & { reload: () => void }
+  /** The exercise being edited next to the list, highlighted in it. */
+  selectedId?: string
   /** Confirmation of the last action, announced politely. */
   notice: string | null
   onNew: () => void
@@ -21,7 +23,7 @@ function countLabel(count: number): string {
 }
 
 /** The library screen: header, search, and the list with its loading, error and empty states. */
-export function LibraryView({ library, notice, onNew, onSelect }: LibraryViewProps) {
+export function LibraryView({ library, selectedId, notice, onNew, onSelect }: LibraryViewProps) {
   const exercises = library.status === 'ready' ? library.data : []
   const activeCount = exercises.filter((exercise) => !exercise.archived).length
 
@@ -42,12 +44,12 @@ export function LibraryView({ library, notice, onNew, onSelect }: LibraryViewPro
         size="title"
       />
       <div role="status">{notice && <p className="exercises__status">{notice}</p>}</div>
-      <Body library={library} onNew={onNew} onSelect={onSelect} />
+      <Body library={library} selectedId={selectedId} onNew={onNew} onSelect={onSelect} />
     </>
   )
 }
 
-function Body({ library, onNew, onSelect }: Omit<LibraryViewProps, 'notice'>) {
+function Body({ library, selectedId, onNew, onSelect }: Omit<LibraryViewProps, 'notice'>) {
   const [query, setQuery] = useState('')
 
   if (library.status === 'loading') return <p role="status" className="exercises__status">Caricamento della libreria…</p>
@@ -80,7 +82,7 @@ function Body({ library, onNew, onSelect }: Omit<LibraryViewProps, 'notice'>) {
   return (
     <>
       <ExerciseSearch value={query} onChange={setQuery} />
-      <ExerciseList exercises={visible} onSelect={onSelect} empty={empty} />
+      <ExerciseList exercises={visible} selectedId={selectedId} onSelect={onSelect} empty={empty} />
     </>
   )
 }
