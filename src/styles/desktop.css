@@ -425,4 +425,22 @@
     margin-inline: 0;
     padding-inline: var(--ds-space-3);
   }
+
+  /* Plan list: the whole row of the open plan, activation radio included */
+  .plan-pick--selected {
+    background: var(--ds-color-text);
+    color: var(--ds-color-bg);
+  }
+
+  .plan-pick--selected .plan-radio input {
+    border-color: var(--ds-color-bg);
+  }
+
+  .plan-pick--selected .plan-radio input:checked {
+    background: var(--ds-color-bg);
+  }
+
+  .plan-pick--selected .plan-radio input:checked::after {
+    background: var(--ds-color-text);
+  }
 }

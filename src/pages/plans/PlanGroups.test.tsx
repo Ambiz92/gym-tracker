@@ -9,10 +9,10 @@ function plan(id: string, overrides: Partial<PlanSummary> = {}): PlanSummary {
   return { id, owner_id: 'u1', name: `Scheda ${id}`, is_active: false, archived: false, sessionCount: 3, exerciseCount: 19, ...overrides }
 }
 
-const render = (plans: PlanSummary[], { busy = false, error = null as string | null } = {}) =>
+const render = (plans: PlanSummary[], { busy = false, error = null as string | null, selectedId } = {} as { busy?: boolean; error?: string | null; selectedId?: string }) =>
   renderToStaticMarkup(
     <MemoryRouter>
-      <PlanGroups plans={plans} busy={busy} error={error} onActivate={() => {}} />
+      <PlanGroups plans={plans} selectedId={selectedId} busy={busy} error={error} onActivate={() => {}} />
     </MemoryRouter>,
   )
 
@@ -70,4 +70,19 @@ test('the name form shows a failure as an alert and blocks the button while busy
   expect(html).toContain('role="alert"')
   expect(html).toContain('Creazione non riuscita.')
   expect(html).toMatch(/<button(?=[^>]*aria-busy="true")(?=[^>]*disabled)/)
+})
+
+test('highlights the plan open beside the list, whichever group it is in', () => {
+  const plans = [plan('a'), plan('b', { is_active: true }), plan('c', { archived: true })]
+  for (const id of ['a', 'b', 'c']) {
+    const html = render(plans, { selectedId: id })
+    expect(html.match(/aria-current="true"/g)).toHaveLength(1)
+    expect(html).toMatch(new RegExp(`aria-current="true"[^>]*href="/plans/${id}"|href="/plans/${id}"[^>]*aria-current="true"`))
+  }
+  expect(render(plans)).not.toContain('aria-current')
+})
+
+test('the selected live row is marked as a whole, radio included', () => {
+  const html = render([plan('a'), plan('b', { is_active: true })], { selectedId: 'a' })
+  expect(html.match(/plan-pick--selected/g)).toHaveLength(1)
 })
