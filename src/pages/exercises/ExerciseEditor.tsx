@@ -3,9 +3,10 @@ import { ExerciseForm } from '../../components/ExerciseForm'
 import { PageHeader } from '../../components/PageHeader'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { archiveExercise, createExercise, deleteExercise, updateExercise } from '../../data/exercises'
+import { useAction } from '../../hooks/useAction'
 import { emptyForm, formFromExercise } from '../../lib/exerciseForm'
 import type { Exercise, ExerciseInsert } from '../../types/db'
-import { useAction } from './useAction'
+import { describeError } from './errors'
 
 interface ExerciseEditorProps {
   /** null creates a new exercise. */
@@ -17,8 +18,8 @@ interface ExerciseEditorProps {
 
 /** Create or edit one exercise; for an existing one also archive, restore or delete it. */
 export function ExerciseEditor({ exercise, onCancel, onDone }: ExerciseEditorProps) {
-  const save = useAction()
-  const manage = useAction()
+  const save = useAction(describeError)
+  const manage = useAction(describeError)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const busy = save.busy || manage.busy
 

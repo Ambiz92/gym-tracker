@@ -27,12 +27,3 @@ export function addStep(steps: readonly string[]): string[] {
 export function removeStep(steps: readonly string[], index: number): string[] {
   return steps.filter((_, i) => i !== index)
 }
-
-/** Swaps the step with its neighbour; out-of-range moves return the list unchanged. */
-export function moveStep(steps: readonly string[], index: number, offset: -1 | 1): string[] {
-  const target = index + offset
-  if (index < 0 || index >= steps.length || target < 0 || target >= steps.length) return [...steps]
-  const moved = [...steps]
-  ;[moved[index], moved[target]] = [moved[target], moved[index]]
-  return moved
-}

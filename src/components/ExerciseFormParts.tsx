@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef } from 'react'
 import { EQUIPMENT_LABELS, EQUIPMENT_ORDER } from '../lib/exerciseForm'
-import { addStep, moveStep, removeStep, setStep } from '../lib/steps'
+import { moveItem } from '../lib/reorder'
+import { addStep, removeStep, setStep } from '../lib/steps'
 import type { Equipment } from '../types/db'
 import '../styles/exercises.css'
 
@@ -118,7 +119,7 @@ export function StepsEditor({ steps, onChange, hint, error }: StepsEditorProps) 
                 className="exercise-steps__button"
                 aria-label={`Sposta su il passo ${number}`}
                 disabled={index === 0}
-                onClick={() => onChange(moveStep(steps, index, -1))}
+                onClick={() => onChange(moveItem(steps, index, -1))}
               >
                 ↑
               </button>
@@ -127,7 +128,7 @@ export function StepsEditor({ steps, onChange, hint, error }: StepsEditorProps) 
                 className="exercise-steps__button"
                 aria-label={`Sposta giù il passo ${number}`}
                 disabled={index === steps.length - 1}
-                onClick={() => onChange(moveStep(steps, index, 1))}
+                onClick={() => onChange(moveItem(steps, index, 1))}
               >
                 ↓
               </button>

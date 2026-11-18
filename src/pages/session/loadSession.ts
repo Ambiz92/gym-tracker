@@ -1,10 +1,10 @@
-import { getActivePlan, type ActivePlan, type SessionDetail } from '../../data/activePlan'
+import { getActivePlan, type PlanDetail, type SessionDetail } from '../../data/activePlan'
 import { getLastWorkoutsSets } from '../../data/workouts'
 import { CLEAN_WORKOUTS_REQUIRED } from '../../lib/progression'
 import type { SetLog } from '../../types/db'
 
 export interface LoadedSession {
-  plan: ActivePlan
+  plan: PlanDetail
   session: SessionDetail
   /** Sets of the previous workout per exercise id, for prefill and the summary. */
   lastSets: ReadonlyMap<string, SetLog[]>

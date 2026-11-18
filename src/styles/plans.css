@@ -1,0 +1,167 @@
+/* Plan editor: plan list, plan and session screens. Reuses .field, .primary-button and .row-link text from components.css. */
+
+.plans-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--ds-space-2);
+}
+
+.plans-bar__action {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--ds-size-touch);
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-black);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.plans-bar__action--accent {
+  color: var(--ds-color-accent);
+}
+
+.plans-note,
+.plans-error {
+  margin-top: var(--ds-space-4);
+  font-weight: var(--ds-weight-bold);
+}
+
+.plans-note {
+  color: var(--ds-color-text-muted);
+}
+
+.plans-error {
+  padding: var(--ds-space-3);
+  border: var(--ds-rule) solid var(--ds-color-accent);
+  color: var(--ds-color-accent);
+}
+
+.plans-label {
+  margin-top: var(--ds-space-6);
+  padding-top: var(--ds-space-2);
+  border-top: var(--ds-rule) solid var(--ds-color-border-strong);
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-black);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.plans-form {
+  display: grid;
+  gap: var(--ds-space-3);
+  margin-top: var(--ds-space-4);
+}
+
+.plans-form .field {
+  margin-top: 0;
+}
+
+.plans-actions {
+  display: grid;
+  gap: var(--ds-space-3);
+  margin-top: var(--ds-space-4);
+}
+
+.plans-list {
+  list-style: none;
+}
+
+.plans-list > li:last-child {
+  border-bottom: var(--ds-rule) solid var(--ds-color-border-strong);
+}
+
+/* Row of a sessions/exercises list: text on the left, one touch target per action. */
+.plan-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--ds-size-touch);
+  align-items: center;
+  min-height: 3.875rem;
+  border-top: var(--ds-rule) solid var(--ds-color-border-strong);
+}
+
+.plan-row__main {
+  display: block;
+  min-width: 0;
+  padding: var(--ds-space-3) 0;
+  text-align: left;
+}
+
+.plan-row__main:active {
+  background: var(--ds-color-border);
+}
+
+.plan-row__button {
+  display: grid;
+  place-items: center;
+  min-height: var(--ds-size-touch);
+  font-size: var(--ds-text-lg);
+  font-weight: var(--ds-weight-black);
+}
+
+.plan-row__button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.plan-editor {
+  padding: var(--ds-space-2) 0 var(--ds-space-4);
+}
+
+.plan-editor .field:first-child {
+  margin-top: 0;
+}
+
+.plan-editor__numbers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ds-space-3);
+}
+
+.plan-editor__fieldset {
+  min-inline-size: 0;
+  margin-top: var(--ds-space-4);
+  border: 0;
+}
+
+/* Checkbox row, e.g. the bonus flag. */
+.plans-check {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-3);
+  min-height: var(--ds-size-touch);
+  margin-top: var(--ds-space-4);
+  font-weight: var(--ds-weight-black);
+}
+
+.plans-check input {
+  width: 1.5rem;
+  height: 1.5rem;
+  accent-color: var(--ds-color-accent);
+}
+
+.plans-check small {
+  display: block;
+  color: var(--ds-color-text-muted);
+  font-weight: var(--ds-weight-bold);
+}
+
+.plans-danger {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--ds-size-touch);
+  color: var(--ds-color-accent);
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-black);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.plans-danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

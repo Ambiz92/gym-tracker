@@ -1,22 +1,44 @@
-import { NavLink } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
-const TABS = [
-  { to: '/', label: 'Oggi', end: true },
-  { to: '/plans', label: 'Schede', end: false },
-  { to: '/history', label: 'Storico', end: false },
-  { to: '/more', label: 'Altro', end: false },
-] as const
+interface Tab {
+  to: string
+  label: string
+  /** Routes that keep this tab highlighted besides `to` and its sub-paths. */
+  also?: readonly string[]
+}
 
-/** Bottom navigation; NavLink sets aria-current="page" on the active tab. */
+const TABS: readonly Tab[] = [
+  { to: '/', label: 'Oggi' },
+  // The exercise library is reached from the plan editor.
+  { to: '/plans', label: 'Schede', also: ['/exercises'] },
+  { to: '/history', label: 'Storico' },
+  { to: '/more', label: 'Altro' },
+]
+
+function startsAt(pathname: string, base: string): boolean {
+  return pathname === base || pathname.startsWith(`${base}/`)
+}
+
+function isCurrent({ to, also = [] }: Tab, pathname: string): boolean {
+  if (to === '/') return pathname === '/'
+  return [to, ...also].some((base) => startsAt(pathname, base))
+}
+
+/** Bottom navigation; the current tab carries aria-current="page". */
 export function TabBar() {
+  const { pathname } = useLocation()
   return (
     <nav className="tab-bar" aria-label="Navigazione principale">
       <ul className="tab-bar__list">
-        {TABS.map(({ to, label, end }) => (
-          <li key={to}>
-            <NavLink to={to} end={end} className="tab-bar__link">
-              {label}
-            </NavLink>
+        {TABS.map((tab) => (
+          <li key={tab.to}>
+            <Link
+              to={tab.to}
+              className="tab-bar__link"
+              aria-current={isCurrent(tab, pathname) ? 'page' : undefined}
+            >
+              {tab.label}
+            </Link>
           </li>
         ))}
       </ul>

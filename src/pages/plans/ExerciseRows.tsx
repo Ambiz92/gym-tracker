@@ -1,0 +1,87 @@
+import { useState } from 'react'
+import { PrimaryButton } from '../../components/PrimaryButton'
+import { ReorderButtons } from '../../components/ReorderButtons'
+import type { PlanExerciseDetail } from '../../data/activePlan'
+import { targetFormFrom, type PlanTarget } from '../../lib/planForm'
+import { targetLabel } from '../../lib/sessionProgress'
+import { TargetForm } from './TargetForm'
+import '../../styles/plans.css'
+
+interface ExerciseRowsProps {
+  exercises: readonly PlanExerciseDetail[]
+  /** The row whose target is being edited, if any. */
+  editingId: string | null
+  /** A request is in flight: moving and removing are blocked. */
+  busy: boolean
+  /** Failure of the last target save, shown in the open form. */
+  error: string | null
+  onEdit: (id: string | null) => void
+  onSave: (id: string, target: PlanTarget) => void
+  onMove: (index: number, offset: -1 | 1) => void
+  onRemove: (id: string) => void
+}
+
+/** Exercises of a session in execution order: sets×reps only (weights live in the edit form), reorder and remove. */
+export function ExerciseRows({ exercises, editingId, busy, error, onEdit, onSave, onMove, onRemove }: ExerciseRowsProps) {
+  // The remove button sits next to the move buttons, so removing asks for a second tap.
+  const [removingId, setRemovingId] = useState<string | null>(null)
+
+  if (exercises.length === 0) return <p className="plans-note">Questa sessione non ha ancora esercizi.</p>
+
+  return (
+    <ul className="plans-list">
+      {exercises.map((row, index) => {
+        const { name } = row.exercise
+        const open = row.id === editingId
+        return (
+          <li key={row.id}>
+            <div className="plan-row">
+              <button
+                type="button"
+                className="plan-row__main"
+                aria-expanded={open}
+                aria-label={`Modifica ${name}`}
+                onClick={() => onEdit(open ? null : row.id)}
+              >
+                <span className="row-link__title">{name}</span>
+                <span className="row-link__detail">{targetLabel(row)}</span>
+              </button>
+              <ReorderButtons
+                name={name}
+                index={index}
+                count={exercises.length}
+                disabled={busy}
+                onMove={(offset) => onMove(index, offset)}
+              />
+              <button type="button" className="plan-row__button" aria-label={`Rimuovi ${name}`} disabled={busy} onClick={() => setRemovingId(row.id)}>
+                ✕
+              </button>
+            </div>
+            {row.id === removingId && (
+              <div role="group" aria-label={`Conferma rimozione di ${name}`} className="plan-editor">
+                <p className="plans-note">Rimuovere «{name}» dalla sessione? Lo storico non cambia.</p>
+                <div className="plans-actions">
+                  <PrimaryButton busy={busy} onClick={() => onRemove(row.id)}>
+                    Rimuovi
+                  </PrimaryButton>
+                  <PrimaryButton variant="outline" disabled={busy} onClick={() => setRemovingId(null)}>
+                    Non rimuovere
+                  </PrimaryButton>
+                </div>
+              </div>
+            )}
+            {open && (
+              <TargetForm
+                initial={targetFormFrom(row)}
+                busy={busy}
+                error={error}
+                onSubmit={(target) => onSave(row.id, target)}
+                onCancel={() => onEdit(null)}
+              />
+            )}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}

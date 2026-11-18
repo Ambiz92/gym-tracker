@@ -1,5 +1,5 @@
 import { beforeEach, expect, test, vi } from 'vitest'
-import { getActivePlan } from './activePlan'
+import { getActivePlan, getPlanById } from './activePlan'
 import { DataError } from './client'
 import { fakeSupabase } from './fakeSupabase'
 
@@ -58,4 +58,17 @@ test('orders sessions, exercises and warm-ups by position and renames the embeds
 test('throws a DataError when the query fails', async () => {
   fakeSupabase.reset(() => ({ error: { message: 'boom', code: 'XX000' } }))
   await expect(getActivePlan()).rejects.toBeInstanceOf(DataError)
+})
+
+test('getPlanById filters on the id, shapes the plan like the active one and returns null when missing', async () => {
+  expect(await getPlanById('p9')).toBeNull()
+  expect(fakeSupabase.calls[0]).toMatchObject({ table: 'plan', filters: [['eq', 'id', 'p9']], mode: 'maybeSingle' })
+
+  fakeSupabase.reset(() => ({
+    data: { id: 'p9', archived: true, plan_session: [{ id: 's1', position: 0, plan_exercise: [], warmup_item: [] }] },
+  }))
+  const plan = await getPlanById('p9')
+  expect(plan?.archived).toBe(true)
+  expect(plan?.sessions.map((s) => s.id)).toEqual(['s1'])
+  expect(plan).not.toHaveProperty('plan_session')
 })

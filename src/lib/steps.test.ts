@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addStep, joinSteps, moveStep, removeStep, setStep, splitSteps } from './steps'
+import { addStep, joinSteps, removeStep, setStep, splitSteps } from './steps'
 
 describe('splitSteps / joinSteps', () => {
   it('round-trips one step per line', () => {
@@ -34,16 +34,5 @@ describe('step list edits', () => {
 
   it('removes the step at the index', () => {
     expect(removeStep(['a', 'b', 'c'], 1)).toEqual(['a', 'c'])
-  })
-
-  it('moves a step up or down', () => {
-    expect(moveStep(['a', 'b', 'c'], 1, -1)).toEqual(['b', 'a', 'c'])
-    expect(moveStep(['a', 'b', 'c'], 1, 1)).toEqual(['a', 'c', 'b'])
-  })
-
-  it('ignores moves past either end', () => {
-    expect(moveStep(['a', 'b'], 0, -1)).toEqual(['a', 'b'])
-    expect(moveStep(['a', 'b'], 1, 1)).toEqual(['a', 'b'])
-    expect(moveStep(['a', 'b'], 5, -1)).toEqual(['a', 'b'])
   })
 })
