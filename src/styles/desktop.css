@@ -369,6 +369,20 @@
     outline-offset: calc(-1 * var(--ds-space-2));
   }
 
+  /* Library editor: "Salva" and "Archivia" side by side */
+  .exercise-form__actions--split {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .exercise-form__actions--split > * {
+    flex: 1 1 12rem;
+  }
+
+  .exercise-form__actions--split > [role="alert"] {
+    flex-basis: 100%;
+  }
+
   /* Altro: the three groups side by side */
   .more-sections {
     display: grid;

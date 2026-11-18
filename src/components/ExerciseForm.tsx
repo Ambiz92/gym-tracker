@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
   validateExerciseForm,
   type ExerciseFormErrors,
@@ -17,11 +17,13 @@ interface ExerciseFormProps {
   /** Failure of the last submit, announced to screen readers. */
   error: string | null
   submitLabel: string
+  /** Buttons next to the submit one; on desktop they sit beside it. */
+  extraActions?: ReactNode
   onSubmit: (exercise: ExerciseInsert) => void
 }
 
 /** Create/edit form for an exercise: validates against the database limits before calling `onSubmit`. */
-export function ExerciseForm({ initial, busy, error, submitLabel, onSubmit }: ExerciseFormProps) {
+export function ExerciseForm({ initial, busy, error, submitLabel, extraActions, onSubmit }: ExerciseFormProps) {
   const [values, setValues] = useState(initial)
   const [errors, setErrors] = useState<ExerciseFormErrors>({})
   const formRef = useRef<HTMLFormElement>(null)
@@ -90,7 +92,7 @@ export function ExerciseForm({ initial, busy, error, submitLabel, onSubmit }: Ex
         onChange={(value) => update('notes', value)}
         error={errors.notes}
       />
-      <div className="exercise-form__actions">
+      <div className={extraActions ? 'exercise-form__actions exercise-form__actions--split' : 'exercise-form__actions'}>
         {error && (
           <p role="alert" className="field__message field__message--error">
             {error}
@@ -99,6 +101,7 @@ export function ExerciseForm({ initial, busy, error, submitLabel, onSubmit }: Ex
         <PrimaryButton type="submit" busy={busy}>
           {submitLabel}
         </PrimaryButton>
+        {extraActions}
       </div>
     </form>
   )
