@@ -1,16 +1,16 @@
 import type { ReactNode } from 'react'
-import { TabBar } from './TabBar'
+import { Sidebar } from './Sidebar'
 
 interface LayoutProps {
   children: ReactNode
 }
 
-/** Phone-width column: page content above the bottom tab bar. */
+/** Page content with the main navigation: a phone-width column with a bottom tab bar, a sidebar on desktop. */
 export function Layout({ children }: LayoutProps) {
   return (
     <div className="app">
       <main className="app__content" tabIndex={-1}>{children}</main>
-      <TabBar />
+      <Sidebar />
     </div>
   )
 }

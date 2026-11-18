@@ -57,6 +57,8 @@
   --ds-size-touch: 2.75rem;
   --ds-size-column: 30rem;
   --ds-size-tab: 3.625rem;
+  --ds-size-sidebar: 15.625rem;
+  --ds-size-desktop: 90rem;
   --ds-gutter: var(--ds-space-5);
 
   color-scheme: light;

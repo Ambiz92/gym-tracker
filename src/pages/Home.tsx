@@ -6,6 +6,7 @@ import { SyncBanner } from '../components/SyncBanner'
 import { getActivePlan, type PlanDetail } from '../data/activePlan'
 import { getLastWorkoutDates } from '../data/sessionLog'
 import { useAsync } from '../hooks/useAsync'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 import { dayMonth, weekdayDayMonth } from '../lib/formatDate'
 import { nextSessionId } from '../lib/nextSession'
 import { activeSets, type Draft } from '../lib/sessionDraft'
@@ -30,6 +31,7 @@ export function Home() {
   const state = useAsync(loadHome, [])
   const { draft } = useSessionState()
   const sync = useSyncStatus()
+  const isDesktop = useIsDesktop()
   useFlushOnMount()
 
   return (
@@ -38,15 +40,29 @@ export function Home() {
         meta="Gym Tracker"
         metaEnd={weekdayDayMonth(new Date())}
         title={
-          <>
-            Oggi
-            <br />
-            <em>si lavora</em>
-            <br />
-            sotto.
-          </>
+          isDesktop ? (
+            <>
+              Oggi
+              <br />
+              <em>si guarda</em> da qui.
+            </>
+          ) : (
+            <>
+              Oggi
+              <br />
+              <em>si lavora</em>
+              <br />
+              sotto.
+            </>
+          )
         }
       />
+      {isDesktop && (
+        <p className="desktop-note">
+          <strong>Le serie si registrano dal telefono.</strong> Qui puoi vedere le sessioni, modificare le schede e
+          consultare lo storico.
+        </p>
+      )}
       <SyncBanner {...sync} />
       {draft && <ResumeRow draft={draft} plan={state.status === 'ready' ? state.data.plan : null} />}
       {state.status === 'loading' && <p className="session-note" role="status">Carico la scheda…</p>}

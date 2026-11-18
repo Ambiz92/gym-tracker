@@ -4,10 +4,10 @@ interface AuthLayoutProps {
   children: ReactNode
 }
 
-/** Phone-width column without navigation, for the signed-out screens. */
+/** Signed-out screens: a phone-width column, centred on desktop. */
 export function AuthLayout({ children }: AuthLayoutProps) {
   return (
-    <div className="app">
+    <div className="app app--auth">
       <main className="app__content" tabIndex={-1}>
         {children}
       </main>

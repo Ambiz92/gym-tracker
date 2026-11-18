@@ -5,8 +5,10 @@ import { PrimaryButton } from '../components/PrimaryButton'
 import { RowLink } from '../components/RowLink'
 import { UndoToast } from '../components/UndoToast'
 import { useAsync } from '../hooks/useAsync'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 import type { Draft } from '../lib/sessionDraft'
 import type { SetValues } from '../lib/setFlow'
+import { DesktopSession } from './session/DesktopSession'
 import { ExerciseLogger, type RestoredSet } from './session/ExerciseLogger'
 import { loadSession, type LoadedSession } from './session/loadSession'
 import { sessionPath } from './session/paths'
@@ -24,11 +26,12 @@ interface ToastState {
   message: string
 }
 
-/** Session of the active plan: exercise list, set logger and end-of-session summary. */
+/** Session of the active plan: exercise list, set logger and end-of-session summary; read-only on desktop. */
 export function Session() {
   const { id = '' } = useParams()
   const state = useAsync(() => loadSession(id, sessionStore.getSnapshot().draft?.workoutId), [id])
   const { draft } = useSessionState()
+  const isDesktop = useIsDesktop()
   useFlushOnMount()
 
   if (state.status === 'loading') {
@@ -46,7 +49,7 @@ export function Session() {
     )
   }
   if (!state.data) return <MissingSession sessionId={id} draft={draft} />
-  return <OpenSession loaded={state.data} draft={draft} />
+  return isDesktop ? <DesktopSession loaded={state.data} /> : <OpenSession loaded={state.data} draft={draft} />
 }
 
 function MissingSession({ sessionId, draft }: { sessionId: string; draft: Draft | null }) {
