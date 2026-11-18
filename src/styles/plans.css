@@ -165,3 +165,26 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* Row without grip or arrows (archived sessions): text and one text button. */
+.plan-row--plain {
+  grid-template-columns: 1fr auto;
+  grid-auto-columns: auto;
+}
+
+.plan-row__text-button {
+  min-height: var(--ds-size-touch);
+  padding-inline: var(--ds-space-3);
+  color: var(--ds-color-accent);
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-black);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.plan-row__text-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

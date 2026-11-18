@@ -98,7 +98,7 @@ test('removing a session says a logged one is refused', () => {
   )
   expect(html).toContain('role="alert"')
   expect(html).toContain('Rimuovi la sessione')
-  expect(html).not.toContain('Rimuovi definitivamente')
+  expect(html).not.toContain('Non rimuovere')
 })
 
 test('the add screen announces what was added and starts on the picker', () => {

@@ -18,7 +18,7 @@ import { defaultTarget, sessionFormFrom, type PlanTarget } from '../../lib/planF
 import { moveItem } from '../../lib/reorder'
 import type { Exercise, ExerciseInsert, PlanSessionUpdate } from '../../types/db'
 import { AddExercise } from './AddExercise'
-import { describeSessionError } from './errors'
+import { describePlanError } from './errors'
 import { ExerciseRows } from './ExerciseRows'
 import { SessionFields } from './SessionFields'
 import { SessionRemove } from './SessionRemove'
@@ -38,10 +38,10 @@ export function SessionScreen({ planId, planName, initial }: SessionScreenProps)
   const [adding, setAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const details = useAction(describeSessionError)
-  const list = useAction(describeSessionError)
-  const target = useAction(describeSessionError)
-  const removal = useAction(describeSessionError)
+  const details = useAction(describePlanError)
+  const list = useAction(describePlanError)
+  const target = useAction(describePlanError)
+  const removal = useAction(describePlanError)
   const busy = details.busy || list.busy || target.busy || removal.busy
 
   async function handleDetails(fields: PlanSessionUpdate) {
