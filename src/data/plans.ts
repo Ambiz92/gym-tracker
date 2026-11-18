@@ -12,9 +12,23 @@ import { DataError, ensureAffected, ensureOk, inUseError, isReferenced, supabase
 export type NewSession = Omit<PlanSessionInsert, 'id' | 'plan_id' | 'position'>
 export type NewPlanExercise = Omit<PlanExerciseInsert, 'id' | 'session_id' | 'position'>
 
-/** All plans, archived included (the caller filters), by name. */
-export async function listPlans(): Promise<Plan[]> {
-  return unwrap<Plan[]>(await supabase.from('plan').select().order('name'))
+export interface PlanSummary extends Plan {
+  sessionCount: number
+  exerciseCount: number
+}
+
+interface RawSummary extends Plan {
+  plan_session: { id: string; plan_exercise: { id: string }[] }[]
+}
+
+/** All plans, archived included (the caller filters), by name, with their session and exercise counts. */
+export async function listPlanSummaries(): Promise<PlanSummary[]> {
+  const rows = unwrap<RawSummary[]>(await supabase.from('plan').select('*, plan_session(id, plan_exercise(id))').order('name'))
+  return rows.map(({ plan_session, ...plan }) => ({
+    ...plan,
+    sessionCount: plan_session.length,
+    exerciseCount: plan_session.reduce((total, session) => total + session.plan_exercise.length, 0),
+  }))
 }
 
 export async function createPlan(name: string): Promise<Plan> {
@@ -28,6 +42,10 @@ export async function renamePlan(id: string, name: string): Promise<void> {
 /** Archived plans cannot be active (check constraint), so both flags change together. */
 export async function archivePlan(id: string): Promise<void> {
   ensureAffected(await supabase.from('plan').update({ archived: true, is_active: false }).eq('id', id).select('id'))
+}
+
+export async function restorePlan(id: string): Promise<void> {
+  ensureAffected(await supabase.from('plan').update({ archived: false }).eq('id', id).select('id'))
 }
 
 /** Deletes a plan whose sessions were never logged; refuses with an `in_use` DataError otherwise. */

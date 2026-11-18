@@ -7,8 +7,10 @@ import {
   addSession,
   archivePlan,
   deletePlan,
+  listPlanSummaries,
   removeSession,
   renamePlan,
+  restorePlan,
   reorderPlanExercises,
   reorderSessions,
   setActivePlan,
@@ -131,6 +133,7 @@ describe('single-row updates fail when no row matches', () => {
   const updates: [string, () => Promise<void>, object][] = [
     ['renamePlan', () => renamePlan('p1', 'New'), { table: 'plan', payload: { name: 'New' } }],
     ['archivePlan', () => archivePlan('p1'), { table: 'plan' }],
+    ['restorePlan', () => restorePlan('p1'), { table: 'plan', payload: { archived: false } }],
     ['updateSession', () => updateSession('s1', { name: 'B' }), { table: 'plan_session', payload: { name: 'B' } }],
     ['updatePlanExercise', () => updatePlanExercise('x1', { target_sets: 4 }), { table: 'plan_exercise', payload: { target_sets: 4 } }],
   ]
@@ -263,5 +266,30 @@ describe('delete refuses when history references the rows', () => {
     fakeSupabase.reset((call) => (call.op === 'select' ? { data: [] } : undefined))
     await deletePlan('p1')
     expect(fakeSupabase.calls.map(summary)).toEqual(['plan_session.select', 'plan.delete'])
+  })
+})
+
+describe('listPlanSummaries', () => {
+  test('counts sessions and exercises per plan and drops the embeds', async () => {
+    fakeSupabase.reset(() => ({
+      data: [
+        { id: 'p1', name: 'A', plan_session: [{ id: 's1', plan_exercise: [{ id: 'x1' }, { id: 'x2' }] }, { id: 's2', plan_exercise: [{ id: 'x3' }] }] },
+        { id: 'p2', name: 'B', plan_session: [] },
+      ],
+    }))
+
+    const plans = await listPlanSummaries()
+
+    expect(fakeSupabase.calls[0]).toMatchObject({ table: 'plan', orders: [{ column: 'name', ascending: true }] })
+    expect(plans.map(({ id, sessionCount, exerciseCount }) => [id, sessionCount, exerciseCount])).toEqual([
+      ['p1', 2, 3],
+      ['p2', 0, 0],
+    ])
+    expect(plans[0]).not.toHaveProperty('plan_session')
+  })
+
+  test('a failed query is thrown', async () => {
+    fakeSupabase.reset(() => failure)
+    await expect(listPlanSummaries()).rejects.toBeInstanceOf(DataError)
   })
 })
