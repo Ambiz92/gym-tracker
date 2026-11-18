@@ -25,7 +25,7 @@ type Columns = { [Table in TableName]: readonly (keyof TableRows[Table] & string
 export const CSV_COLUMNS: Columns = {
   exercise: ['id', 'owner_id', 'name', 'equipment', 'muscles', 'execution_steps', 'notes', 'starting_weight_kg', 'archived'],
   plan: ['id', 'owner_id', 'name', 'is_active', 'archived'],
-  plan_session: ['id', 'owner_id', 'plan_id', 'name', 'subtitle', 'position', 'is_optional'],
+  plan_session: ['id', 'owner_id', 'plan_id', 'name', 'subtitle', 'position', 'is_optional', 'archived'],
   plan_exercise: [
     'id',
     'owner_id',

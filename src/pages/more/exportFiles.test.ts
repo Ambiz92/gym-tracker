@@ -11,7 +11,7 @@ const sample: ExportTables = {
     { id: 'e1', ...owner, name: 'Rematore, bilanciere', equipment: 'barbell', muscles: null, execution_steps: null, notes: '=HYPERLINK("x")', starting_weight_kg: 25, archived: true },
   ],
   plan: [{ id: 'p1', ...owner, name: 'Forza', is_active: true, archived: false }],
-  plan_session: [{ id: 's1', ...owner, plan_id: 'p1', name: 'A', subtitle: null, position: 1, is_optional: false }],
+  plan_session: [{ id: 's1', ...owner, plan_id: 'p1', name: 'A', subtitle: null, position: 1, is_optional: false, archived: false }],
   plan_exercise: [
     { id: 'pe1', ...owner, session_id: 's1', exercise_id: 'e1', position: 1, target_sets: 3, target_reps: 8, target_unit: 'reps', suggested_weight_kg: 25, suggested_weight_max_kg: null },
   ],
