@@ -73,7 +73,7 @@ test('manage shows a refused delete as an alert', () => {
 
 test('a plan screen shows the status, the way to activate an inactive plan and the sessions', () => {
   const plan = { id: 'p1', owner_id: 'u1', name: 'Forza', is_active: false, archived: false, sessions: [session('a')], archivedSessions: [] }
-  const html = inRouter(<PlanScreen initial={plan} />)
+  const html = inRouter(<PlanScreen plan={plan} onChange={() => {}} />)
   expect(html).toContain('Non attiva')
   expect(html).toContain('Imposta come attiva')
   expect(html).toContain('Sessione a')
@@ -82,16 +82,16 @@ test('a plan screen shows the status, the way to activate an inactive plan and t
 
 test('the active plan has no activate button and an archived one cannot be activated', () => {
   const base = { id: 'p1', owner_id: 'u1', name: 'Forza', sessions: [], archivedSessions: [] }
-  expect(inRouter(<PlanScreen initial={{ ...base, is_active: true, archived: false }} />)).not.toContain('Imposta come attiva')
-  const archived = inRouter(<PlanScreen initial={{ ...base, is_active: false, archived: true }} />)
+  expect(inRouter(<PlanScreen plan={{ ...base, is_active: true, archived: false }} onChange={() => {}} />)).not.toContain('Imposta come attiva')
+  const archived = inRouter(<PlanScreen plan={{ ...base, is_active: false, archived: true }} onChange={() => {}} />)
   expect(archived).not.toContain('Imposta come attiva')
   expect(archived).toContain('Archiviata')
 })
 
 test('the plan screen offers to duplicate the plan, whatever its state', () => {
   const base = { id: 'p1', owner_id: 'u1', name: 'Forza', sessions: [], archivedSessions: [] }
-  expect(inRouter(<PlanScreen initial={{ ...base, is_active: true, archived: false }} />)).toContain('Duplica scheda')
-  expect(inRouter(<PlanScreen initial={{ ...base, is_active: false, archived: true }} />)).toContain('Duplica scheda')
+  expect(inRouter(<PlanScreen plan={{ ...base, is_active: true, archived: false }} onChange={() => {}} />)).toContain('Duplica scheda')
+  expect(inRouter(<PlanScreen plan={{ ...base, is_active: false, archived: true }} onChange={() => {}} />)).toContain('Duplica scheda')
 })
 
 test('archived sessions are listed apart with a restore button each, and not in the plan sessions or their count', () => {
@@ -104,7 +104,7 @@ test('archived sessions are listed apart with a restore button each, and not in 
     sessions: [session('a')],
     archivedSessions: [session('z', { archived: true })],
   }
-  const html = inRouter(<PlanScreen initial={plan} />)
+  const html = inRouter(<PlanScreen plan={plan} onChange={() => {}} />)
   expect(html).toContain('1 sessione<')
   expect(html).toContain('Sessioni archiviate')
   expect(html).toContain('aria-label="Ripristina Sessione z"')

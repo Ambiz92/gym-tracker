@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { startTransition, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { SessionHeader } from '../../components/SessionHeader'
@@ -9,6 +9,7 @@ import {
   removePlanExercise,
   removeSession,
   reorderPlanExercises,
+  type SessionRemoval,
   updatePlanExercise,
   updateSession,
 } from '../../data/plans'
@@ -27,14 +28,16 @@ import '../../styles/plans.css'
 interface SessionScreenProps {
   planId: string
   planName: string
-  initial: SessionDetail
+  session: SessionDetail
+  /** Patches the session held by the parent; called only once a request succeeded, so nothing reloads under the user's finger. */
+  onChange: (update: (session: SessionDetail) => SessionDetail) => void
+  /** The session was deleted or archived: the parent drops it from its plan. */
+  onRemoved: (removal: SessionRemoval) => void
 }
 
 /** One session of a plan: its name and bonus flag, and its exercises with sets, reps, unit and weight. */
-export function SessionScreen({ planId, planName, initial }: SessionScreenProps) {
+export function SessionScreen({ planId, planName, session, onChange: setSession, onRemoved }: SessionScreenProps) {
   const navigate = useNavigate()
-  // Edits update this copy once the request succeeds, so the list never reloads under the user's finger.
-  const [session, setSession] = useState(initial)
   const [adding, setAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -94,7 +97,16 @@ export function SessionScreen({ planId, planName, initial }: SessionScreenProps)
   }
 
   async function handleRemoveSession() {
-    if (await removal.run(() => removeSession(session.id), 'Rimozione non riuscita. Riprova.')) navigate(`/plans/${planId}`)
+    let removed: SessionRemoval = 'deleted'
+    const done = await removal.run(async () => {
+      removed = await removeSession(session.id)
+    }, 'Rimozione non riuscita. Riprova.')
+    if (!done) return
+    // One transition: the session route is left in the same render that drops the session from the plan.
+    startTransition(() => {
+      navigate(`/plans/${planId}`)
+      onRemoved(removed)
+    })
   }
 
   if (adding) {

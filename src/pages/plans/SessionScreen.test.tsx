@@ -123,7 +123,7 @@ test('the session screen shows the header, the bonus tag, the exercises and the 
     exercises: [row('a')],
     warmup: [],
   }
-  const html = inRouter(<SessionScreen planId="p1" planName="Forza" initial={session} />)
+  const html = inRouter(<SessionScreen planId="p1" planName="Forza" session={session} onChange={noop} onRemoved={noop} />)
   expect(html).toContain('href="/plans/p1"')
   expect(html).toContain('‹ Forza')
   expect(html).toContain('Bonus')

@@ -4,9 +4,9 @@ import { RowLink } from '../components/RowLink'
 import { getPlanById } from '../data/activePlan'
 import { useAsync } from '../hooks/useAsync'
 import { LoadState } from './history/LoadState'
-import { PlanScreen } from './plans/PlanScreen'
+import { PlanWorkspace } from './plans/PlanWorkspace'
 
-/** Plan editor: sessions of one plan, reached from the plan list. */
+/** Plan editor: loads one plan, reached from the plan list, and its session editor is the child route. */
 export function PlanEdit() {
   const { id = '' } = useParams()
   const state = useAsync(() => getPlanById(id), [id])
@@ -15,7 +15,7 @@ export function PlanEdit() {
     <LoadState state={state} what="la scheda">
       {(plan) =>
         plan ? (
-          <PlanScreen key={plan.id} initial={plan} />
+          <PlanWorkspace key={plan.id} initial={plan} />
         ) : (
           <>
             <PageHeader meta="Schede" title="Scheda non trovata." size="title" />
