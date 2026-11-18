@@ -79,10 +79,23 @@ export function targetLabel(target: Pick<PlanExercise, 'target_sets' | 'target_r
   return `${target.target_sets}×${target.target_reps}${UNIT_SUFFIX[target.target_unit]}`
 }
 
+/** "3 × 15 kg" or "2 × 15 kg · 1 × 12,5 kg": the weights of the sets, runs of the same weight collapsed. */
+export function loadLabel(weightsKg: readonly number[]): string {
+  const runs: { weightKg: number; count: number }[] = []
+  for (const weightKg of weightsKg) {
+    const last = runs.at(-1)
+    if (last?.weightKg === weightKg) last.count += 1
+    else runs.push({ weightKg, count: 1 })
+  }
+  return runs.map(({ weightKg, count }) => `${count} × ${formatNumber(weightKg)} kg`).join(' · ')
+}
+
 export interface SummaryRow {
   exerciseId: string
   name: string
   sets: number
+  /** Weight of every set today, in set order. */
+  weightsKg: number[]
   /** Heaviest weight of the session. */
   weightKg: number
   equipment: Equipment
@@ -96,7 +109,7 @@ export function buildSummary(
   exercises: readonly { exerciseId: string; name: string; lastSets: readonly LastSet[] }[],
 ): SummaryRow[] {
   return exercises.flatMap(({ exerciseId, name, lastSets }) => {
-    const sets = setsOf(draft, exerciseId)
+    const sets = [...setsOf(draft, exerciseId)].sort((a, b) => a.setNumber - b.setNumber)
     const heaviest = sets.reduce<DraftSet | undefined>((top, set) => (!top || set.weightKg > top.weightKg ? set : top), undefined)
     if (!heaviest) return []
     const before = lastSets.length > 0 ? Math.max(...lastSets.map((set) => set.weight_kg)) : null
@@ -105,6 +118,7 @@ export function buildSummary(
         exerciseId,
         name,
         sets: sets.length,
+        weightsKg: sets.map((set) => set.weightKg),
         weightKg: heaviest.weightKg,
         equipment: heaviest.equipment,
         deltaKg: before === null ? null : Math.round((heaviest.weightKg - before) * 100) / 100,

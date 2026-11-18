@@ -126,17 +126,20 @@ describe('SessionSummary', () => {
       <SessionSummary
         {...props}
         rows={[
-          { exerciseId: 'a', name: 'Curl', sets: 3, weightKg: 15, equipment: 'barbell', deltaKg: 2.5 },
-          { exerciseId: 'b', name: 'Panca', sets: 3, weightKg: 15, equipment: 'barbell', deltaKg: 0 },
-          { exerciseId: 'c', name: 'Squat', sets: 3, weightKg: 30, equipment: 'barbell', deltaKg: null },
+          { exerciseId: 'a', name: 'Curl', sets: 3, weightsKg: [15, 15, 12.5], weightKg: 15, equipment: 'barbell', deltaKg: 2.5 },
+          { exerciseId: 'b', name: 'Panca', sets: 3, weightsKg: [15, 15, 15], weightKg: 15, equipment: 'barbell', deltaKg: 0 },
+          { exerciseId: 'c', name: 'Squat', sets: 3, weightsKg: [30, 30, 30], weightKg: 30, equipment: 'barbell', deltaKg: null },
         ]}
       />,
     )
     expect(html).toContain('52 min')
     expect(html).toContain('3 esercizi · 9 serie')
-    expect(html).toContain('+2,5')
+    expect(html).toContain('2 × 15 kg · 1 × 12,5 kg')
+    expect(html).toContain('3 × 30 kg')
+    expect(html).toContain('+2,5 kg')
     expect(html).toContain('2,5 kg in più dell&#x27;ultima volta')
     expect(html).toContain('stesso peso')
+    expect(html).toContain('prima volta')
     expect(html).toContain('primo allenamento')
     expect(html).toContain('Note (facoltativo)')
   })
