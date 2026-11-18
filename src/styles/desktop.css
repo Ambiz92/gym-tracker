@@ -20,7 +20,7 @@
   .app {
     display: grid;
     grid-template-columns: var(--ds-size-sidebar) minmax(0, 1fr);
-    max-width: var(--ds-size-desktop);
+    max-width: none;
     padding: 0;
   }
 
@@ -240,7 +240,7 @@
   /* Master-detail pages: Storico, Libreria */
   .split {
     display: grid;
-    grid-template-columns: 21rem minmax(0, 1fr);
+    grid-template-columns: minmax(21rem, 28rem) minmax(0, 1fr);
   }
 
   .split__list {
