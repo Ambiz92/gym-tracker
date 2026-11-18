@@ -249,11 +249,12 @@
 
 /* Field */
 .field {
-  margin-top: var(--ds-space-4);
+  margin-top: var(--ds-space-6);
 }
 
 .field__label {
   display: block;
+  margin-bottom: var(--ds-space-2);
   font-size: var(--ds-text-xs);
   font-weight: var(--ds-weight-black);
   letter-spacing: 0.1em;
@@ -265,8 +266,8 @@
   display: block;
   width: 100%;
   min-height: 3rem;
-  border: 0;
-  border-bottom: var(--ds-rule) solid var(--ds-color-border-strong);
+  padding: var(--ds-space-2) var(--ds-space-3);
+  border: var(--ds-rule) solid var(--ds-color-border-strong);
   border-radius: 0;
   background: transparent;
   appearance: none;
@@ -281,7 +282,7 @@
 }
 
 .field__input[aria-invalid="true"] {
-  border-bottom-color: var(--ds-color-accent);
+  border-color: var(--ds-color-accent);
 }
 
 .field__message {
