@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { expect, test } from 'vitest'
 import type { SessionDetail } from '../../data/activePlan'
 import { ArchivedSessions } from './ArchivedSessions'
@@ -125,4 +125,20 @@ test('every session row has a pointer-only drag handle and keeps the move button
   expect(html.match(/<span[^>]*class="plan-row__grip"[^>]*aria-hidden="true"/g)).toHaveLength(2)
   expect(html).toContain('aria-label="Sposta giù Sessione a"')
   expect(html).toContain('aria-label="Sposta su Sessione b"')
+})
+
+test('the session open beside the list is marked, the others are not', () => {
+  const html = renderToStaticMarkup(
+    <MemoryRouter initialEntries={['/plans/p1/sessions/b']}>
+      <Routes>
+        <Route
+          path="/plans/:id/sessions/:sessionId"
+          element={<SessionRows planId="p1" sessions={[session('a'), session('b')]} busy={false} onMove={() => {}} onReorder={() => {}} />}
+        />
+      </Routes>
+    </MemoryRouter>,
+  )
+  expect(html.match(/plan-row--selected/g)).toHaveLength(1)
+  expect(html.match(/aria-current="true"/g)).toHaveLength(1)
+  expect(html).toMatch(/aria-current="true"[^>]*href="\/plans\/p1\/sessions\/b"|href="\/plans\/p1\/sessions\/b"[^>]*aria-current="true"/)
 })

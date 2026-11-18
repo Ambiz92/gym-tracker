@@ -14,12 +14,14 @@ import {
   updateSession,
 } from '../../data/plans'
 import { useAction } from '../../hooks/useAction'
+import { useIsDesktop } from '../../hooks/useIsDesktop'
 import { countLabel } from '../../lib/planList'
 import { defaultTarget, sessionFormFrom, type PlanTarget } from '../../lib/planForm'
 import { moveItem, moveTo } from '../../lib/reorder'
 import type { Exercise, ExerciseInsert, PlanSessionUpdate } from '../../types/db'
 import { AddExercise } from './AddExercise'
 import { describePlanError } from './errors'
+import { ExerciseGrid } from './ExerciseGrid'
 import { ExerciseRows } from './ExerciseRows'
 import { SessionFields } from './SessionFields'
 import { SessionRemove } from './SessionRemove'
@@ -38,6 +40,7 @@ interface SessionScreenProps {
 /** One session of a plan: its name and bonus flag, and its exercises with sets, reps, unit and weight. */
 export function SessionScreen({ planId, planName, session, onChange: setSession, onRemoved }: SessionScreenProps) {
   const navigate = useNavigate()
+  const isDesktop = useIsDesktop()
   const [adding, setAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -71,14 +74,15 @@ export function SessionScreen({ planId, planName, session, onChange: setSession,
     if (created) setAdding(false)
   }
 
-  async function handleSaveTarget(id: string, changes: PlanTarget) {
+  async function handleSaveTarget(id: string, changes: PlanTarget): Promise<boolean> {
     const saved = await target.run(() => updatePlanExercise(id, changes), 'Salvataggio non riuscito. Riprova.')
-    if (!saved) return
+    if (!saved) return false
     setSession((current) => ({
       ...current,
       exercises: current.exercises.map((row) => (row.id === id ? { ...row, ...changes } : row)),
     }))
     setEditingId(null)
+    return true
   }
 
   async function applyOrder(reordered: SessionDetail['exercises']) {
@@ -142,17 +146,28 @@ export function SessionScreen({ planId, planName, session, onChange: setSession,
           {list.error}
         </p>
       )}
-      <ExerciseRows
-        exercises={session.exercises}
-        editingId={editingId}
-        busy={busy}
-        error={target.error}
-        onEdit={setEditingId}
-        onSave={handleSaveTarget}
-        onMove={handleMove}
-        onReorder={handleReorder}
-        onRemove={handleRemoveExercise}
-      />
+      {isDesktop ? (
+        <ExerciseGrid
+          exercises={session.exercises}
+          busy={busy}
+          error={target.error}
+          onSave={handleSaveTarget}
+          onMove={handleMove}
+          onRemove={handleRemoveExercise}
+        />
+      ) : (
+        <ExerciseRows
+          exercises={session.exercises}
+          editingId={editingId}
+          busy={busy}
+          error={target.error}
+          onEdit={setEditingId}
+          onSave={handleSaveTarget}
+          onMove={handleMove}
+          onReorder={handleReorder}
+          onRemove={handleRemoveExercise}
+        />
+      )}
       <div className="plans-actions">
         <PrimaryButton
           variant="outline"

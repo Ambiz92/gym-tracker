@@ -401,6 +401,11 @@
     grid-template-columns: minmax(21rem, 28rem) minmax(0, 1fr);
   }
 
+  /* Schede: the list is narrower, the editor beside it holds two panes of its own */
+  .split--plans {
+    grid-template-columns: minmax(14rem, 17rem) minmax(0, 1fr);
+  }
+
   .split__list {
     padding-right: var(--ds-space-6);
     border-right: var(--ds-rule) solid var(--ds-color-border-strong);
@@ -424,6 +429,44 @@
   .split .row-link--inverted {
     margin-inline: 0;
     padding-inline: var(--ds-space-3);
+  }
+
+  /* Plan editor: sessions of the plan | exercises of the open session */
+  .plan-panes {
+    display: grid;
+    grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr);
+  }
+
+  .plan-panes__sessions {
+    padding-right: var(--ds-space-5);
+    border-right: var(--ds-rule) solid var(--ds-color-border-strong);
+  }
+
+  .plan-panes__editor {
+    padding-left: var(--ds-space-5);
+  }
+
+  .plan-panes__sessions .page-header__title {
+    font-size: var(--ds-text-xl);
+  }
+
+  /* Both panes are always visible, so the way back is not needed. */
+  .plan-panes .session-header__back {
+    display: none;
+  }
+
+  .plan-row--selected {
+    background: var(--ds-color-text);
+    color: var(--ds-color-bg);
+  }
+
+  .plan-row--selected .plan-row__grip {
+    color: inherit;
+  }
+
+  .plan-row--selected .row-link__detail {
+    color: inherit;
+    opacity: 0.75;
   }
 
   /* Plan list: the whole row of the open plan, activation radio included */

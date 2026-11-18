@@ -274,3 +274,81 @@
 [data-drag="after"]::after {
   bottom: calc(-0.5 * var(--ds-rule-thick));
 }
+
+/* Desktop session editor: one line per exercise, edited in place; the inputs wrap under the name when the pane is narrow. */
+.plan-grid__row {
+  padding: var(--ds-space-3) 0;
+  border-top: var(--ds-rule) solid var(--ds-color-border-strong);
+}
+
+.plan-grid__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--ds-space-2) var(--ds-space-4);
+}
+
+.plan-grid__name {
+  flex: 1 1 9rem;
+  align-self: center;
+  min-width: 0;
+}
+
+.plan-grid__fields {
+  display: flex;
+  align-items: end;
+  gap: var(--ds-space-2);
+}
+
+.plan-grid__cell {
+  display: grid;
+  gap: 2px;
+}
+
+.plan-grid__label {
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-black);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ds-color-text-muted);
+}
+
+.plan-grid__input {
+  width: 3.25rem;
+  min-height: 2.5rem;
+  padding: 0 var(--ds-space-2);
+  border: var(--ds-rule) solid var(--ds-color-border-strong);
+  border-radius: 0;
+  background: transparent;
+  font-size: var(--ds-text-md);
+  font-weight: var(--ds-weight-black);
+  text-align: center;
+}
+
+.plan-grid__input--unit {
+  width: auto;
+  text-align: left;
+}
+
+.plan-grid__input[aria-invalid="true"] {
+  border-color: var(--ds-color-accent);
+}
+
+.plan-grid__kg {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-1);
+}
+
+.plan-grid__kg .plan-grid__input {
+  width: 3.75rem;
+}
+
+.plan-grid__actions {
+  display: flex;
+  align-items: center;
+}
+
+.plan-grid__actions .plan-row__button {
+  min-width: 2.25rem;
+}

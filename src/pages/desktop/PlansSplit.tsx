@@ -22,6 +22,7 @@ export function PlansSplit() {
   if (!isDesktop) return atList ? <Plans /> : <Outlet context={context} />
   return (
     <SplitView
+      className="split--plans"
       // The list reloads when another plan opens, so names and counts edited in the previous one are fresh.
       list={
         <Plans

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
-import { expect, test } from 'vitest'
+import { beforeEach, expect, test, vi } from 'vitest'
 import type { PlanExerciseDetail, SessionDetail } from '../../data/activePlan'
 import type { Exercise } from '../../types/db'
 import { AddExercise } from './AddExercise'
@@ -10,6 +10,13 @@ import { SessionFields } from './SessionFields'
 import { SessionRemove } from './SessionRemove'
 import { SessionScreen } from './SessionScreen'
 import { TargetForm } from './TargetForm'
+
+let desktop = false
+vi.mock('../../hooks/useIsDesktop', () => ({ useIsDesktop: () => desktop }))
+
+beforeEach(() => {
+  desktop = false
+})
 
 const inRouter = (node: ReactNode) => renderToStaticMarkup(<MemoryRouter>{node}</MemoryRouter>)
 const noop = () => {}
@@ -138,4 +145,20 @@ test('every exercise row has a pointer-only drag handle and keeps the move butto
   expect(html.match(/<span[^>]*class="plan-row__grip"[^>]*aria-hidden="true"/g)).toHaveLength(2)
   expect(html).toContain('aria-label="Sposta giù Esercizio e-a"')
   expect(html).toContain('aria-label="Sposta su Esercizio e-b"')
+})
+
+test('the session screen edits targets in place on desktop and through a form on the phone', () => {
+  const session: SessionDetail = {
+    id: 's1', owner_id: 'u1', plan_id: 'p1', name: 'Full body', subtitle: null, position: 0, is_optional: false, archived: false,
+    exercises: [row('a')],
+    warmup: [],
+  }
+  const render = () => inRouter(<SessionScreen planId="p1" planName="Forza" session={session} onChange={noop} onRemoved={noop} />)
+
+  expect(render()).toContain('aria-label="Modifica Esercizio e-a"')
+  expect(render()).not.toContain('plan-grid__input')
+
+  desktop = true
+  expect(render()).toContain('plan-grid__input')
+  expect(render()).not.toContain('aria-label="Modifica Esercizio e-a"')
 })
