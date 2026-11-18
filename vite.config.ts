@@ -26,5 +26,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [react(), cspPlugin(loadEnv(mode, process.cwd(), 'VITE_').VITE_SUPABASE_URL)],
   test: {
     exclude: ['**/node_modules/**', '.claude/**'],
+    // Placeholders so modules that create the Supabase client load without a .env (CI); no test hits the network.
+    env: { VITE_SUPABASE_URL: 'http://localhost:54321', VITE_SUPABASE_ANON_KEY: 'sb_publishable_test' },
   },
 }))
