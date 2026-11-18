@@ -40,7 +40,7 @@ You need Node 22 and a Supabase project (the free tier is enough).
    npm ci
    ```
 
-2. Copy `.env.example` to `.env` and fill in the project URL and the anon key from the Supabase dashboard (Project Settings, API). Use the anon or publishable key only. The dev server and the build fail without the URL, because the CSP is generated from it.
+2. Copy `.env.example` to `.env` and fill in the project URL and the anon key from the Supabase dashboard (Project Settings, API). Use the anon or publishable key only. The build fails without the URL, because the CSP is generated from it.
 
 3. Apply the migrations with the [Supabase CLI](https://supabase.com/docs/guides/cli).
 
