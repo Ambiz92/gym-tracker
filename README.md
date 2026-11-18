@@ -8,7 +8,7 @@ It is a personal project, not a multi-user product.
 
 - Pick a session of the active plan and log sets. Reps and weight are prefilled from the last workout of that exercise.
 - Session view with ordered exercise cards (muscles, execution steps), a warm-up block, a checkbox per exercise and a progress bar.
-- Plan editor: create, rename and archive plans, choose the active one, add and reorder sessions and exercises, mark a session as a bonus.
+- Plan editor: create, rename, duplicate and archive plans, choose the active one, add, reorder (drag or arrows), archive and restore sessions and exercises, mark a session as a bonus. On a wide screen the editor has three panes with inline editing of sets, reps, unit and weight.
 - Exercise library: your own exercises, reused across plans.
 - History per exercise: a table and a chart of weight over the weeks, with the change from the first logged week.
 - Progression hint when every set of the last workout was completed.
@@ -35,7 +35,7 @@ You need Node 22 and a Supabase project (the free tier is enough).
 1. Clone the repo and install the dependencies.
 
    ```
-   git clone <repo-url>
+   git clone https://github.com/Ambiz92/gym-tracker.git
    cd gym-tracker
    npm ci
    ```
