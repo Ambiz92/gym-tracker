@@ -19,6 +19,12 @@ test('Layout wraps the page in a focusable main landmark above the navigation', 
   expect(html.indexOf('<main')).toBeLessThan(html.indexOf('<nav'))
 })
 
+test('Layout puts the brand and the main tabs in the sidebar wrapper after the page', () => {
+  const html = render(<Layout>Pagina</Layout>)
+  expect(html).toContain('<div class="sidebar"><p class="sidebar__brand">Gym Tracker</p><nav')
+  expect(html.match(/<nav/g)).toHaveLength(1)
+})
+
 test('AuthLayout has a focusable main landmark and no navigation', () => {
   const html = render(
     <AuthLayout>

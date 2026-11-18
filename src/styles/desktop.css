@@ -1,0 +1,77 @@
+/*
+ * Desktop layout: sidebar navigation and wider pages, from 64rem up (keep in step with DESKTOP_QUERY
+ * in hooks/useIsDesktop.ts). Loaded last so it overrides the phone rules; the phone layout is the default.
+ */
+
+/* On a phone the wrapper disappears, so the tab bar stays a direct child of .app. */
+.sidebar {
+  display: contents;
+}
+
+.sidebar__brand {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  :root {
+    --ds-gutter: var(--ds-space-8);
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: var(--ds-size-sidebar) minmax(0, 1fr);
+    max-width: var(--ds-size-desktop);
+    padding: 0;
+  }
+
+  .app__content {
+    grid-column: 2;
+    grid-row: 1;
+    padding-block: var(--ds-space-5) var(--ds-space-8);
+  }
+
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    grid-column: 1;
+    grid-row: 1;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100dvh;
+    padding-top: var(--ds-space-5);
+    border-right: var(--ds-rule-thick) solid var(--ds-color-border-strong);
+  }
+
+  .sidebar__brand {
+    display: block;
+    padding: 0 var(--ds-space-6) var(--ds-space-4);
+    font-size: var(--ds-text-xs);
+    font-weight: var(--ds-weight-black);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .tab-bar {
+    position: static;
+    padding-bottom: 0;
+    border-top: 0;
+  }
+
+  .tab-bar__list {
+    display: block;
+  }
+
+  .tab-bar__link {
+    min-height: 0;
+    padding: var(--ds-space-4) var(--ds-space-6);
+    border-top: var(--ds-rule) solid var(--ds-color-border-strong);
+    font-size: 1.625rem;
+    letter-spacing: -0.03em;
+    text-transform: none;
+  }
+
+  .tab-bar__link:hover:not([aria-current="page"]) {
+    background: var(--ds-color-border);
+  }
+}
