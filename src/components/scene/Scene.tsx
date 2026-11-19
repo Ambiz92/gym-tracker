@@ -17,13 +17,14 @@ interface SceneProps {
 }
 
 function Drawing({ equipment, unit, weight, reps, onWeight, onReps }: Omit<SceneProps, 'lifting'>) {
+  // A hold or a carry is logged by time or distance, so the ruler wins whatever the equipment is.
+  if (unit !== 'reps') return <RulerScene value={reps} unit={unit} onChange={onReps} />
   if (equipment === 'barbell') return <BarbellScene weight={weight} />
   if (equipment === 'dumbbell') return <DumbbellScene weight={weight} />
-  if (unit === 'reps') return <CableScene weight={weight} onChange={onWeight} />
-  return <RulerScene value={reps} unit={unit} onChange={onReps} />
+  return <CableScene weight={weight} onChange={onWeight} />
 }
 
-/** The drawn equipment of the set being logged, chosen by equipment and by the unit of the reps field. */
+/** The drawn scene of the set being logged: the ruler for time or distance, otherwise the equipment. */
 export function Scene({ lifting, ...drawing }: SceneProps) {
   return (
     <div className={lifting ? 'scene scene--lifting' : 'scene'}>

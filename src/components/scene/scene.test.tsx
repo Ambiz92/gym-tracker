@@ -89,12 +89,13 @@ describe('RulerScene', () => {
 describe('Scene', () => {
   const props = { weight: 40, reps: 8, onWeight: noop, onReps: noop, lifting: false }
 
-  it('chooses the drawing by equipment, then by the unit of the reps', () => {
+  it('chooses the ruler for time or distance, otherwise the drawing of the equipment', () => {
     expect(renderToStaticMarkup(<Scene {...props} equipment="barbell" unit="reps" />)).toContain('Bilanciere')
     expect(renderToStaticMarkup(<Scene {...props} equipment="dumbbell" unit="reps" />)).toContain('Manubrio')
     expect(renderToStaticMarkup(<Scene {...props} equipment="other" unit="reps" />)).toContain('aria-label="Peso del cavo"')
     expect(renderToStaticMarkup(<Scene {...props} equipment="other" unit="seconds" />)).toContain('aria-label="Durata della tenuta"')
     expect(renderToStaticMarkup(<Scene {...props} equipment="other" unit="meters" />)).toContain('aria-label="Distanza del trasporto"')
+    expect(renderToStaticMarkup(<Scene {...props} equipment="dumbbell" unit="meters" />)).toContain('aria-label="Distanza del trasporto"')
   })
 
   it('marks the scene while the save animation runs', () => {
