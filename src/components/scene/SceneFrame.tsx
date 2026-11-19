@@ -4,6 +4,8 @@ import { useId, type ReactNode, type SVGProps } from 'react'
 export const VIEW_BOX = { x: 60, y: 0, width: 240, height: 190 } as const
 
 export const FLOOR_Y = 142
+/** The height of the bar and of the middle of every plate and head. */
+export const CENTER_Y = 80
 
 /** An id for the gradients of one scene; useId may carry characters url(#…) cannot take. */
 export const useSceneId = (): string => useId().replace(/\W/g, '')
@@ -11,6 +13,21 @@ export const useSceneId = (): string => useId().replace(/\W/g, '')
 export const shade = (id: string): string => `url(#${id}-shade)`
 export const sheen = (id: string): string => `url(#${id}-sheen)`
 export const knurl = (id: string): string => `url(#${id}-knurl)`
+
+type ShadedRectProps = SVGProps<SVGRectElement> & {
+  /** Gradient painted over the fill, from shade(), sheen() or knurl(). */
+  overlay: string
+}
+
+/** A rect with a gradient laid over it: the class gives the color, the overlay the volume. */
+export function ShadedRect({ overlay, className, ...geometry }: ShadedRectProps) {
+  return (
+    <>
+      <rect className={className} {...geometry} />
+      <rect {...geometry} fill={overlay} />
+    </>
+  )
+}
 
 interface SceneFrameProps {
   id: string

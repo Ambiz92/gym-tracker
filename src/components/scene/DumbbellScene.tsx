@@ -1,8 +1,7 @@
 import { formatNumber } from '../../lib/formatNumber'
 import { clamp } from '../../lib/slider'
-import { SceneFrame, knurl, shade, sheen, useSceneId } from './SceneFrame'
+import { CENTER_Y, SceneFrame, ShadedRect, knurl, shade, sheen, useSceneId } from './SceneFrame'
 
-const CENTER_Y = 80
 const GRIP = { x: 124, width: 112 }
 const MAX_HEAD_HEIGHT = 124
 const MAX_HEAD_WIDTH = 42
@@ -34,8 +33,7 @@ export function DumbbellScene({ weight }: DumbbellSceneProps) {
         <rect className="scene-steel" x={GRIP.x + GRIP.width} y="64" width="8" height="32" rx="2" />
         {heads.map((x) => (
           <g key={`${x}-${weight}`} className="scene-pop">
-            <rect className="scene-iron" x={x} y={top} width={width} height={height} rx="9" />
-            <rect x={x} y={top} width={width} height={height} rx="9" fill={shade(id)} />
+            <ShadedRect className="scene-iron" x={x} y={top} width={width} height={height} rx="9" overlay={shade(id)} />
             <rect className="scene-head-inset" x={x + 4} y={top + 6} width={width - 8} height={height - 12} rx="6" />
             <text
               className={width >= 28 ? 'scene-label scene-label--head' : 'scene-label scene-label--head-small'}

@@ -2,7 +2,7 @@ import { formatNumber } from '../../lib/formatNumber'
 import { RULER_STEP, rulerMax, rulerValueAt, rulerX } from '../../lib/plates'
 import { clamp } from '../../lib/slider'
 import type { TargetUnit } from '../../types/db'
-import { SceneFrame, shade, useSceneId } from './SceneFrame'
+import { SceneFrame, ShadedRect, shade, useSceneId } from './SceneFrame'
 import { useSlider } from './useSlider'
 
 const X0 = 84
@@ -63,8 +63,7 @@ export function RulerScene({ value, unit, onChange }: RulerSceneProps) {
       <rect className="ruler-track" x={X0} y={TRACK_Y} width={X1 - X0} height="8" rx="4" />
       <rect className="ruler-fill" x={X0} y={TRACK_Y} width={markerX - X0} height="8" rx="4" />
       <g className="lifter">
-        <rect className="ruler-marker" x={markerX - 6} y="62" width="12" height="66" rx="3" />
-        <rect x={markerX - 6} y="62" width="12" height="66" rx="3" fill={shade(id)} />
+        <ShadedRect className="ruler-marker" x={markerX - 6} y="62" width="12" height="66" rx="3" overlay={shade(id)} />
         <path className="ruler-grip" d={`M${markerX - 3} 80h6M${markerX - 3} 86h6M${markerX - 3} 92h6`} />
       </g>
     </SceneFrame>

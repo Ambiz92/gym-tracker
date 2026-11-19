@@ -1,6 +1,6 @@
 import { formatNumber } from '../../lib/formatNumber'
 import { CABLE_BLOCKS, CABLE_BLOCK_KG, cableBlock, cableWeightAt } from '../../lib/plates'
-import { FLOOR_Y, SceneFrame, sheen, useSceneId } from './SceneFrame'
+import { FLOOR_Y, SceneFrame, ShadedRect, sheen, useSceneId } from './SceneFrame'
 import { useSlider } from './useSlider'
 
 const BLOCK_HEIGHT = 12
@@ -38,8 +38,7 @@ export function CableScene({ weight, onChange }: CableSceneProps) {
     const y = STACK_TOP + (index - 1) * BLOCK_HEIGHT + 1
     return (
       <g key={index} className={index <= pinned ? 'cable-block cable-block--lifted' : 'cable-block'}>
-        <rect className="cable-block__body" x={STACK.x} y={y} width={STACK.width} height={BLOCK_HEIGHT - 1} rx="2" />
-        <rect x={STACK.x} y={y} width={STACK.width} height={BLOCK_HEIGHT - 1} rx="2" fill={sheen(id)} />
+        <ShadedRect className="cable-block__body" x={STACK.x} y={y} width={STACK.width} height={BLOCK_HEIGHT - 1} rx="2" overlay={sheen(id)} />
         <text className="cable-block__label" x={STACK.x + 38} y={y + 8.6} textAnchor="middle">
           {formatNumber(index * CABLE_BLOCK_KG)}
         </text>
