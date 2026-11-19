@@ -5,6 +5,7 @@ import {
   PLATES,
   cableBlock,
   cableWeightAt,
+  placePlates,
   platesPerSide,
   rulerMax,
   rulerValueAt,
@@ -56,6 +57,28 @@ describe('platesPerSide', () => {
   it('does not drift on decimal weights', () => {
     expect(platesPerSide(22.5).exact).toBe(true)
     expect(kgs(22.5)).toEqual([1.25])
+  })
+})
+
+describe('placePlates', () => {
+  const plates = PLATES.filter((plate) => [25, 5].includes(plate.kg))
+
+  it('lays the plates side by side from the start, with the gap', () => {
+    const { placed, end } = placePlates(plates, { start: 84, gap: 2, widthOf: (plate) => plate.thickness })
+    expect(placed.map(({ x, width }) => [x, width])).toEqual([
+      [84, 24],
+      [110, 14],
+    ])
+    expect(end).toBe(126)
+  })
+
+  it('measures each plate with the given width', () => {
+    const { placed } = placePlates(plates, { start: 0, gap: 0, widthOf: () => 3 })
+    expect(placed.map(({ x }) => x)).toEqual([0, 3])
+  })
+
+  it('ends at the start when there are no plates', () => {
+    expect(placePlates([], { start: 84, gap: 2, widthOf: (plate) => plate.thickness })).toEqual({ placed: [], end: 84 })
   })
 })
 

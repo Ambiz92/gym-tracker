@@ -37,6 +37,28 @@ export interface PlateLoad {
 
 const toCents = (kg: number): number => Math.round(kg * 100)
 
+export interface PlacedPlate {
+  plate: Plate
+  /** Left edge along the bar. */
+  x: number
+  width: number
+}
+
+/** Lays plates side by side along the bar from a start, with a gap; `end` is where the next part would begin. */
+export function placePlates(
+  plates: readonly Plate[],
+  { start, gap, widthOf }: { start: number; gap: number; widthOf: (plate: Plate) => number },
+): { placed: PlacedPlate[]; end: number } {
+  let x = start
+  const placed = plates.map((plate) => {
+    const width = widthOf(plate)
+    const at = x
+    x += width + gap
+    return { plate, x: at, width }
+  })
+  return { placed, end: x }
+}
+
 /** More than a sleeve can hold; keeps a huge weight from rendering a wall of plates. */
 export const MAX_PLATES_PER_SIDE = 16
 

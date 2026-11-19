@@ -1,5 +1,5 @@
 import { formatNumber } from '../../lib/formatNumber'
-import { BAR_KG, platesPerSide, type Plate } from '../../lib/plates'
+import { BAR_KG, placePlates, platesPerSide, type Plate } from '../../lib/plates'
 import { CENTER_Y, SceneFrame, ShadedRect, VerticalLabel, knurl, shade, sheen, useSceneId } from './SceneFrame'
 
 const SLEEVE_START = 84
@@ -7,21 +7,6 @@ const PLATE_GAP = 2
 const STAGGER_MS = 70
 // Plates are labelled only when they are thick enough to hold the number.
 const MIN_LABEL_THICKNESS = 14
-
-interface PlacedPlate {
-  plate: Plate
-  x: number
-}
-
-function placePlates(plates: readonly Plate[]): { placed: PlacedPlate[]; end: number } {
-  let x = SLEEVE_START
-  const placed = plates.map((plate) => {
-    const at = x
-    x += plate.thickness + PLATE_GAP
-    return { plate, x: at }
-  })
-  return { placed, end: x }
-}
 
 function describeLoad(weight: number, plates: readonly Plate[], exact: boolean): string {
   const bar = `Bilanciere: sbarra da ${BAR_KG} kg`
@@ -40,7 +25,7 @@ interface BarbellSceneProps {
 export function BarbellScene({ weight }: BarbellSceneProps) {
   const id = useSceneId()
   const { plates, exact } = platesPerSide(weight)
-  const { placed, end } = placePlates(plates)
+  const { placed, end } = placePlates(plates, { start: SLEEVE_START, gap: PLATE_GAP, widthOf: (plate) => plate.thickness })
   const tip = Math.max(end + 14, 280)
 
   return (
@@ -57,12 +42,12 @@ export function BarbellScene({ weight }: BarbellSceneProps) {
         <ShadedRect className="scene-steel" x={SLEEVE_START} y="71" width={tip - SLEEVE_START} height="18" overlay={sheen(id)} />
         <path className="scene-steel" d={`M${tip} 71 l14 3 v12 l-14 3z`} />
         <g key={plates.map((plate) => plate.id).join('-')}>
-          {placed.map(({ plate, x }, index) => (
+          {placed.map(({ plate, x, width }, index) => (
             <g key={index} className={`plate-g plate-tone--${plate.id}`} style={{ animationDelay: `${index * STAGGER_MS}ms` }}>
-              <ShadedRect className="plate" x={x} y={CENTER_Y - plate.diameter / 2} width={plate.thickness} height={plate.diameter} rx="4" overlay={shade(id)} />
+              <ShadedRect className="plate" x={x} y={CENTER_Y - plate.diameter / 2} width={width} height={plate.diameter} rx="4" overlay={shade(id)} />
               <rect className="plate-edge" x={x} y={CENTER_Y - plate.diameter / 2} width="2" height={plate.diameter} />
               {plate.thickness >= MIN_LABEL_THICKNESS && (
-                <VerticalLabel className="plate__label" x={x} width={plate.thickness} dy={4}>
+                <VerticalLabel className="plate__label" x={x} width={width} dy={4}>
                   {formatNumber(plate.kg)}
                 </VerticalLabel>
               )}
