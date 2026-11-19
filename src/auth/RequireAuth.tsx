@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import { AuthLayout } from '../components/AuthLayout'
+import { Skeleton } from '../components/Skeleton'
 import { useAuth } from './AuthProvider'
 import { stepPath } from './flow'
 
 function Loading() {
-  return <p role="status">Caricamento…</p>
+  return <Skeleton label="Caricamento…" />
 }
 
 /** Route guard: only an aal2 session reaches the app; everyone else goes to the step they are on. */
