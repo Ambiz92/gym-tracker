@@ -74,6 +74,14 @@ export function lastTimeHint(
   return suggestedKg === null ? last : `${last} · suggerito ${formatNumber(suggestedKg)} ↑`
 }
 
+/** The set about to be saved, in caps for the save button: "62,5 KG × 8", "20 KG × 30 SEC", or just "30 SEC" without a weight. */
+export function setSummary({ weight, reps }: Pick<SetValues, 'weight' | 'reps'>, unit: TargetUnit): string {
+  const repsText = `${reps} ${UNIT_LABEL[unit]}`.toUpperCase()
+  if (weight === 0) return repsText
+  const load = `${formatNumber(weight)} KG`
+  return unit === 'reps' ? `${load} × ${reps}` : `${load} × ${repsText}`
+}
+
 /** "3×8" or "3×30 s"; the weight lives in the set logger and in the history, not on the rows. */
 export function targetLabel(target: Pick<PlanExercise, 'target_sets' | 'target_reps' | 'target_unit'>): string {
   return `${target.target_sets}×${target.target_reps}${UNIT_SUFFIX[target.target_unit]}`

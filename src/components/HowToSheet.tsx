@@ -36,7 +36,7 @@ export function HowToSheet({ name, muscles, executionSteps, equipment, onEquipme
       }}
     >
       <div className="how-to__body">
-        <div className="page-header__meta how-to__meta">
+        <div className="how-to__meta">
           <span>Come si esegue</span>
           <button type="button" className="how-to__close" onClick={() => dialogRef.current?.close()}>
             Chiudi
@@ -45,7 +45,7 @@ export function HowToSheet({ name, muscles, executionSteps, equipment, onEquipme
         <h2 id={titleId} className="how-to__title">
           {name}
         </h2>
-        {muscles && <p className="page-header__subtitle">{muscles}</p>}
+        {muscles && <p className="how-to__subtitle">{muscles}</p>}
         {steps.length > 0 ? (
           <ol className="how-to__steps">
             {steps.map((step, index) => (
@@ -57,9 +57,9 @@ export function HowToSheet({ name, muscles, executionSteps, equipment, onEquipme
         )}
         <div role="group" aria-label="Attrezzo per le serie di questo esercizio">
           <p className="how-to__label">Attrezzo</p>
-          <div className="segmented">
+          <div className="how-to__options">
             {EQUIPMENT.map((option) => (
-              <button key={option} type="button" aria-pressed={option === equipment} onClick={() => onEquipment(option)}>
+              <button key={option} type="button" className="how-to__option" aria-pressed={option === equipment} onClick={() => onEquipment(option)}>
                 {equipmentLabel(option)}
               </button>
             ))}

@@ -1,7 +1,7 @@
 import { useId } from 'react'
 import { formatNumber } from '../lib/formatNumber'
 
-interface NumberStepperProps {
+interface StepperNumberProps {
   /** Accessible name of the number, e.g. "Peso". */
   label: string
   /** Unit written next to the number: "kg", "rip", "sec", "m". */
@@ -9,36 +9,31 @@ interface NumberStepperProps {
   /** Unit spelled out for assistive tech: "chilogrammi", "ripetizioni", "secondi", "metri". */
   unitSpoken: string
   value: number
-  step: number
   size: 'big' | 'medium'
   inputMode: 'decimal' | 'numeric'
   /** Text being typed, or null while the number is only stepped. */
   editing: string | null
   error: string | null
-  onStep: (delta: number) => void
   onEditStart: () => void
   onEditText: (text: string) => void
   onCommit: () => void
 }
 
-/** Giant number you can step with − / + or tap to type (comma or dot). */
-export function NumberStepper({
+/** Giant number you can tap to type (comma or dot), with its unit and the error of what was typed. */
+export function StepperNumber({
   label,
   unit,
   unitSpoken,
   value,
-  step,
   size,
   inputMode,
   editing,
   error,
-  onStep,
   onEditStart,
   onEditText,
   onCommit,
-}: NumberStepperProps) {
+}: StepperNumberProps) {
   const errorId = useId()
-  const stepText = formatNumber(step)
 
   return (
     <div className="number-stepper">
@@ -77,16 +72,51 @@ export function NumberStepper({
           {error}
         </p>
       )}
-      <div className="stepper-buttons">
-        <button type="button" aria-label={`Diminuisci ${label.toLowerCase()} di ${stepText}`} onClick={() => onStep(-step)}>
-          <span aria-hidden="true">−</span>
-          <small aria-hidden="true">{stepText}</small>
-        </button>
-        <button type="button" aria-label={`Aumenta ${label.toLowerCase()} di ${stepText}`} onClick={() => onStep(step)}>
-          <span aria-hidden="true">+</span>
-          <small aria-hidden="true">{stepText}</small>
-        </button>
-      </div>
+    </div>
+  )
+}
+
+interface StepButtonProps {
+  /** Name of the number the button moves, e.g. "Peso". */
+  label: string
+  /** How far one press moves the number. */
+  step: number
+  direction: 'down' | 'up'
+  /** "pair" shows the step next to the sign; "flank" sits beside a number and shows the sign only. */
+  variant: 'pair' | 'flank'
+  onStep: (delta: number) => void
+}
+
+/** Rubber button that lowers or raises a number by its step. */
+export function StepButton({ label, step, direction, variant, onStep }: StepButtonProps) {
+  const stepText = formatNumber(step)
+  const down = direction === 'down'
+
+  return (
+    <button
+      type="button"
+      className={`step-button step-button--${variant}`}
+      aria-label={`${down ? 'Diminuisci' : 'Aumenta'} ${label.toLowerCase()} di ${stepText}`}
+      onClick={() => onStep(down ? -step : step)}
+    >
+      <span aria-hidden="true">{down ? '−' : '+'}</span>
+      {variant === 'pair' && <small aria-hidden="true">{stepText}</small>}
+    </button>
+  )
+}
+
+interface NumberStepperProps extends Omit<StepperNumberProps, 'size'> {
+  step: number
+  onStep: (delta: number) => void
+}
+
+/** A number between its − and + buttons. */
+export function NumberStepper({ step, onStep, ...number }: NumberStepperProps) {
+  return (
+    <div className="number-stepper-row">
+      <StepButton label={number.label} step={step} direction="down" variant="flank" onStep={onStep} />
+      <StepperNumber {...number} size="medium" />
+      <StepButton label={number.label} step={step} direction="up" variant="flank" onStep={onStep} />
     </div>
   )
 }

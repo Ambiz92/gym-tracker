@@ -129,6 +129,14 @@
   --ds-gutter: var(--ds-space-5);
 
   color-scheme: light;
+
+  /* Scene constants: iron and the ink on plates and the pin, the same in both themes */
+  --ds-scene-iron: #2b2d30;                 /* collar, dumbbell heads */
+  --ds-scene-iron-soft: #44474b;            /* cable blocks at rest */
+  --ds-scene-iron-lift: #8f959c;            /* cable blocks the pin lifts */
+  --ds-scene-ink-dark: #1a1400;
+  --ds-scene-ink-light: #f3efe6;
+  --ds-duration-lift: 900ms;                /* the bar lifting when a set is saved */
 }
 
 /* Dark: by OS preference ("Auto") or by explicit choice. */

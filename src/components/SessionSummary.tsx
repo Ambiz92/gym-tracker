@@ -1,6 +1,7 @@
 import { formatNumber } from '../lib/formatNumber'
 import { loadLabel, type SummaryRow } from '../lib/sessionProgress'
 import { Field } from './Field'
+import { PlateGlyph } from './scene/PlateGlyph'
 import { PrimaryButton } from './PrimaryButton'
 import { SessionDock } from './SessionDock'
 import { SessionHeader } from './SessionHeader'
@@ -53,7 +54,10 @@ export function SessionSummary({ sessionName, backTo, minutes, rows, notes, onNo
                 <li key={row.exerciseId} className="summary-row">
                   <span>
                     <span className="summary-row__name">{row.name}</span>
-                    <small>{loadLabel(row.weightsKg)}</small>
+                    <small className="summary-row__load">
+                      {row.equipment === 'barbell' && <PlateGlyph weight={row.weightKg} />}
+                      {loadLabel(row.weightsKg)}
+                    </small>
                   </span>
                   <span className={delta.accent ? 'summary-row__chip summary-row__chip--up' : 'summary-row__chip'}>
                     <span aria-hidden="true">{delta.text}</span>
