@@ -65,9 +65,9 @@ it('SessionProgress exposes the completed count', () => {
   expect(html).toContain('role="progressbar"')
   expect(html).toContain('aria-valuenow="3"')
   expect(html).toContain('aria-valuetext="3 su 7"')
-  expect(html.match(/<i class="is-done">/g)).toHaveLength(3)
-  expect(html.match(/<i class="is-current">/g)).toHaveLength(1)
-  expect(html.match(/<i>/g)).toHaveLength(3)
+  expect(html.match(/plate-pill--done/g)).toHaveLength(3)
+  expect(html.match(/plate-pill--current/g)).toHaveLength(1)
+  expect(html.match(/class="plate-pill"/g)).toHaveLength(3)
 })
 
 it('UndoToast offers Annulla', () => {

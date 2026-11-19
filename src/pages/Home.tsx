@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { RowLink } from '../components/RowLink'
+import { Skeleton } from '../components/Skeleton'
 import { SyncBanner } from '../components/SyncBanner'
 import { getActivePlan, type PlanDetail } from '../data/activePlan'
 import { getLastWorkoutDates } from '../data/sessionLog'
@@ -66,7 +67,7 @@ export function Home() {
       )}
       <SyncBanner {...sync} />
       {draft && <ResumeRow draft={draft} plan={state.status === 'ready' ? state.data.plan : null} />}
-      {state.status === 'loading' && <p className="session-note" role="status">Carico la scheda…</p>}
+      {state.status === 'loading' && <Skeleton label="Carico la scheda…" />}
       {state.status === 'error' && (
         <>
           <p className="session-error" role="alert">
@@ -82,14 +83,14 @@ export function Home() {
 
 function ResumeRow({ draft, plan }: { draft: Draft; plan: PlanDetail | null }) {
   const session = plan?.sessions.find((candidate) => candidate.id === draft.sessionId)
-  const detail = session
-    ? `${completedExercises(draft, session.exercises)} / ${session.exercises.length} esercizi`
-    : `${activeSets(draft).length} serie registrate`
+  const done = session ? completedExercises(draft, session.exercises) : 0
+  const detail = session ? `${done} / ${session.exercises.length} esercizi` : `${activeSets(draft).length} serie registrate`
   return (
     <RowLink
       to={sessionPath(draft.sessionId, draft.currentExerciseId)}
       title={`${draft.sessionName} in corso`}
       detail={detail}
+      progress={session ? { done, total: session.exercises.length } : undefined}
       tag="Riprendi →"
       inverted
     />

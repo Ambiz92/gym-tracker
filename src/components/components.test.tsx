@@ -4,8 +4,10 @@ import { MemoryRouter } from 'react-router-dom'
 import { expect, test } from 'vitest'
 import { Field } from './Field'
 import { PageHeader } from './PageHeader'
+import { PlatePills } from './PlatePills'
 import { PrimaryButton } from './PrimaryButton'
 import { RowLink } from './RowLink'
+import { Skeleton } from './Skeleton'
 import { SplitView } from './SplitView'
 
 function renderAt(path: string, ui: ReactElement) {
@@ -108,4 +110,31 @@ test('Field shows the error in text and links it to the input', () => {
   expect(html).toContain(`id="${messageId}"`)
   expect(html).toContain('Email non valida')
   expect(html).not.toContain('Aiuto')
+})
+
+test('PlatePills marks done steps, the current one and the steps still to do, all hidden from assistive tech', () => {
+  const html = renderAt('/', <PlatePills done={2} total={4} />)
+  expect(html).toContain('aria-hidden="true"')
+  expect(html.match(/plate-pill--done/g)).toHaveLength(2)
+  expect(html.match(/plate-pill--current/g)).toHaveLength(1)
+  expect(html.match(/class="plate-pill"/g)).toHaveLength(1)
+})
+
+test('PlatePills has no current pill once every step is done', () => {
+  const html = renderAt('/', <PlatePills done={3} total={3} />)
+  expect(html).not.toContain('plate-pill--current')
+})
+
+test('RowLink draws progress pills under the detail line', () => {
+  const html = renderAt('/', <RowLink to="/" title="Upper" detail="1 / 3 esercizi" progress={{ done: 1, total: 3 }} />)
+  expect(html).toContain('row-link--progress')
+  expect(html).toContain('<span class="row-link__progress">')
+  expect(html.match(/class="plate-pill[ "]/g)).toHaveLength(3)
+})
+
+test('Skeleton announces what loads and hides its placeholder rows', () => {
+  const html = renderAt('/', <Skeleton label="Caricamento…" rows={2} />)
+  expect(html).toContain('role="status"')
+  expect(html).toContain('<span class="visually-hidden">Caricamento…</span>')
+  expect(html.match(/skeleton__row" aria-hidden="true"/g)).toHaveLength(2)
 })

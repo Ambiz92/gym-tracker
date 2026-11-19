@@ -30,7 +30,7 @@ interface ExerciseGridProps {
 export function ExerciseGrid({ exercises, busy, error, onSave, onMove, onRemove }: ExerciseGridProps) {
   const [removingId, setRemovingId] = useState<string | null>(null)
 
-  if (exercises.length === 0) return <p className="plans-note">Questa sessione non ha ancora esercizi.</p>
+  if (exercises.length === 0) return <p className="plans-note empty-state">Questa sessione non ha ancora esercizi.</p>
 
   return (
     <>

@@ -1,6 +1,6 @@
 /* Exercise library: list, search, form. Reuses .field and .primary-button from components.css. */
 
-/* Top bar of the library and the editor */
+/* Top bar of the library and the editor: a plain link to leave, one copper key to create */
 .exercises__bar {
   display: flex;
   justify-content: space-between;
@@ -12,14 +12,24 @@
   display: inline-flex;
   align-items: center;
   min-height: var(--ds-size-touch);
-  font-size: var(--ds-text-xs);
+  font-size: var(--ds-text-sm);
   font-weight: var(--ds-weight-black);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .exercises__bar-action--accent {
-  color: var(--ds-color-accent);
+  padding: 0 var(--ds-space-4);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-color-accent);
+  color: var(--ds-color-on-accent);
+  box-shadow: var(--ds-shadow-press);
+  text-decoration: none;
+}
+
+.exercises__bar-action--accent:active {
+  transform: translateY(3px);
+  box-shadow: var(--ds-shadow-pressed);
 }
 
 .exercises__status {
@@ -27,15 +37,9 @@
   font-weight: var(--ds-weight-bold);
 }
 
-.exercises__empty {
-  display: grid;
-  gap: var(--ds-space-4);
-  margin-top: var(--ds-space-6);
-  font-weight: var(--ds-weight-bold);
-}
-
 /* Search */
 .exercise-search {
+  margin-top: 0;
   margin-bottom: var(--ds-space-3);
 }
 
@@ -45,31 +49,31 @@
 }
 
 .exercise-list > li {
-  border-top: var(--ds-rule) solid var(--ds-color-border-strong);
+  border-top: var(--ds-hairline) solid var(--ds-color-border);
 }
 
 .exercise-row {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: var(--ds-space-2);
+  gap: var(--ds-space-3);
   align-items: center;
   width: 100%;
   min-height: 3.875rem;
   padding: var(--ds-space-3) 0;
+  border-radius: var(--ds-radius-md);
   text-align: left;
   transition: background-color var(--ds-duration-fast) var(--ds-ease-standard);
 }
 
 .exercise-row:active {
-  background: var(--ds-color-border);
+  background: var(--ds-color-surface);
 }
 
 .exercise-row__name {
   display: block;
-  font-size: var(--ds-text-lg);
+  font-size: var(--ds-text-md);
   font-weight: var(--ds-weight-black);
-  letter-spacing: -0.02em;
-  line-height: 1.05;
+  line-height: 1.2;
   overflow-wrap: anywhere;
 }
 
@@ -79,34 +83,28 @@
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
-  margin-top: 3px;
-  font-size: var(--ds-text-xs);
-  font-weight: var(--ds-weight-bold);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  margin-top: var(--ds-space-1);
+  font-size: var(--ds-text-sm);
   color: var(--ds-color-text-muted);
   overflow-wrap: anywhere;
 }
 
-.exercise-row__tag {
-  font-size: var(--ds-text-xs);
-  font-weight: var(--ds-weight-black);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ds-color-accent);
-}
-
 .exercise-row__glyph {
   min-width: var(--ds-size-touch);
-  font-size: var(--ds-text-xl);
+  font-size: var(--ds-text-lg);
+  color: var(--ds-color-text-muted);
   text-align: right;
 }
 
+/* The "add" row ends in a rubber plus key */
 .exercise-row--add .exercise-row__glyph {
   display: grid;
   place-items: center;
   height: var(--ds-size-touch);
-  border: var(--ds-rule) solid var(--ds-color-border-strong);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-color-surface);
+  color: var(--ds-color-text);
+  box-shadow: var(--ds-shadow-press);
   text-align: center;
   font-weight: var(--ds-weight-black);
 }
@@ -121,9 +119,7 @@
 .exercise-form__textarea {
   min-height: 6rem;
   padding-block: var(--ds-space-2);
-  font-size: var(--ds-text-md);
   font-weight: var(--ds-weight-medium);
-  letter-spacing: normal;
   line-height: var(--ds-leading-normal);
   resize: vertical;
 }
@@ -134,21 +130,15 @@
   margin-top: var(--ds-space-6);
 }
 
-/* Equipment: native radios drawn as three segments */
+/* Equipment: native radios drawn as three keys (look in components.css) */
 .equipment-field__options {
-  display: grid;
   grid-template-columns: repeat(3, 1fr);
   margin-top: var(--ds-space-2);
-  border: var(--ds-rule) solid var(--ds-color-border-strong);
 }
 
 .equipment-field__option {
   position: relative;
   display: grid;
-}
-
-.equipment-field__option + .equipment-field__option {
-  border-left: var(--ds-rule) solid var(--ds-color-border-strong);
 }
 
 .equipment-field__option input {
@@ -160,22 +150,8 @@
 }
 
 .equipment-field__option span {
-  display: grid;
-  place-items: center;
-  min-height: 3rem;
+  min-height: var(--ds-size-field);
   padding: 0 var(--ds-space-2);
-  font-size: var(--ds-text-sm);
-  font-weight: var(--ds-weight-black);
-  text-transform: uppercase;
-}
-
-.equipment-field__option input:checked + span {
-  background: var(--ds-color-text);
-  color: var(--ds-color-bg);
-}
-
-.equipment-field__option input:checked + span::before {
-  content: "✓ ";
 }
 
 .equipment-field__option input:focus-visible + span {
@@ -192,16 +168,18 @@
   display: grid;
   grid-template-columns: 1.5rem 1fr repeat(3, var(--ds-size-touch));
   align-items: center;
-  margin-top: var(--ds-space-1);
+  margin-top: var(--ds-space-2);
 }
 
 .exercise-steps__number {
-  font-weight: var(--ds-weight-black);
+  font-family: var(--ds-font-figures);
+  font-weight: var(--ds-weight-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-color-text-muted);
 }
 
 .exercise-steps__input {
   min-height: var(--ds-size-touch);
-  font-size: var(--ds-text-md);
 }
 
 .exercise-steps__button,
@@ -213,7 +191,12 @@
 }
 
 .exercise-steps__button {
+  border-radius: var(--ds-radius-md);
   font-size: var(--ds-text-lg);
+}
+
+.exercise-steps__button:active:not(:disabled) {
+  background: var(--ds-color-surface);
 }
 
 .exercise-steps__button:disabled {
@@ -223,25 +206,27 @@
 
 .exercise-steps__add {
   width: 100%;
-  margin-top: var(--ds-space-2);
-  border: var(--ds-rule) solid var(--ds-color-border-strong);
+  margin-top: var(--ds-space-3);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-color-surface);
+  box-shadow: var(--ds-shadow-press);
   font-size: var(--ds-text-sm);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+}
+
+.exercise-steps__add:active {
+  transform: translateY(3px);
+  box-shadow: var(--ds-shadow-pressed);
 }
 
 /* Editor: archive and delete */
 .exercise-editor__manage {
   margin-top: var(--ds-space-8);
   padding-top: var(--ds-space-4);
-  border-top: var(--ds-rule-thick) solid var(--ds-color-border-strong);
+  border-top: var(--ds-hairline) solid var(--ds-color-border);
 }
 
 .exercise-editor__heading {
-  font-size: var(--ds-text-xs);
-  font-weight: var(--ds-weight-black);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: var(--ds-text-lg);
 }
 
 .exercise-editor__manage-text {
@@ -259,11 +244,9 @@
   display: inline-flex;
   align-items: center;
   min-height: var(--ds-size-touch);
-  color: var(--ds-color-accent);
+  color: var(--ds-color-danger);
   font-size: var(--ds-text-sm);
   font-weight: var(--ds-weight-black);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
