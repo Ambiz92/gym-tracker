@@ -20,6 +20,7 @@ export interface FlowState {
 
 export type FlowAction =
   | { type: 'step'; field: Field; delta: number }
+  | { type: 'set'; field: Field; value: number }
   | { type: 'edit-start'; field: Field }
   | { type: 'edit-text'; text: string }
   | { type: 'edit-commit' }
@@ -53,17 +54,17 @@ function parseField(field: Field, text: string): Parsed {
   return { value: parsed }
 }
 
+const clampField = (field: Field, value: number): number =>
+  field === 'weight' ? Math.min(MAX_WEIGHT_KG, Math.max(0, round2(value))) : Math.min(MAX_REPS_INPUT, Math.max(1, round2(value)))
+
 const withField = (values: SetValues, field: Field, value: number): SetValues => ({ ...values, [field]: value })
 
 export function flowReducer(state: FlowState, action: FlowAction): FlowState {
   switch (action.type) {
-    case 'step': {
-      const { field, delta } = action
-      const floor = field === 'weight' ? 0 : 1
-      const ceiling = field === 'weight' ? MAX_WEIGHT_KG : MAX_REPS_INPUT
-      const next = Math.min(ceiling, Math.max(floor, round2(state.values[field] + delta)))
-      return { values: withField(state.values, field, next), editing: null, error: null }
-    }
+    case 'step':
+      return { values: withField(state.values, action.field, clampField(action.field, state.values[action.field] + action.delta)), editing: null, error: null }
+    case 'set':
+      return { values: withField(state.values, action.field, clampField(action.field, action.value)), editing: null, error: null }
     case 'edit-start':
       return { ...state, editing: { field: action.field, text: formatNumber(state.values[action.field]) }, error: null }
     case 'edit-text':

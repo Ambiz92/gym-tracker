@@ -31,6 +31,25 @@ describe('stepping', () => {
   })
 })
 
+describe('setting a number directly', () => {
+  it('replaces the value and drops a number being typed', () => {
+    const typing = run(start, { type: 'edit-start', field: 'weight' })
+    const state = run(typing, { type: 'set', field: 'weight', value: 25 })
+    expect(state).toMatchObject({ values: { weight: 25, reps: 10 }, editing: null, error: null })
+  })
+
+  it('keeps the same limits as stepping', () => {
+    expect(run(start, { type: 'set', field: 'weight', value: -5 }).values.weight).toBe(0)
+    expect(run(start, { type: 'set', field: 'weight', value: 5000 }).values.weight).toBe(1000)
+    expect(run(start, { type: 'set', field: 'reps', value: 0 }).values.reps).toBe(1)
+    expect(run(start, { type: 'set', field: 'reps', value: 5000 }).values.reps).toBe(999)
+  })
+
+  it('does not accumulate floating point noise', () => {
+    expect(run(start, { type: 'set', field: 'weight', value: 0.1 + 0.2 }).values.weight).toBe(0.3)
+  })
+})
+
 describe('typing a number', () => {
   it('starts from the current value written with a comma', () => {
     const state = run(initialFlow({ weight: 12.5, reps: 8, equipment: 'barbell' }), { type: 'edit-start', field: 'weight' })
