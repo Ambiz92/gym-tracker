@@ -1,15 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import {
   BAR_KG,
+  MAX_KG_PER_SIDE,
   MAX_PLATES_PER_SIDE,
   PLATES,
   cableBlock,
   cableWeightAt,
+  perSideFromTotal,
   placePlates,
   platesPerSide,
   rulerMax,
   rulerValueAt,
   rulerX,
+  stepBarbellTotal,
+  totalFromPerSide,
 } from './plates'
 import { MAX_WEIGHT_KG } from './validation'
 
@@ -126,5 +130,63 @@ describe('ruler', () => {
     expect(rulerX(45, 90, 84, 276)).toBe(180)
     expect(rulerX(500, 90, 84, 276)).toBe(276)
     expect(rulerValueAt(180, 90, 84, 276)).toBe(45)
+  })
+})
+
+describe('perSideFromTotal', () => {
+  it('takes the bar off and halves the rest', () => {
+    expect(perSideFromTotal(62.5)).toBe(21.25)
+    expect(perSideFromTotal(BAR_KG)).toBe(0)
+    expect(perSideFromTotal(142.5)).toBe(61.25)
+  })
+
+  it('reads a total below the bar as an empty side, never a negative one', () => {
+    expect(perSideFromTotal(15)).toBe(0)
+    expect(perSideFromTotal(0)).toBe(0)
+  })
+
+  it('rounds to cents', () => {
+    expect(perSideFromTotal(62.51)).toBe(21.26)
+  })
+})
+
+describe('totalFromPerSide', () => {
+  it('doubles the side and adds the bar', () => {
+    expect(totalFromPerSide(21.25)).toBe(62.5)
+    expect(totalFromPerSide(0)).toBe(BAR_KG)
+  })
+
+  it('rounds to cents', () => {
+    expect(totalFromPerSide(1.005)).toBe(22.01)
+  })
+
+  it('keeps the total between the bare bar and the logger maximum', () => {
+    expect(totalFromPerSide(-5)).toBe(BAR_KG)
+    expect(totalFromPerSide(MAX_KG_PER_SIDE)).toBe(MAX_WEIGHT_KG)
+    expect(totalFromPerSide(MAX_KG_PER_SIDE + 100)).toBe(MAX_WEIGHT_KG)
+  })
+
+  it('round-trips with perSideFromTotal above the bar', () => {
+    expect(totalFromPerSide(perSideFromTotal(87.5))).toBe(87.5)
+  })
+})
+
+describe('stepBarbellTotal', () => {
+  it('moves one side, so the total moves twice as much', () => {
+    expect(stepBarbellTotal(62.5, 1.25)).toBe(65)
+    expect(stepBarbellTotal(62.5, -1.25)).toBe(60)
+  })
+
+  it('goes from a total below the bar to the first step over it', () => {
+    expect(stepBarbellTotal(15, 1.25)).toBe(22.5)
+  })
+
+  it('does not go below the bare bar or the stored value', () => {
+    expect(stepBarbellTotal(BAR_KG, -1.25)).toBe(BAR_KG)
+    expect(stepBarbellTotal(15, -1.25)).toBe(15)
+  })
+
+  it('stops at the logger maximum', () => {
+    expect(stepBarbellTotal(MAX_WEIGHT_KG, 1.25)).toBe(MAX_WEIGHT_KG)
   })
 })

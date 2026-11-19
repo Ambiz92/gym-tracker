@@ -37,6 +37,21 @@ export interface PlateLoad {
 
 const toCents = (kg: number): number => Math.round(kg * 100)
 
+/** Heaviest load of one side that keeps the total within MAX_WEIGHT_KG. */
+export const MAX_KG_PER_SIDE = (MAX_WEIGHT_KG - BAR_KG) / 2
+
+/** Load of one side for a total with the bar. Never negative: a total below the bar (history can hold 15 kg) reads as 0. */
+export const perSideFromTotal = (totalKg: number): number => Math.max(0, toCents((totalKg - BAR_KG) / 2) / 100)
+
+/** Total with the bar for the load of one side, kept between the bare bar and MAX_WEIGHT_KG. */
+export const totalFromPerSide = (perSideKg: number): number => clamp(toCents(2 * perSideKg + BAR_KG) / 100, BAR_KG, MAX_WEIGHT_KG)
+
+/** Total after moving one side by `deltaKg`. A step below the bare bar changes nothing, and from a total under the bar the first step up lands on one step over it (15 becomes 22,5 with 1,25). */
+export function stepBarbellTotal(totalKg: number, deltaKg: number): number {
+  const perSide = perSideFromTotal(totalKg) + deltaKg
+  return perSide < 0 ? totalKg : totalFromPerSide(perSide)
+}
+
 export interface PlacedPlate {
   plate: Plate
   /** Left edge along the bar. */
