@@ -1,11 +1,12 @@
+import { PlatePills } from './PlatePills'
+
 interface SessionProgressProps {
   done: number
   total: number
 }
 
-/** Bar of completed exercises. */
+/** Plate pills of the completed exercises. */
 export function SessionProgress({ done, total }: SessionProgressProps) {
-  const percent = total === 0 ? 0 : Math.round((done / total) * 100)
   return (
     <div
       className="session-progress"
@@ -16,7 +17,7 @@ export function SessionProgress({ done, total }: SessionProgressProps) {
       aria-valuenow={done}
       aria-valuetext={`${done} su ${total}`}
     >
-      <div className="session-progress__fill" style={{ width: `${percent}%` }} />
+      <PlatePills total={total} done={done} />
     </div>
   )
 }

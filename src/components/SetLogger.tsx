@@ -1,13 +1,16 @@
 import { useReducer, useState, type ReactNode } from 'react'
 import { repsWarning, weightStep } from '../lib/validation'
 import { flowReducer, initialFlow, repsStep, resolveValues, type SetValues } from '../lib/setFlow'
-import { equipmentLabel, unitLabel } from '../lib/sessionProgress'
+import { equipmentLabel, setSummary, unitLabel } from '../lib/sessionProgress'
 import type { TargetUnit } from '../types/db'
 import { HowToSheet } from './HowToSheet'
-import { NumberStepper } from './NumberStepper'
-import { PrimaryButton } from './PrimaryButton'
+import { NumberStepper, StepButton, StepperNumber } from './NumberStepper'
+import { PlatePills } from './PlatePills'
+import { SaveButton } from './SaveButton'
+import { Scene } from './scene/Scene'
 import { SessionDock } from './SessionDock'
 import { SessionHeader } from './SessionHeader'
+import { useLiftConfirm } from './useLiftConfirm'
 
 const REPS_NAME: Record<TargetUnit, { label: string; spoken: string }> = {
   reps: { label: 'Ripetizioni', spoken: 'ripetizioni' },
@@ -31,7 +34,7 @@ interface SetLoggerProps {
   onConfirm: (values: SetValues) => void
 }
 
-/** One set at a time: giant kg and reps numbers, prefilled, with the confirm button always at the bottom. */
+/** One set at a time: the loaded equipment on a platform, giant kg and reps numbers, prefilled, with the confirm button always at the bottom. */
 export function SetLogger({
   exercise,
   unit,
@@ -47,76 +50,100 @@ export function SetLogger({
 }: SetLoggerProps) {
   const [flow, dispatch] = useReducer(flowReducer, initial, initialFlow)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const { lifting, confirm: confirmWithLift } = useLiftConfirm(onConfirm)
   const { values, editing, error } = flow
   const repsName = REPS_NAME[unit]
   const warning = repsWarning(values.reps, unit)
+  const weightEditing = editing?.field === 'weight'
+  const repsEditing = editing?.field === 'reps'
 
   function confirm() {
     const resolved = resolveValues(flow)
     if ('error' in resolved) dispatch({ type: 'edit-commit' })
-    else onConfirm(resolved.values)
+    else confirmWithLift(resolved.values)
   }
+
+  const weightStepKg = weightStep(values.equipment)
+  const stepWeight = (delta: number) => dispatch({ type: 'step', field: 'weight', delta })
 
   return (
     <>
-      <SessionHeader
-        backTo={backTo}
-        back={`‹ Es. ${position.current} / ${position.total}`}
-        backLabel="Torna alla sessione"
-        onBack={onBack}
-        end={`Serie ${setNumber} / ${targetSets}`}
-        title={exercise.name}
-        size="exercise"
-      />
-      <div className="set-squares" aria-hidden="true">
-        {Array.from({ length: Math.max(targetSets, setNumber) }, (_, index) => (
-          <i key={index} className={index + 1 < setNumber ? 'is-done' : index + 1 === setNumber ? 'is-current' : undefined} />
-        ))}
-      </div>
-      <NumberStepper
-        label="Peso"
-        unit="kg"
-        unitSpoken="chilogrammi"
-        value={values.weight}
-        step={weightStep(values.equipment)}
-        size="big"
-        inputMode="decimal"
-        editing={editing?.field === 'weight' ? editing.text : null}
-        error={editing?.field === 'weight' ? error : null}
-        onStep={(delta) => dispatch({ type: 'step', field: 'weight', delta })}
-        onEditStart={() => dispatch({ type: 'edit-start', field: 'weight' })}
-        onEditText={(text) => dispatch({ type: 'edit-text', text })}
-        onCommit={() => dispatch({ type: 'edit-commit' })}
-      />
-      <p className="set-hint">Tocca il numero per scriverlo</p>
-      <NumberStepper
-        label={repsName.label}
-        unit={unitLabel(unit)}
-        unitSpoken={repsName.spoken}
-        value={values.reps}
-        step={repsStep(unit)}
-        size="medium"
-        inputMode="numeric"
-        editing={editing?.field === 'reps' ? editing.text : null}
-        error={editing?.field === 'reps' ? error : null}
-        onStep={(delta) => dispatch({ type: 'step', field: 'reps', delta })}
-        onEditStart={() => dispatch({ type: 'edit-start', field: 'reps' })}
-        onEditText={(text) => dispatch({ type: 'edit-text', text })}
-        onCommit={() => dispatch({ type: 'edit-commit' })}
-      />
-      <div role="status">
-        {warning && (
-          <div className="set-warning">
-            <b>{warning}</b>
-            Va bene? Puoi salvare lo stesso.
+      <div className="logger">
+        <span className="logger__dust" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+        </span>
+        <SessionHeader
+          backTo={backTo}
+          back={`‹ Es. ${position.current} / ${position.total}`}
+          backLabel="Torna alla sessione"
+          onBack={onBack}
+          end={`Serie ${setNumber} / ${targetSets}`}
+          title={exercise.name}
+          size="exercise"
+          aside={<PlatePills total={Math.max(targetSets, setNumber)} done={setNumber - 1} />}
+        />
+        <StepperNumber
+          label="Peso"
+          unit="kg"
+          unitSpoken="chilogrammi"
+          value={values.weight}
+          size="big"
+          inputMode="decimal"
+          editing={weightEditing ? editing.text : null}
+          error={weightEditing ? error : null}
+          onEditStart={() => dispatch({ type: 'edit-start', field: 'weight' })}
+          onEditText={(text) => dispatch({ type: 'edit-text', text })}
+          onCommit={() => dispatch({ type: 'edit-commit' })}
+        />
+        <p className="set-hint">Tocca il numero per scriverlo</p>
+        <Scene
+          equipment={values.equipment}
+          unit={unit}
+          weight={values.weight}
+          reps={values.reps}
+          onWeight={(value) => dispatch({ type: 'set', field: 'weight', value })}
+          onReps={(value) => dispatch({ type: 'set', field: 'reps', value })}
+          lifting={lifting}
+        />
+        <div className="logger__controls">
+          <div className="stepper-buttons">
+            <StepButton label="Peso" step={weightStepKg} direction="down" variant="pair" onStep={stepWeight} />
+            <StepButton label="Peso" step={weightStepKg} direction="up" variant="pair" onStep={stepWeight} />
           </div>
-        )}
+          <NumberStepper
+            label={repsName.label}
+            unit={unitLabel(unit)}
+            unitSpoken={repsName.spoken}
+            value={values.reps}
+            step={repsStep(unit)}
+            inputMode="numeric"
+            editing={repsEditing ? editing.text : null}
+            error={repsEditing ? error : null}
+            onStep={(delta) => dispatch({ type: 'step', field: 'reps', delta })}
+            onEditStart={() => dispatch({ type: 'edit-start', field: 'reps' })}
+            onEditText={(text) => dispatch({ type: 'edit-text', text })}
+            onCommit={() => dispatch({ type: 'edit-commit' })}
+          />
+          <div role="status">
+            {warning && (
+              <div className="set-warning">
+                <b>{warning}</b>
+                Va bene? Puoi salvare lo stesso.
+              </div>
+            )}
+          </div>
+          <p className="set-last">{hint}</p>
+          <button type="button" className="set-how-to" onClick={() => setSheetOpen(true)}>
+            <span>Come si esegue · {equipmentLabel(values.equipment)}</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
       </div>
-      <p className="set-last">{hint}</p>
-      <button type="button" className="set-how-to" onClick={() => setSheetOpen(true)}>
-        <span>Come si esegue · {equipmentLabel(values.equipment)}</span>
-        <span aria-hidden="true">→</span>
-      </button>
       {sheetOpen && (
         <HowToSheet
           name={exercise.name}
@@ -128,7 +155,7 @@ export function SetLogger({
         />
       )}
       <SessionDock toast={toast}>
-        <PrimaryButton onClick={confirm}>{`Conferma serie ${setNumber}`}</PrimaryButton>
+        <SaveButton label={`Conferma serie ${setNumber}`} summary={setSummary(values, unit)} busy={lifting} onClick={confirm} />
       </SessionDock>
     </>
   )

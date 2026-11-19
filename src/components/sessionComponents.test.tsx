@@ -65,7 +65,9 @@ it('SessionProgress exposes the completed count', () => {
   expect(html).toContain('role="progressbar"')
   expect(html).toContain('aria-valuenow="3"')
   expect(html).toContain('aria-valuetext="3 su 7"')
-  expect(html).toContain('width:43%')
+  expect(html.match(/<i class="is-done">/g)).toHaveLength(3)
+  expect(html.match(/<i class="is-current">/g)).toHaveLength(1)
+  expect(html.match(/<i>/g)).toHaveLength(3)
 })
 
 it('UndoToast offers Annulla', () => {
@@ -89,7 +91,7 @@ describe('SetLogger', () => {
 
   it('opens on the prefilled values with the confirm button for the current set', () => {
     const html = render(<SetLogger {...props} />)
-    expect(html).toContain('<h1 class="page-header__title">Curl con bilanciere</h1>')
+    expect(html).toContain('<h1 class="session-header__title">Curl con bilanciere</h1>')
     expect(html).toContain('Serie 2 / 3')
     expect(html).toContain('Peso: 15 chilogrammi. Tocca per scrivere')
     expect(html).toContain('Ripetizioni: 10 ripetizioni. Tocca per scrivere')

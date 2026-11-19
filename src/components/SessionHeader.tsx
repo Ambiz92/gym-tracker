@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeading } from './PageHeading'
 
@@ -12,20 +13,25 @@ interface SessionHeaderProps {
   title: string
   subtitle?: string
   size?: 'title' | 'exercise'
+  /** Shown at the end of the title row, e.g. the set pills. */
+  aside?: ReactNode
 }
 
-/** Meta row with a back link and a counter under a thick rule, then the page's title (h1, or h2 in a secondary pane). */
-export function SessionHeader({ backTo, back, backLabel, onBack, end, title, subtitle, size = 'title' }: SessionHeaderProps) {
+/** Meta row with a back link and a counter, then the page's title (h1, or h2 in a secondary pane). */
+export function SessionHeader({ backTo, back, backLabel, onBack, end, title, subtitle, size = 'title', aside }: SessionHeaderProps) {
   return (
-    <header className={`page-header page-header--title session-header session-header--${size}`}>
-      <div className="page-header__meta">
+    <header className={`session-header session-header--${size}`}>
+      <div className="session-header__meta">
         <Link to={backTo} className="session-header__back" aria-label={backLabel} onClick={onBack}>
           {back}
         </Link>
         <span>{end}</span>
       </div>
-      <PageHeading className="page-header__title">{title}</PageHeading>
-      {subtitle && <p className="page-header__subtitle">{subtitle}</p>}
+      <div className="session-header__row">
+        <PageHeading className="session-header__title">{title}</PageHeading>
+        {aside}
+      </div>
+      {subtitle && <p className="session-header__subtitle">{subtitle}</p>}
     </header>
   )
 }

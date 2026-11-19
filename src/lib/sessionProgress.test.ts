@@ -9,6 +9,7 @@ import {
   lastTimeHint,
   loadLabel,
   loggedCount,
+  setSummary,
   splitSteps,
   startingValues,
   targetLabel,
@@ -87,6 +88,22 @@ describe('labels', () => {
 
   it('names the unit under the reps number', () => {
     expect([unitLabel('reps'), unitLabel('seconds'), unitLabel('meters')]).toEqual(['rip', 'sec', 'm'])
+  })
+})
+
+describe('setSummary', () => {
+  it('writes the weight and the reps in caps', () => {
+    expect(setSummary({ weight: 62.5, reps: 8 }, 'reps')).toBe('62,5 KG × 8')
+  })
+
+  it('names the unit of a timed or distance set', () => {
+    expect(setSummary({ weight: 20, reps: 30 }, 'seconds')).toBe('20 KG × 30 SEC')
+    expect(setSummary({ weight: 15, reps: 40 }, 'meters')).toBe('15 KG × 40 M')
+  })
+
+  it('leaves the weight out when there is none', () => {
+    expect(setSummary({ weight: 0, reps: 30 }, 'seconds')).toBe('30 SEC')
+    expect(setSummary({ weight: 0, reps: 12 }, 'reps')).toBe('12 RIP')
   })
 })
 
