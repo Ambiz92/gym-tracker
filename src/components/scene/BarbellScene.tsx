@@ -1,6 +1,6 @@
 import { formatNumber } from '../../lib/formatNumber'
 import { BAR_KG, platesPerSide, type Plate } from '../../lib/plates'
-import { CENTER_Y, SceneFrame, ShadedRect, knurl, shade, sheen, useSceneId } from './SceneFrame'
+import { CENTER_Y, SceneFrame, ShadedRect, VerticalLabel, knurl, shade, sheen, useSceneId } from './SceneFrame'
 
 const SLEEVE_START = 84
 const PLATE_GAP = 2
@@ -62,9 +62,9 @@ export function BarbellScene({ weight }: BarbellSceneProps) {
               <ShadedRect className="plate" x={x} y={CENTER_Y - plate.diameter / 2} width={plate.thickness} height={plate.diameter} rx="4" overlay={shade(id)} />
               <rect className="plate-edge" x={x} y={CENTER_Y - plate.diameter / 2} width="2" height={plate.diameter} />
               {plate.thickness >= MIN_LABEL_THICKNESS && (
-                <text className="scene-label plate__label" transform={`translate(${x + plate.thickness / 2 + 1},${CENTER_Y}) rotate(-90)`} dy="4">
+                <VerticalLabel className="plate__label" x={x} width={plate.thickness} dy={4}>
                   {formatNumber(plate.kg)}
-                </text>
+                </VerticalLabel>
               )}
             </g>
           ))}

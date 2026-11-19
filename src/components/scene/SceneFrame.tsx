@@ -29,6 +29,25 @@ export function ShadedRect({ overlay, className, ...geometry }: ShadedRectProps)
   )
 }
 
+interface VerticalLabelProps {
+  /** Left edge and width of the part the label reads along. */
+  x: number
+  width: number
+  /** Baseline offset: half the glyph height, to center the text on the part. */
+  dy: number
+  className: string
+  children: ReactNode
+}
+
+/** A number written bottom to top along a plate or a dumbbell head. */
+export function VerticalLabel({ x, width, dy, className, children }: VerticalLabelProps) {
+  return (
+    <text className={`scene-label ${className}`} transform={`translate(${x + width / 2 + 1},${CENTER_Y}) rotate(-90)`} dy={dy}>
+      {children}
+    </text>
+  )
+}
+
 interface SceneFrameProps {
   id: string
   /** Where the shadow under the equipment sits and how wide it is. */
