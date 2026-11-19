@@ -1,4 +1,4 @@
-/** Generic slider math: snapping to a step and the keys of the slider pattern. */
+/** Generic slider math: snapping to a step, the keys of the slider pattern and the touch drag gesture. */
 
 export const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value))
 

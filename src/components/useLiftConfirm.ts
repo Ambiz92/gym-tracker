@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { SetValues } from '../lib/setFlow'
 
-/** Same length as the lift animation in scene.css (--ds-duration-lift). */
+/** Must equal --ds-duration-lift in tokens.css: the set is confirmed when the CSS lift ends. Change both together. */
 export const LIFT_MS = 420
 
 interface LiftConfirmDeps {

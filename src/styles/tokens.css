@@ -94,7 +94,7 @@
   --ds-space-6: 1.5rem;
   --ds-space-8: 2rem;
 
-  /* Line weight kept from the previous system; still used by the dashed and outlined states */
+  /* Border and outline weight for outlined, dashed and ring states */
   --ds-rule: 2px;
   --ds-focus-width: 3px;
   --ds-hairline: 1px;                       /* row dividers and table rules */

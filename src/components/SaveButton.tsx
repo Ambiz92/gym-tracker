@@ -3,7 +3,7 @@ interface SaveButtonProps {
   label: string
   /** The set in small caps under the label: "62,5 KG × 8". */
   summary: string
-  /** The save animation is running; further taps do nothing. */
+  /** The save animation is running: exposed as aria-busy only, the hook ignores repeat taps. */
   busy: boolean
   onClick: () => void
 }
