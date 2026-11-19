@@ -60,7 +60,9 @@ export function startingValues({ row, previous, suggestedKg }: StartingValuesInp
   }
 }
 
-/** "Ultima volta 12,5 kg × 10 · suggerito 15 ↑", or a first-time note. A barbell weight says "con sbarra": the logger shows one side. */
+const perSideText = (totalKg: number): string => `${formatNumber(totalKg)} kg (${formatNumber(perSideFromTotal(totalKg))} per lato)`
+
+/** "Ultima volta 12,5 kg × 10 · suggerito 15 ↑", or a first-time note. A barbell weight also spells out its load per side, as the logger shows it. */
 export function lastTimeHint(
   lastSets: readonly LastSet[],
   setNumber: number,
@@ -71,16 +73,16 @@ export function lastTimeHint(
   const reference = sorted.find((set) => set.set_number === setNumber) ?? sorted.at(-1)
   if (!reference) return 'Prima volta con questo esercizio'
 
-  const withBar = reference.equipment_used === 'barbell' ? ' con sbarra' : ''
-  const last = `Ultima volta ${formatNumber(reference.weight_kg)} kg${withBar} × ${reference.reps}${UNIT_SUFFIX[unit]}`
-  return suggestedKg === null ? last : `${last} · suggerito ${formatNumber(suggestedKg)} ↑`
+  const barbell = reference.equipment_used === 'barbell'
+  const weightText = (kg: number) => (barbell ? perSideText(kg) : `${formatNumber(kg)} kg`)
+  const last = `Ultima volta ${weightText(reference.weight_kg)} × ${reference.reps}${UNIT_SUFFIX[unit]}`
+  if (suggestedKg === null) return last
+  return `${last} · suggerito ${barbell ? perSideText(suggestedKg) : formatNumber(suggestedKg)} ↑`
 }
 
-/** What a barbell total is made of, shown under the load of one side: "2 × 21,25 + sbarra 20 = 62,5 kg". */
-export function barbellTotalNote(totalKg: number): string {
-  if (totalKg < BAR_KG) return `sotto la sbarra da ${BAR_KG} kg: ${formatNumber(totalKg)} kg`
-  return `2 × ${formatNumber(perSideFromTotal(totalKg))} + sbarra ${BAR_KG} = ${formatNumber(totalKg)} kg`
-}
+/** What a barbell load is made of, under the giant number: "2 × 7,5 kg + sbarra 20 kg = 35 kg". The bar is information only. */
+export const barbellTotalNote = (platesKg: number): string =>
+  `2 × ${formatNumber(perSideFromTotal(platesKg))} kg + sbarra ${BAR_KG} kg = ${formatNumber(platesKg + BAR_KG)} kg`
 
 /** The set about to be saved, in caps for the save button: "62,5 KG × 8", "20 KG × 30 SEC", or just "30 SEC" without a weight. */
 export function setSummary({ weight, reps }: Pick<SetValues, 'weight' | 'reps'>, unit: TargetUnit): string {

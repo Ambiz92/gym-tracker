@@ -125,9 +125,14 @@ describe('on a barbell the weight is typed and stepped per side', () => {
     expect(run(bar(60), { type: 'step', field: 'weight', delta: -1.25 }).values.weight).toBe(57.5)
   })
 
-  it('steps a total below the bar up to one step over it, and not down', () => {
-    expect(run(bar(15), { type: 'step', field: 'weight', delta: 1.25 }).values.weight).toBe(22.5)
-    expect(run(bar(15), { type: 'step', field: 'weight', delta: -1.25 }).values.weight).toBe(15)
+  it('steps a light load like any other, down to zero and not below', () => {
+    expect(run(bar(15), { type: 'step', field: 'weight', delta: 1.25 }).values.weight).toBe(17.5)
+    expect(run(bar(2.5), { type: 'step', field: 'weight', delta: -1.25 }).values.weight).toBe(0)
+    expect(run(bar(0), { type: 'step', field: 'weight', delta: -1.25 }).values.weight).toBe(0)
+  })
+
+  it('stops at the logger maximum', () => {
+    expect(run(bar(1000), { type: 'step', field: 'weight', delta: 1.25 }).values.weight).toBe(1000)
   })
 
   it('leaves the reps and the other equipment alone', () => {
@@ -136,19 +141,20 @@ describe('on a barbell the weight is typed and stepped per side', () => {
   })
 
   it('starts typing from the load of one side', () => {
-    expect(run(bar(62.5), { type: 'edit-start', field: 'weight' }).editing).toEqual({ field: 'weight', text: '21,25' })
-    expect(run(bar(15), { type: 'edit-start', field: 'weight' }).editing).toEqual({ field: 'weight', text: '0' })
+    expect(run(bar(62.5), { type: 'edit-start', field: 'weight' }).editing).toEqual({ field: 'weight', text: '31,25' })
+    expect(run(bar(15), { type: 'edit-start', field: 'weight' }).editing).toEqual({ field: 'weight', text: '7,5' })
   })
 
   it.each([
-    ['21,25', 62.5],
-    ['0', 20],
-    ['490', 1000],
+    ['7,5', 15],
+    ['31,25', 62.5],
+    ['0', 0],
+    ['500', 1000],
   ])('stores %s per side as a total of %s', (text, total) => {
     expect(commit(bar(60), text)).toMatchObject({ values: { weight: total }, editing: null, error: null })
   })
 
-  it.each(['', 'abc', '-5', '491'])('rejects %j per side and keeps the field open', (text) => {
+  it.each(['', 'abc', '-5', '501'])('rejects %j per side and keeps the field open', (text) => {
     const state = commit(bar(60), text)
     expect(state.values.weight).toBe(60)
     expect(state.editing).not.toBeNull()
@@ -156,7 +162,7 @@ describe('on a barbell the weight is typed and stepped per side', () => {
   })
 
   it('confirms typed text as a total', () => {
-    const state = run(bar(60), { type: 'edit-start', field: 'weight' }, { type: 'edit-text', text: '30' })
-    expect(resolveValues(state)).toEqual({ values: { weight: 80, reps: 8, equipment: 'barbell' } })
+    const state = run(bar(60), { type: 'edit-start', field: 'weight' }, { type: 'edit-text', text: '25' })
+    expect(resolveValues(state)).toEqual({ values: { weight: 50, reps: 8, equipment: 'barbell' } })
   })
 })

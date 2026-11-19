@@ -3,6 +3,7 @@ import { MAX_WEIGHT_KG } from './validation'
 
 /** Weight to scene geometry: plates, cable block and ruler scale. Generic slider math lives in slider.ts. */
 
+/** Barbell weights are the plates only, both sides together: the bar is information, so it enters no calculation and no drawing. */
 export const BAR_KG = 20
 
 export type PlateId = '25' | '20' | '15' | '10' | '5' | '2-5' | '1-25'
@@ -31,26 +32,20 @@ export const PLATES: readonly Plate[] = [
 export interface PlateLoad {
   /** Plates on one side of the bar, heaviest first. */
   plates: Plate[]
-  /** True only when the plates drawn add up exactly to the requested weight: not for a weight below the bar, one the plates cannot make, one clamped to MAX_WEIGHT_KG or one cut by MAX_PLATES_PER_SIDE. */
+  /** True only when the plates drawn add up exactly to the requested weight: not for one the plates cannot make, one clamped to MAX_WEIGHT_KG or one cut by MAX_PLATES_PER_SIDE. */
   exact: boolean
 }
 
 const toCents = (kg: number): number => Math.round(kg * 100)
 
 /** Heaviest load of one side that keeps the total within MAX_WEIGHT_KG. */
-export const MAX_KG_PER_SIDE = (MAX_WEIGHT_KG - BAR_KG) / 2
+export const MAX_KG_PER_SIDE = MAX_WEIGHT_KG / 2
 
-/** Load of one side for a total with the bar. Never negative: a total below the bar (history can hold 15 kg) reads as 0. */
-export const perSideFromTotal = (totalKg: number): number => Math.max(0, toCents((totalKg - BAR_KG) / 2) / 100)
+/** Load of one side for a plates total. */
+export const perSideFromTotal = (totalKg: number): number => toCents(totalKg / 2) / 100
 
-/** Total with the bar for the load of one side, kept between the bare bar and MAX_WEIGHT_KG. */
-export const totalFromPerSide = (perSideKg: number): number => clamp(toCents(2 * perSideKg + BAR_KG) / 100, BAR_KG, MAX_WEIGHT_KG)
-
-/** Total after moving one side by `deltaKg`. A step below the bare bar changes nothing, and from a total under the bar the first step up lands on one step over it (15 becomes 22,5 with 1,25). */
-export function stepBarbellTotal(totalKg: number, deltaKg: number): number {
-  const perSide = perSideFromTotal(totalKg) + deltaKg
-  return perSide < 0 ? totalKg : totalFromPerSide(perSide)
-}
+/** Plates total for the load of one side, kept between 0 and MAX_WEIGHT_KG. */
+export const totalFromPerSide = (perSideKg: number): number => clamp(toCents(2 * perSideKg) / 100, 0, MAX_WEIGHT_KG)
 
 export interface PlacedPlate {
   plate: Plate
@@ -77,10 +72,10 @@ export function placePlates(
 /** More than a sleeve can hold; keeps a huge weight from rendering a wall of plates. */
 export const MAX_PLATES_PER_SIDE = 16
 
-/** Greedy plates per side for a total weight, capped at the largest weight the logger takes; below the bar it is the bare bar. */
+/** Greedy plates of one side for a plates total, capped at the largest weight the logger takes. */
 export function platesPerSide(totalKg: number): PlateLoad {
-  if (!Number.isFinite(totalKg) || totalKg < BAR_KG) return { plates: [], exact: false }
-  let remaining = toCents((Math.min(totalKg, MAX_WEIGHT_KG) - BAR_KG) / 2)
+  if (!Number.isFinite(totalKg) || totalKg < 0) return { plates: [], exact: false }
+  let remaining = toCents(perSideFromTotal(Math.min(totalKg, MAX_WEIGHT_KG)))
   const plates: Plate[] = []
   for (const plate of PLATES) {
     const cents = toCents(plate.kg)

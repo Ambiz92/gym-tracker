@@ -9,7 +9,7 @@ const BAR_START = 2
 const PLATE_GAP = 1
 
 interface PlateGlyphProps {
-  /** Total barbell weight, bar included. */
+  /** Total of the plates on both sides, bar excluded. */
   weight: number
 }
 

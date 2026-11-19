@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  BAR_KG,
   MAX_KG_PER_SIDE,
   MAX_PLATES_PER_SIDE,
   PLATES,
@@ -12,7 +11,6 @@ import {
   rulerMax,
   rulerValueAt,
   rulerX,
-  stepBarbellTotal,
   totalFromPerSide,
 } from './plates'
 import { MAX_WEIGHT_KG } from './validation'
@@ -20,17 +18,22 @@ import { MAX_WEIGHT_KG } from './validation'
 const kgs = (total: number) => platesPerSide(total).plates.map((plate) => plate.kg)
 
 describe('platesPerSide', () => {
-  it('draws the bare bar at and below the bar weight', () => {
-    expect(platesPerSide(BAR_KG)).toEqual({ plates: [], exact: true })
-    expect(platesPerSide(15)).toEqual({ plates: [], exact: false })
-    expect(platesPerSide(0)).toEqual({ plates: [], exact: false })
+  it('draws no plates for no weight, and nothing for a negative one', () => {
+    expect(platesPerSide(0)).toEqual({ plates: [], exact: true })
+    expect(platesPerSide(-5)).toEqual({ plates: [], exact: false })
   })
 
-  it('fills each side greedily with the heaviest plates first', () => {
-    expect(kgs(62.5)).toEqual([20, 1.25])
-    expect(kgs(100)).toEqual([25, 15])
-    expect(kgs(60)).toEqual([20])
-    expect(kgs(190)).toEqual([25, 25, 25, 10])
+  it('puts half of the plates total on one side, the bar playing no part', () => {
+    expect(kgs(15)).toEqual([5, 2.5])
+    expect(kgs(17.5)).toEqual([5, 2.5, 1.25])
+    expect(platesPerSide(15).exact).toBe(true)
+  })
+
+  it('fills the side greedily with the heaviest plates first', () => {
+    expect(kgs(62.5)).toEqual([25, 5, 1.25])
+    expect(kgs(100)).toEqual([25, 25])
+    expect(kgs(40)).toEqual([20])
+    expect(kgs(150)).toEqual([25, 25, 25])
   })
 
   it('never calls a weight above the logger maximum exact', () => {
@@ -43,9 +46,9 @@ describe('platesPerSide', () => {
   })
 
   it('draws what fits and flags a weight the plates cannot reach', () => {
-    expect(platesPerSide(21)).toEqual({ plates: [], exact: false })
-    expect(kgs(23)).toEqual([1.25])
-    expect(platesPerSide(23).exact).toBe(false)
+    expect(platesPerSide(1)).toEqual({ plates: [], exact: false })
+    expect(kgs(3)).toEqual([1.25])
+    expect(platesPerSide(3).exact).toBe(false)
   })
 
   it('draws nothing for a weight that is not a finite number', () => {
@@ -64,8 +67,8 @@ describe('platesPerSide', () => {
   })
 
   it('does not drift on decimal weights', () => {
-    expect(platesPerSide(22.5).exact).toBe(true)
-    expect(kgs(22.5)).toEqual([1.25])
+    expect(platesPerSide(2.5).exact).toBe(true)
+    expect(kgs(2.5)).toEqual([1.25])
   })
 })
 
@@ -134,59 +137,34 @@ describe('ruler', () => {
 })
 
 describe('perSideFromTotal', () => {
-  it('takes the bar off and halves the rest', () => {
-    expect(perSideFromTotal(62.5)).toBe(21.25)
-    expect(perSideFromTotal(BAR_KG)).toBe(0)
-    expect(perSideFromTotal(142.5)).toBe(61.25)
-  })
-
-  it('reads a total below the bar as an empty side, never a negative one', () => {
-    expect(perSideFromTotal(15)).toBe(0)
+  it('halves the plates total, the bar playing no part', () => {
+    expect(perSideFromTotal(15)).toBe(7.5)
+    expect(perSideFromTotal(62.5)).toBe(31.25)
     expect(perSideFromTotal(0)).toBe(0)
   })
 
   it('rounds to cents', () => {
-    expect(perSideFromTotal(62.51)).toBe(21.26)
+    expect(perSideFromTotal(62.51)).toBe(31.26)
   })
 })
 
 describe('totalFromPerSide', () => {
-  it('doubles the side and adds the bar', () => {
-    expect(totalFromPerSide(21.25)).toBe(62.5)
-    expect(totalFromPerSide(0)).toBe(BAR_KG)
+  it('doubles the side', () => {
+    expect(totalFromPerSide(7.5)).toBe(15)
+    expect(totalFromPerSide(0)).toBe(0)
   })
 
   it('rounds to cents', () => {
-    expect(totalFromPerSide(1.005)).toBe(22.01)
+    expect(totalFromPerSide(1.005)).toBe(2.01)
   })
 
-  it('keeps the total between the bare bar and the logger maximum', () => {
-    expect(totalFromPerSide(-5)).toBe(BAR_KG)
+  it('keeps the total between zero and the logger maximum', () => {
+    expect(totalFromPerSide(-5)).toBe(0)
     expect(totalFromPerSide(MAX_KG_PER_SIDE)).toBe(MAX_WEIGHT_KG)
     expect(totalFromPerSide(MAX_KG_PER_SIDE + 100)).toBe(MAX_WEIGHT_KG)
   })
 
-  it('round-trips with perSideFromTotal above the bar', () => {
+  it('round-trips with perSideFromTotal', () => {
     expect(totalFromPerSide(perSideFromTotal(87.5))).toBe(87.5)
-  })
-})
-
-describe('stepBarbellTotal', () => {
-  it('moves one side, so the total moves twice as much', () => {
-    expect(stepBarbellTotal(62.5, 1.25)).toBe(65)
-    expect(stepBarbellTotal(62.5, -1.25)).toBe(60)
-  })
-
-  it('goes from a total below the bar to the first step over it', () => {
-    expect(stepBarbellTotal(15, 1.25)).toBe(22.5)
-  })
-
-  it('does not go below the bare bar or the stored value', () => {
-    expect(stepBarbellTotal(BAR_KG, -1.25)).toBe(BAR_KG)
-    expect(stepBarbellTotal(15, -1.25)).toBe(15)
-  })
-
-  it('stops at the logger maximum', () => {
-    expect(stepBarbellTotal(MAX_WEIGHT_KG, 1.25)).toBe(MAX_WEIGHT_KG)
   })
 })

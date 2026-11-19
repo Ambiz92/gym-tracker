@@ -1,5 +1,5 @@
 import { formatNumber } from '../../lib/formatNumber'
-import { BAR_KG, placePlates, platesPerSide, type Plate } from '../../lib/plates'
+import { placePlates, platesPerSide, type Plate } from '../../lib/plates'
 import { CENTER_Y, SceneFrame, ShadedRect, VerticalLabel, knurl, shade, sheen, useSceneId } from './SceneFrame'
 
 const SLEEVE_START = 84
@@ -9,15 +9,13 @@ const STAGGER_MS = 70
 const MIN_LABEL_THICKNESS = 14
 
 function describeLoad(weight: number, plates: readonly Plate[], exact: boolean): string {
-  const bar = `Bilanciere: sbarra da ${BAR_KG} kg`
-  const load = plates.length > 0 ? ` e ${plates.map((plate) => formatNumber(plate.kg)).join(', ')} kg per lato` : ' senza dischi'
-  if (exact) return bar + load
-  const problem = weight < BAR_KG ? 'è inferiore alla sbarra' : 'non si ottiene esattamente con i dischi'
-  return `${bar}${load}. Il peso di ${formatNumber(weight)} kg ${problem}`
+  const load = plates.length > 0 ? `Bilanciere con ${plates.map((plate) => formatNumber(plate.kg)).join(', ')} kg per lato` : 'Bilanciere senza dischi'
+  if (exact) return load
+  return `${load}. Il peso di ${formatNumber(weight)} kg non si ottiene esattamente con i dischi`
 }
 
 interface BarbellSceneProps {
-  /** Total weight, bar included. */
+  /** Total of the plates on both sides, bar excluded. */
   weight: number
 }
 

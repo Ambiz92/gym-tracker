@@ -66,14 +66,10 @@ describe('startingValues', () => {
 })
 
 describe('barbellTotalNote', () => {
-  it('spells out the two sides and the bar', () => {
-    expect(barbellTotalNote(62.5)).toBe('2 × 21,25 + sbarra 20 = 62,5 kg')
-    expect(barbellTotalNote(20)).toBe('2 × 0 + sbarra 20 = 20 kg')
-    expect(barbellTotalNote(142.5)).toBe('2 × 61,25 + sbarra 20 = 142,5 kg')
-  })
-
-  it('is honest about a total below the bar', () => {
-    expect(barbellTotalNote(15)).toBe('sotto la sbarra da 20 kg: 15 kg')
+  it('spells out the two sides and the bar, which is only information', () => {
+    expect(barbellTotalNote(15)).toBe('2 × 7,5 kg + sbarra 20 kg = 35 kg')
+    expect(barbellTotalNote(62.5)).toBe('2 × 31,25 kg + sbarra 20 kg = 82,5 kg')
+    expect(barbellTotalNote(0)).toBe('2 × 0 kg + sbarra 20 kg = 20 kg')
   })
 })
 
@@ -91,8 +87,11 @@ describe('lastTimeHint', () => {
     expect(lastTimeHint([last(1, 20, 40)], 1, 'meters', null)).toBe('Ultima volta 40 kg × 20 m')
   })
 
-  it('says a barbell weight includes the bar, because the logger shows one side', () => {
-    expect(lastTimeHint([last(1, 10, 60, 'barbell')], 1, 'reps', 62.5)).toBe('Ultima volta 60 kg con sbarra × 10 · suggerito 62,5 ↑')
+  it('spells out the load per side of a barbell weight, because the logger shows one side', () => {
+    expect(lastTimeHint([last(1, 10, 15, 'barbell')], 1, 'reps', 17.5)).toBe(
+      'Ultima volta 15 kg (7,5 per lato) × 10 · suggerito 17,5 kg (8,75 per lato) ↑',
+    )
+    expect(lastTimeHint([last(1, 10, 15, 'barbell')], 1, 'reps', null)).toBe('Ultima volta 15 kg (7,5 per lato) × 10')
   })
 
   it('says so on the first time', () => {

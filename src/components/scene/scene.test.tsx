@@ -13,29 +13,34 @@ import { useSlider } from './useSlider'
 const noop = () => {}
 
 describe('BarbellScene', () => {
-  it('describes the bar and the plates of each side', () => {
+  it('describes the plates of one side', () => {
     const html = renderToStaticMarkup(<BarbellScene weight={62.5} />)
     expect(html).toContain('role="img"')
-    expect(html).toContain('aria-label="Bilanciere: sbarra da 20 kg e 20, 1,25 kg per lato"')
+    expect(html).toContain('aria-label="Bilanciere con 25, 5, 1,25 kg per lato"')
   })
 
   it('draws one group per plate, with the diameter shared by the competition plates', () => {
-    const html = renderToStaticMarkup(<BarbellScene weight={100} />)
+    const html = renderToStaticMarkup(<BarbellScene weight={80} />)
     expect(html.match(/class="plate-g /g)).toHaveLength(2)
     expect(html).toContain('plate-tone--25')
     expect(html).toContain('plate-tone--15')
   })
 
-  it('draws the bare bar at the bar weight', () => {
-    const html = renderToStaticMarkup(<BarbellScene weight={20} />)
-    expect(html).toContain('aria-label="Bilanciere: sbarra da 20 kg senza dischi"')
+  it('draws the plates of half the weight, with no bar to subtract', () => {
+    const html = renderToStaticMarkup(<BarbellScene weight={15} />)
+    expect(html).toContain('aria-label="Bilanciere con 5, 2,5 kg per lato"')
+    expect(html.match(/class="plate-g /g)).toHaveLength(2)
+  })
+
+  it('draws the bare bar without a weight', () => {
+    const html = renderToStaticMarkup(<BarbellScene weight={0} />)
+    expect(html).toContain('aria-label="Bilanciere senza dischi"')
     expect(html).not.toContain('plate-g')
   })
 
-  it('says so when the weight is below the bar or the plates cannot reach it', () => {
-    expect(renderToStaticMarkup(<BarbellScene weight={15} />)).toContain('Il peso di 15 kg è inferiore alla sbarra')
-    const unreachable = renderToStaticMarkup(<BarbellScene weight={23} />)
-    expect(unreachable).toContain('e 1,25 kg per lato. Il peso di 23 kg non si ottiene esattamente con i dischi')
+  it('says so when the plates cannot reach the weight', () => {
+    const unreachable = renderToStaticMarkup(<BarbellScene weight={3} />)
+    expect(unreachable).toContain('Bilanciere con 1,25 kg per lato. Il peso di 3 kg non si ottiene esattamente con i dischi')
   })
 })
 
@@ -127,10 +132,14 @@ describe('PlateGlyph', () => {
   it('is decorative and draws the plates of the load', () => {
     const html = renderToStaticMarkup(<PlateGlyph weight={62.5} />)
     expect(html).toContain('aria-hidden="true"')
-    expect(html.match(/class="plate /g)).toHaveLength(2)
+    expect(html.match(/class="plate /g)).toHaveLength(3)
   })
 
-  it('draws just the bar below the bar weight', () => {
+  it('draws the plates of one side, half of the weight', () => {
+    expect(renderToStaticMarkup(<PlateGlyph weight={15} />).match(/class="plate /g)).toHaveLength(2)
+  })
+
+  it('draws just the bar without a weight', () => {
     expect(renderToStaticMarkup(<PlateGlyph weight={0} />)).not.toContain('class="plate ')
   })
 })

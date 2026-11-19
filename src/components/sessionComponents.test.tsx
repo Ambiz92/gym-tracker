@@ -81,7 +81,7 @@ describe('SetLogger', () => {
     setNumber: 2,
     targetSets: 3,
     position: { current: 4, total: 7 },
-    initial: { weight: 62.5, reps: 10, equipment: 'barbell' as const },
+    initial: { weight: 15, reps: 10, equipment: 'barbell' as const },
     hint: 'Ultima volta 12,5 kg × 10 · suggerito 15 ↑',
     backTo: '/session/s1',
     onBack: noop,
@@ -93,12 +93,12 @@ describe('SetLogger', () => {
     const html = render(<SetLogger {...props} />)
     expect(html).toContain('<h1 class="session-header__title">Curl con bilanciere</h1>')
     expect(html).toContain('Serie 2 / 3')
-    expect(html).toContain('Peso per lato: 21,25 chilogrammi. Tocca per scrivere')
+    expect(html).toContain('Peso per lato: 7,5 chilogrammi. Tocca per scrivere')
     expect(html).toContain('Ripetizioni: 10 ripetizioni. Tocca per scrivere')
     expect(html).toContain('aria-label="Meno 1,25 chili per lato"')
     expect(html).toContain('aria-label="Più 1,25 chili per lato"')
-    expect(html).toContain('2 × 21,25 + sbarra 20 = 62,5 kg')
-    expect(html).toContain('62,5 KG × 10')
+    expect(html).toContain('2 × 7,5 kg + sbarra 20 kg = 35 kg')
+    expect(html).toContain('15 KG × 10')
     expect(html).toContain('Ultima volta 12,5 kg × 10 · suggerito 15 ↑')
     expect(html).toContain('Conferma serie 2')
     expect(html).not.toContain('set-warning')
@@ -116,7 +116,7 @@ describe('SetLogger', () => {
 
     it('puts the weight first on reps, as the giant number', () => {
       const html = render(<SetLogger {...props} />)
-      expect(numberLabel(html, 'big')).toBe('Peso per lato: 21,25 chilogrammi. Tocca per scrivere')
+      expect(numberLabel(html, 'big')).toBe('Peso per lato: 7,5 chilogrammi. Tocca per scrivere')
       expect(numberLabel(html, 'medium')).toBe('Ripetizioni: 10 ripetizioni. Tocca per scrivere')
     })
 
@@ -142,25 +142,33 @@ describe('SetLogger', () => {
   describe('on a barbell', () => {
     const barbell = (weight: number) => render(<SetLogger {...props} initial={{ ...props.initial, weight }} />)
 
-    it('shows the load of one side as the giant number, with the total under it', () => {
+    it('shows the load of one side as the giant number, with the bar only in the text under it', () => {
       const html = barbell(142.5)
-      expect(html).toContain('Peso per lato: 61,25 chilogrammi')
-      expect(html).toContain('<p class="set-total">2 × 61,25 + sbarra 20 = 142,5 kg</p>')
+      expect(html).toContain('Peso per lato: 71,25 chilogrammi')
+      expect(html).toContain('<p class="set-total">2 × 71,25 kg + sbarra 20 kg = 162,5 kg</p>')
       expect(html).toContain('Peso per lato · tocca il numero per scriverlo')
       expect(html).not.toContain('Tocca il numero per scriverlo')
     })
 
-    it('shows an empty side on the bare bar', () => {
-      const html = barbell(20)
-      expect(html).toContain('Peso per lato: 0 chilogrammi')
-      expect(html).toContain('2 × 0 + sbarra 20 = 20 kg')
+    it('opens on the weight of last time, with its plates', () => {
+      const html = barbell(15)
+      expect(html).toContain('Peso per lato: 7,5 chilogrammi')
+      expect(html).toContain('2 × 7,5 kg + sbarra 20 kg = 35 kg')
+      expect(html).toContain('aria-label="Bilanciere con 5, 2,5 kg per lato"')
+      expect(html).toContain('15 KG × 10')
     })
 
-    it('says so when the weight is below the bar', () => {
-      const html = barbell(15)
+    it('opens on the suggested weight, with its plates', () => {
+      const html = barbell(17.5)
+      expect(html).toContain('Peso per lato: 8,75 chilogrammi')
+      expect(html).toContain('aria-label="Bilanciere con 5, 2,5, 1,25 kg per lato"')
+    })
+
+    it('shows an empty side without weight', () => {
+      const html = barbell(0)
       expect(html).toContain('Peso per lato: 0 chilogrammi')
-      expect(html).toContain('sotto la sbarra da 20 kg: 15 kg')
-      expect(html).not.toContain('2 ×')
+      expect(html).toContain('2 × 0 kg + sbarra 20 kg = 20 kg')
+      expect(html).toContain('aria-label="Bilanciere senza dischi"')
     })
 
     it('keeps the total on the save button', () => {
@@ -170,7 +178,7 @@ describe('SetLogger', () => {
     it('shows no total line on dumbbells', () => {
       const html = render(<SetLogger {...props} initial={{ ...props.initial, equipment: 'dumbbell' }} />)
       expect(html).not.toContain('set-total')
-      expect(html).toContain('Peso: 62,5 chilogrammi')
+      expect(html).toContain('Peso: 15 chilogrammi')
     })
   })
 

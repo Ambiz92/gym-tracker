@@ -1,6 +1,6 @@
 import type { Equipment, TargetUnit } from '../types/db'
 import { formatNumber } from './formatNumber'
-import { MAX_KG_PER_SIDE, perSideFromTotal, stepBarbellTotal, totalFromPerSide } from './plates'
+import { MAX_KG_PER_SIDE, perSideFromTotal, totalFromPerSide } from './plates'
 import { clamp } from './slider'
 import { MAX_WEIGHT_KG, parseDecimal } from './validation'
 
@@ -8,7 +8,7 @@ export type Field = 'weight' | 'reps'
 
 /** What the user is about to confirm as the next set. */
 export interface SetValues {
-  /** Total in kg, bar included. The logger steps and types it per side on a barbell, but this is what is saved. */
+  /** Total in kg; on a barbell the plates of both sides, bar excluded. The logger steps and types it per side, but this is what is saved. */
   weight: number
   reps: number
   equipment: Equipment
@@ -48,7 +48,7 @@ function parseField(field: Field, text: string, equipment: Equipment): Parsed {
   const parsed = parseDecimal(text)
   if (isPerSide(field, equipment)) {
     if (parsed === null || parsed > MAX_KG_PER_SIDE) {
-      return { error: `Scrivi il peso di un lato tra 0 e ${MAX_KG_PER_SIDE} kg, per esempio 21,25.` }
+      return { error: `Scrivi il peso di un lato tra 0 e ${MAX_KG_PER_SIDE} kg, per esempio 7,5.` }
     }
     return { value: totalFromPerSide(parsed) }
   }
@@ -87,11 +87,8 @@ const setField = (state: FlowState, field: Field, value: number): FlowState => (
 export function flowReducer(state: FlowState, action: FlowAction): FlowState {
   switch (action.type) {
     case 'step':
-      // On a barbell the weight moves one side at a time.
-      if (isPerSide(action.field, state.values.equipment)) {
-        return setField(state, 'weight', stepBarbellTotal(state.values.weight, action.delta))
-      }
-      return setField(state, action.field, state.values[action.field] + action.delta)
+      // On a barbell the step is per side, so the total moves twice as much.
+      return setField(state, action.field, state.values[action.field] + action.delta * (isPerSide(action.field, state.values.equipment) ? 2 : 1))
     case 'set':
       return setField(state, action.field, action.value)
     case 'edit-start': {
