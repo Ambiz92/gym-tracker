@@ -128,8 +128,11 @@ export function SetLogger({
           size="exercise"
           aside={<PlatePills total={Math.max(targetSets, setNumber)} done={setNumber - 1} />}
         />
-        <StepperNumber {...numberProps(main)} size="big" />
-        <p className="set-hint">Tocca il numero per scriverlo</p>
+        {/* The saved values are fixed when the lift starts, so nothing is editable until it settles. */}
+        <div inert={lifting}>
+          <StepperNumber {...numberProps(main)} size="big" />
+          <p className="set-hint">Tocca il numero per scriverlo</p>
+        </div>
         <Scene
           equipment={values.equipment}
           unit={unit}
@@ -139,7 +142,7 @@ export function SetLogger({
           onReps={(value) => dispatch({ type: 'set', field: 'reps', value })}
           lifting={lifting}
         />
-        <div className="logger__controls">
+        <div className="logger__controls" inert={lifting}>
           <div className="stepper-buttons">
             <StepButton label={main.label} step={main.step} direction="down" variant="pair" onStep={stepOf(main)} />
             <StepButton label={main.label} step={main.step} direction="up" variant="pair" onStep={stepOf(main)} />

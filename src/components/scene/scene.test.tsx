@@ -116,6 +116,11 @@ describe('Scene', () => {
     expect(renderToStaticMarkup(<Scene {...props} equipment="barbell" unit="reps" lifting />)).toContain('scene scene--lifting')
     expect(renderToStaticMarkup(<Scene {...props} equipment="barbell" unit="reps" />)).not.toContain('scene--lifting')
   })
+
+  it('cannot be touched while the save animation runs', () => {
+    expect(renderToStaticMarkup(<Scene {...props} equipment="other" unit="reps" lifting />)).toContain('inert=""')
+    expect(renderToStaticMarkup(<Scene {...props} equipment="other" unit="reps" />)).not.toContain('inert')
+  })
 })
 
 describe('PlateGlyph', () => {

@@ -12,7 +12,7 @@ interface SceneProps {
   reps: number
   onWeight: (weightKg: number) => void
   onReps: (value: number) => void
-  /** True while the save animation runs: the bar lifts and settles. */
+  /** True while the save animation runs: the bar lifts and settles, and the sliders cannot be touched. */
   lifting: boolean
 }
 
@@ -27,7 +27,7 @@ function Drawing({ equipment, unit, weight, reps, onWeight, onReps }: Omit<Scene
 /** The drawn scene of the set being logged: the ruler for time or distance, otherwise the equipment. */
 export function Scene({ lifting, ...drawing }: SceneProps) {
   return (
-    <div className={lifting ? 'scene scene--lifting' : 'scene'}>
+    <div className={lifting ? 'scene scene--lifting' : 'scene'} inert={lifting}>
       <Drawing {...drawing} />
     </div>
   )
