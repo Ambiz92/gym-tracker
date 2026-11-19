@@ -1,0 +1,304 @@
+/* The set-logger scene: a lifting platform with the loaded equipment drawn on it. Tokens only. */
+
+.scene {
+  position: relative;
+}
+
+.scene-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+}
+
+/* Cable and ruler are sliders: no page scroll while dragging, and a focus ring inside the full-bleed edge. */
+.scene-svg[role="slider"] {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.scene-svg[role="slider"]:active {
+  cursor: grabbing;
+}
+
+.scene-svg[role="slider"]:focus-visible {
+  outline: var(--ds-focus-width) solid var(--ds-color-focus);
+  outline-offset: calc(-1 * var(--ds-focus-width));
+}
+
+/* Platform */
+.scene-floor-a {
+  fill: var(--ds-color-floor-a);
+}
+
+.scene-floor-b {
+  fill: var(--ds-color-floor-b);
+}
+
+.scene-floor-line {
+  fill: none;
+  stroke: var(--ds-color-floor-line);
+  stroke-width: 1;
+}
+
+.scene-floor-edge {
+  fill: var(--ds-color-floor-line);
+}
+
+.scene-shadow {
+  fill: var(--ds-color-floor-line);
+}
+
+/* Equipment */
+.scene-steel {
+  fill: var(--ds-color-steel);
+}
+
+.scene-iron {
+  fill: var(--ds-scene-iron);
+}
+
+.scene-hub {
+  fill: var(--ds-color-steel);
+}
+
+.scene-rail {
+  opacity: 0.7;
+}
+
+.scene-label {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-weight-display);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.scene-label--head,
+.scene-label--head-small {
+  fill: var(--ds-scene-ink-light);
+  font-size: 16px;
+}
+
+.scene-label--head-small {
+  font-size: 13px;
+}
+
+.scene-head-inset {
+  fill: none;
+  stroke: var(--ds-scene-ink-light);
+  stroke-opacity: 0.12;
+  stroke-width: 1.5;
+}
+
+/* Plates: color is the load. Tone classes set the plate and its ink; the rim keeps dark plates visible on the dark theme. */
+.plate-tone--25 {
+  --plate: var(--ds-plate-25);
+  --plate-ink: var(--ds-scene-ink-light);
+}
+
+.plate-tone--20 {
+  --plate: var(--ds-plate-20);
+  --plate-ink: var(--ds-scene-ink-light);
+}
+
+.plate-tone--15 {
+  --plate: var(--ds-plate-15);
+  --plate-ink: var(--ds-scene-ink-dark);
+}
+
+.plate-tone--10 {
+  --plate: var(--ds-plate-10);
+  --plate-ink: var(--ds-scene-ink-light);
+}
+
+.plate-tone--5 {
+  --plate: var(--ds-plate-5);
+  --plate-ink: var(--ds-scene-ink-dark);
+}
+
+.plate-tone--2-5 {
+  --plate: var(--ds-plate-2-5);
+  --plate-ink: var(--ds-scene-ink-light);
+}
+
+.plate-tone--1-25 {
+  --plate: var(--ds-plate-1-25);
+  --plate-ink: var(--ds-scene-ink-dark);
+}
+
+.plate {
+  fill: var(--plate);
+  stroke: var(--ds-plate-rim);
+  stroke-width: 1;
+}
+
+.plate-edge {
+  fill: var(--ds-plate-rim);
+}
+
+.plate__label {
+  fill: var(--plate-ink);
+}
+
+.plate-glyph {
+  display: block;
+  flex: none;
+  height: 1.375rem;
+  width: auto;
+}
+
+.plate-glyph .plate {
+  stroke-width: 0.6;
+}
+
+/* Cable stack */
+.cable-block__body {
+  fill: var(--ds-scene-iron-soft);
+}
+
+.cable-block--lifted .cable-block__body {
+  fill: var(--ds-scene-iron-lift);
+}
+
+.cable-block__label {
+  fill: var(--ds-scene-ink-light);
+  font-family: var(--ds-font-body);
+  font-size: 8px;
+  font-weight: var(--ds-weight-black);
+}
+
+.cable-block--lifted .cable-block__label {
+  fill: var(--ds-scene-ink-dark);
+}
+
+.cable-pin {
+  fill: var(--ds-color-accent);
+}
+
+.cable-pin-head {
+  fill: var(--ds-scene-ink-dark);
+  stroke: var(--ds-color-accent);
+  stroke-width: 3.5;
+}
+
+.cable-pin-grip {
+  fill: none;
+  stroke: var(--ds-color-accent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+/* Ruler */
+.ruler-board {
+  fill: var(--ds-color-surface);
+  stroke: var(--ds-color-border);
+}
+
+.ruler-tick {
+  stroke: var(--ds-color-text-muted);
+  stroke-width: 1.2;
+}
+
+.ruler-tick--major {
+  stroke-width: 2;
+}
+
+.ruler-label {
+  fill: var(--ds-color-text-muted);
+  font-family: var(--ds-font-body);
+  font-size: 10px;
+  font-weight: var(--ds-weight-black);
+}
+
+.ruler-track {
+  fill: var(--ds-color-border);
+}
+
+.ruler-fill {
+  fill: var(--ds-color-accent-text);
+}
+
+.ruler-marker {
+  fill: var(--ds-color-accent);
+  stroke: var(--ds-color-text);
+  stroke-width: 1.5;
+}
+
+.ruler-grip {
+  fill: none;
+  stroke: var(--ds-color-on-accent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+/* Motion: plates slide on one after the other, dumbbell heads pop, the whole rig lifts when a set is saved. */
+.plate-g {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: plate-slide var(--ds-duration-slow) var(--ds-ease-spring) both;
+}
+
+.scene-pop {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: scene-pop var(--ds-duration-base) var(--ds-ease-spring) both;
+}
+
+.scene--lifting .lifter {
+  animation: scene-lift var(--ds-duration-lift) cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+
+@keyframes plate-slide {
+  from {
+    transform: translateX(44px);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes scene-pop {
+  from {
+    transform: scale(0.82);
+    opacity: 0.2;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes scene-lift {
+  0% {
+    transform: translateY(0);
+  }
+
+  35%,
+  55% {
+    transform: translateY(-22px);
+  }
+
+  80% {
+    transform: translateY(2px);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plate-g,
+  .scene-pop,
+  .scene--lifting .lifter {
+    animation: none;
+  }
+}
