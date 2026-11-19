@@ -19,7 +19,7 @@ interface SessionRowsProps {
 export function SessionRows({ planId, sessions, busy, onMove, onReorder }: SessionRowsProps) {
   const drag = useDragReorder({ disabled: busy, onReorder })
   const { sessionId } = useParams()
-  if (sessions.length === 0) return <p className="plans-note">Questa scheda non ha ancora sessioni.</p>
+  if (sessions.length === 0) return <p className="plans-note empty-state">Questa scheda non ha ancora sessioni.</p>
 
   return (
     <ul ref={drag.listRef} className="plans-list">
