@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { MemoryRouter } from 'react-router-dom'
 import { expect, test } from 'vitest'
 import { Login } from '../pages/Login'
 import { MfaChallenge } from '../pages/MfaChallenge'
@@ -13,7 +14,7 @@ function render(ui: ReactElement) {
     <AuthContext.Provider
       value={{ status: 'signed_out', email: null, signIn: unused, verifyCode: unused, startEnrollment: unused, verifyEnrollment: unused, signOut: unused }}
     >
-      {ui}
+      <MemoryRouter>{ui}</MemoryRouter>
     </AuthContext.Provider>,
   )
 }
@@ -36,9 +37,10 @@ test('the code step asks for a numeric one-time code and offers a way back', () 
   expect(html).toContain('Indietro')
 })
 
-test('the enrollment starts with a button, creating nothing until it is tapped', () => {
+test('the enrollment starts with a button, creating nothing until it is tapped, and is optional', () => {
   const html = render(<MfaEnroll />)
   expect(html).toContain('Mostra il codice QR')
+  expect(html).toContain('Facoltativo')
   expect(html).not.toContain('<img')
 })
 

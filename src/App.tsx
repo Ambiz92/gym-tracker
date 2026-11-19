@@ -46,16 +46,18 @@ export function AppRoutes() {
               </AuthStep>
             }
           />
-          <Route
-            path="/login/enroll"
-            element={
-              <AuthStep path="/login/enroll">
-                <MfaEnroll />
-              </AuthStep>
-            }
-          />
         </Route>
         <Route element={<RequireAuth />}>
+          {/* Voluntary: nothing links here, since a session without a factor is already signed in. */}
+          <Route
+            element={
+              <AuthLayout>
+                <Outlet />
+              </AuthLayout>
+            }
+          >
+            <Route path="/login/enroll" element={<MfaEnroll />} />
+          </Route>
           <Route
             element={
               <Layout>

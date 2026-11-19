@@ -20,7 +20,7 @@ describe('statusFromAssurance', () => {
   test.each<[string | null, string | null, AuthStatus]>([
     ['aal2', 'aal2', 'signed_in'],
     ['aal1', 'aal2', 'needs_mfa'],
-    ['aal1', 'aal1', 'needs_enroll'],
+    ['aal1', 'aal1', 'signed_in'],
     [null, null, 'signed_out'],
   ])('%s -> %s is %s', (current, next, expected) => {
     expect(statusFromAssurance(current, next)).toBe(expected)
@@ -31,7 +31,6 @@ test('every status maps to its screen, and loading to none', () => {
   expect(stepPath('loading')).toBeNull()
   expect(stepPath('signed_out')).toBe('/login')
   expect(stepPath('needs_mfa')).toBe('/login/code')
-  expect(stepPath('needs_enroll')).toBe('/login/enroll')
   expect(stepPath('signed_in')).toBe('/')
 })
 
@@ -52,8 +51,17 @@ describe('resolveStatus', () => {
     const withFactor = createFakeAuth({ enrolled: true })
     withFactor.state.session = { aal: 'aal1' }
 
-    expect(valueOf(await resolveStatus(withoutFactor.api, 'other'))).toBe('needs_enroll')
+    expect(valueOf(await resolveStatus(withoutFactor.api, 'other'))).toBe('signed_in')
     expect(valueOf(await resolveStatus(withFactor.api, 'other'))).toBe('needs_mfa')
+  })
+
+  test('an abandoned unverified factor does not make the code mandatory', async () => {
+    const fake = createFakeAuth()
+    fake.state.session = { aal: 'aal1' }
+    await startEnrollment(fake.api)
+
+    expect(fake.state.factors).toEqual([{ id: 'f1', status: 'unverified' }])
+    expect(valueOf(await resolveStatus(fake.api, 'other'))).toBe('signed_in')
   })
 
   test('only an aal2 session is signed in', async () => {
@@ -110,12 +118,12 @@ describe('signIn', () => {
     expect(valueOf(await signIn(fake.api, ` ${EMAIL} `, PASSWORD))).toBe('needs_mfa')
   })
 
-  test('a correct password is not a login: it leads to the code or to the enrollment', async () => {
+  test('a correct password asks for the code only when an authenticator is enrolled', async () => {
     const enrolled = createFakeAuth({ enrolled: true })
     const fresh = createFakeAuth()
 
     expect(valueOf(await signIn(enrolled.api, EMAIL, PASSWORD))).toBe('needs_mfa')
-    expect(valueOf(await signIn(fresh.api, EMAIL, PASSWORD))).toBe('needs_enroll')
+    expect(valueOf(await signIn(fresh.api, EMAIL, PASSWORD))).toBe('signed_in')
   })
 
   test.each([
@@ -175,9 +183,9 @@ describe('verifyCode', () => {
 })
 
 describe('enrollment', () => {
-  test('first login: password, enroll, first code, then signed in', async () => {
+  test('voluntary: signed in without a factor, enroll, first code, and the next login asks for it', async () => {
     const fake = createFakeAuth()
-    expect(valueOf(await signIn(fake.api, EMAIL, PASSWORD))).toBe('needs_enroll')
+    expect(valueOf(await signIn(fake.api, EMAIL, PASSWORD))).toBe('signed_in')
 
     const started = await startEnrollment(fake.api)
     expect(started).toEqual({
@@ -187,6 +195,9 @@ describe('enrollment', () => {
     expect(fake.state.calls).toContain('enroll:totp:Gym Tracker')
 
     expect(valueOf(await verifyEnrollment(fake.api, 'f1', CODE))).toBe('signed_in')
+
+    await signOut(fake.api)
+    expect(valueOf(await signIn(fake.api, EMAIL, PASSWORD))).toBe('needs_mfa')
   })
 
   test('a wrong first code leaves the enrollment open for a retry', async () => {
@@ -195,7 +206,7 @@ describe('enrollment', () => {
     await startEnrollment(fake.api)
 
     expect(await verifyEnrollment(fake.api, 'f1', '000000')).toMatchObject({ ok: false, error: { kind: 'invalid_code' } })
-    expect(valueOf(await resolveStatus(fake.api, 'other'))).toBe('needs_enroll')
+    expect(fake.state.factors).toEqual([{ id: 'f1', status: 'unverified' }])
     expect(valueOf(await verifyEnrollment(fake.api, 'f1', CODE))).toBe('signed_in')
   })
 

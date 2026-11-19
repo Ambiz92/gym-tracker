@@ -1,6 +1,6 @@
 import { type AuthErrorLike, type AuthFailure, type AuthStep, classifyError, failure } from './errors'
 
-export type AuthStatus = 'loading' | 'signed_out' | 'needs_mfa' | 'needs_enroll' | 'signed_in'
+export type AuthStatus = 'loading' | 'signed_out' | 'needs_mfa' | 'signed_in'
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: AuthFailure }
 
@@ -39,10 +39,13 @@ export function normalizeCode(raw: string): string {
   return raw.replace(/\D/g, '').slice(0, CODE_LENGTH)
 }
 
-/** Only an aal2 session is logged in; aal1 needs the code, or the enrollment when no factor is verified. */
+/**
+ * aal1 needs the code only when a verified factor exists (nextLevel aal2); without one the user is in.
+ * The owner's account relies on its factor: if it were ever removed, a password alone would sign in.
+ */
 export function statusFromAssurance(currentLevel: string | null, nextLevel: string | null): AuthStatus {
   if (currentLevel === 'aal2') return 'signed_in'
-  if (currentLevel === 'aal1') return nextLevel === 'aal2' ? 'needs_mfa' : 'needs_enroll'
+  if (currentLevel === 'aal1') return nextLevel === 'aal2' ? 'needs_mfa' : 'signed_in'
   return 'signed_out'
 }
 
@@ -55,8 +58,6 @@ export function stepPath(status: AuthStatus): string | null {
       return '/login'
     case 'needs_mfa':
       return '/login/code'
-    case 'needs_enroll':
-      return '/login/enroll'
     case 'signed_in':
       return '/'
   }
