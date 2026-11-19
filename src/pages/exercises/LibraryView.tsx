@@ -4,6 +4,7 @@ import { ExerciseList } from '../../components/ExerciseList'
 import { ExerciseSearch } from '../../components/ExerciseSearch'
 import { PageHeader } from '../../components/PageHeader'
 import { PrimaryButton } from '../../components/PrimaryButton'
+import { Skeleton } from '../../components/Skeleton'
 import type { AsyncState } from '../../hooks/useAsync'
 import { filterExercises } from '../../lib/exerciseList'
 import type { Exercise } from '../../types/db'
@@ -58,11 +59,11 @@ export function LibraryView({ library, selectedId, notice, onNew, onSelect }: Li
 function Body({ library, selectedId, onNew, onSelect }: Omit<LibraryViewProps, 'notice'>) {
   const [query, setQuery] = useState('')
 
-  if (library.status === 'loading') return <p role="status" className="exercises__status">Caricamento della libreria…</p>
+  if (library.status === 'loading') return <Skeleton label="Caricamento della libreria…" />
 
   if (library.status === 'error') {
     return (
-      <div className="exercises__empty">
+      <div className="error-state">
         <p role="alert">Non sono riuscito a caricare la libreria. I tuoi esercizi non sono stati toccati.</p>
         <PrimaryButton onClick={library.reload}>Riprova</PrimaryButton>
       </div>
