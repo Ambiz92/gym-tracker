@@ -1,5 +1,6 @@
 import type { Equipment, TargetUnit } from '../types/db'
 import { formatNumber } from './formatNumber'
+import { clamp } from './slider'
 import { parseDecimal } from './validation'
 
 export type Field = 'weight' | 'reps'
@@ -54,20 +55,32 @@ function parseField(field: Field, text: string): Parsed {
   return { value: parsed }
 }
 
+const FIELD_BOUNDS: Record<Field, { min: number; max: number }> = {
+  weight: { min: 0, max: MAX_WEIGHT_KG },
+  reps: { min: 1, max: MAX_REPS_INPUT },
+}
+
 /** The value kept inside the field's limits; the current value when it is not a number. */
-const clampField = (field: Field, value: number, current: number): number => {
+function clampField(field: Field, value: number, current: number): number {
   if (Number.isNaN(value)) return current
-  return field === 'weight' ? Math.min(MAX_WEIGHT_KG, Math.max(0, round2(value))) : Math.min(MAX_REPS_INPUT, Math.max(1, round2(value)))
+  return clamp(round2(value), FIELD_BOUNDS[field].min, FIELD_BOUNDS[field].max)
 }
 
 const withField = (values: SetValues, field: Field, value: number): SetValues => ({ ...values, [field]: value })
 
+/** The flow with one number replaced by a value kept inside its limits; whatever was being typed is dropped. */
+const setField = (state: FlowState, field: Field, value: number): FlowState => ({
+  values: withField(state.values, field, clampField(field, value, state.values[field])),
+  editing: null,
+  error: null,
+})
+
 export function flowReducer(state: FlowState, action: FlowAction): FlowState {
   switch (action.type) {
     case 'step':
-      return { values: withField(state.values, action.field, clampField(action.field, state.values[action.field] + action.delta, state.values[action.field])), editing: null, error: null }
+      return setField(state, action.field, state.values[action.field] + action.delta)
     case 'set':
-      return { values: withField(state.values, action.field, clampField(action.field, action.value, state.values[action.field])), editing: null, error: null }
+      return setField(state, action.field, action.value)
     case 'edit-start':
       return { ...state, editing: { field: action.field, text: formatNumber(state.values[action.field]) }, error: null }
     case 'edit-text':
