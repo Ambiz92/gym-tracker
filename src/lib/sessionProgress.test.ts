@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { LastSet } from '../types/db'
 import { addSet, ackWorkout, newDraft, removeSet, type Draft } from './sessionDraft'
 import {
+  barbellTotalNote,
   buildSummary,
   completedExercises,
   equipmentLabel,
@@ -19,7 +20,12 @@ import {
 const base = newDraft({ workoutId: 'w', date: '2026-11-17', sessionId: 's', sessionName: 'Upper', startedAt: 0 })
 const logged = (draft: Draft, id: string, exerciseId: string, setNumber: number, weightKg = 20): Draft =>
   addSet(draft, { id, exerciseId, setNumber, reps: 8, weightKg, equipment: 'barbell' })
-const last = (set_number: number, reps: number, weight_kg: number): LastSet => ({ set_number, reps, weight_kg, equipment_used: 'barbell' })
+const last = (set_number: number, reps: number, weight_kg: number, equipment_used: LastSet['equipment_used'] = 'dumbbell'): LastSet => ({
+  set_number,
+  reps,
+  weight_kg,
+  equipment_used,
+})
 
 describe('exercise progress', () => {
   const draft = logged(logged(logged(base, 'a', 'e1', 1), 'b', 'e1', 2), 'c', 'e2', 1)
@@ -59,6 +65,18 @@ describe('startingValues', () => {
   })
 })
 
+describe('barbellTotalNote', () => {
+  it('spells out the two sides and the bar', () => {
+    expect(barbellTotalNote(62.5)).toBe('2 × 21,25 + sbarra 20 = 62,5 kg')
+    expect(barbellTotalNote(20)).toBe('2 × 0 + sbarra 20 = 20 kg')
+    expect(barbellTotalNote(142.5)).toBe('2 × 61,25 + sbarra 20 = 142,5 kg')
+  })
+
+  it('is honest about a total below the bar', () => {
+    expect(barbellTotalNote(15)).toBe('sotto la sbarra da 20 kg: 15 kg')
+  })
+})
+
 describe('lastTimeHint', () => {
   it('shows the same set of last time and the suggestion', () => {
     expect(lastTimeHint([last(1, 10, 12.5), last(2, 9, 12.5)], 2, 'reps', 15)).toBe('Ultima volta 12,5 kg × 9 · suggerito 15 ↑')
@@ -71,6 +89,10 @@ describe('lastTimeHint', () => {
   it('writes the unit of timed and distance sets', () => {
     expect(lastTimeHint([last(1, 30, 0)], 1, 'seconds', null)).toBe('Ultima volta 0 kg × 30 s')
     expect(lastTimeHint([last(1, 20, 40)], 1, 'meters', null)).toBe('Ultima volta 40 kg × 20 m')
+  })
+
+  it('says a barbell weight includes the bar, because the logger shows one side', () => {
+    expect(lastTimeHint([last(1, 10, 60, 'barbell')], 1, 'reps', 62.5)).toBe('Ultima volta 60 kg con sbarra × 10 · suggerito 62,5 ↑')
   })
 
   it('says so on the first time', () => {
