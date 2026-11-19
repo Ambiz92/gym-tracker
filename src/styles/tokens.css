@@ -93,9 +93,8 @@
   --ds-space-6: 1.5rem;
   --ds-space-8: 2rem;
 
-  /* Lines kept from the previous system so existing components keep working until migrated */
+  /* Line weight kept from the previous system; still used by the dashed and outlined states */
   --ds-rule: 2px;
-  --ds-rule-thick: 5px;
   --ds-focus-width: 3px;
   --ds-hairline: 1px;                       /* row dividers and table rules */
 
@@ -136,7 +135,7 @@
   --ds-scene-iron-lift: #8f959c;            /* cable blocks the pin lifts */
   --ds-scene-ink-dark: #1a1400;
   --ds-scene-ink-light: #f3efe6;
-  --ds-duration-lift: 900ms;                /* the bar lifting when a set is saved */
+  --ds-duration-lift: 420ms;                /* the bar lifting when a set is saved */
 }
 
 /* Dark: by OS preference ("Auto") or by explicit choice. */

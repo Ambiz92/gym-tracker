@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { SetValues } from '../lib/setFlow'
 
 /** Same length as the lift animation in scene.css (--ds-duration-lift). */
-export const LIFT_MS = 900
+export const LIFT_MS = 420
 
 interface LiftConfirmDeps {
   confirm: (values: SetValues) => void
