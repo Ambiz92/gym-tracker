@@ -1,7 +1,7 @@
 import { MAX_WEIGHT_KG } from './setFlow'
 import { clamp } from './slider'
 
-/** Pure helpers behind the logger scene: plates on the bar, the cable stack and the ruler. */
+/** Weight to scene geometry: plates, cable block and ruler scale. Generic slider math lives in slider.ts. */
 
 export const BAR_KG = 20
 
@@ -31,7 +31,7 @@ export const PLATES: readonly Plate[] = [
 export interface PlateLoad {
   /** Plates on one side of the bar, heaviest first. */
   plates: Plate[]
-  /** False when the weight is below the bar or the plates cannot add up to it. */
+  /** True only when the plates drawn add up exactly to the requested weight: not for a weight below the bar, one the plates cannot make, one clamped to MAX_WEIGHT_KG or one cut by MAX_PLATES_PER_SIDE. */
   exact: boolean
 }
 
@@ -74,7 +74,7 @@ export function platesPerSide(totalKg: number): PlateLoad {
       remaining -= cents
     }
   }
-  return { plates, exact: remaining === 0 }
+  return { plates, exact: remaining === 0 && totalKg <= MAX_WEIGHT_KG }
 }
 
 export const CABLE_BLOCKS = 11

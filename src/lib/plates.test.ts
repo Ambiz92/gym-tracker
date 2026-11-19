@@ -11,6 +11,7 @@ import {
   rulerValueAt,
   rulerX,
 } from './plates'
+import { MAX_WEIGHT_KG } from './setFlow'
 
 const kgs = (total: number) => platesPerSide(total).plates.map((plate) => plate.kg)
 
@@ -26,6 +27,10 @@ describe('platesPerSide', () => {
     expect(kgs(100)).toEqual([25, 15])
     expect(kgs(60)).toEqual([20])
     expect(kgs(190)).toEqual([25, 25, 25, 10])
+  })
+
+  it('never calls a weight above the logger maximum exact', () => {
+    expect(platesPerSide(MAX_WEIGHT_KG + 5).exact).toBe(false)
   })
 
   it('reports an exact load when the plates add up', () => {
