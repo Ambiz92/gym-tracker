@@ -136,6 +136,13 @@ describe('SetLogger', () => {
     })
   })
 
+  it('shrinks the giant number only when the value is long', () => {
+    expect(render(<SetLogger {...props} initial={{ ...props.initial, weight: 62.5 }} />)).not.toContain('number-stepper__value--long')
+    const long = render(<SetLogger {...props} initial={{ ...props.initial, weight: 100.25 }} />)
+    expect(long).toContain('number-stepper__value--big number-stepper__value--long')
+    expect(long).toContain('Peso: 100,25 chilogrammi')
+  })
+
   it('warns, without disabling anything, above ten reps', () => {
     const html = render(<SetLogger {...props} initial={{ ...props.initial, reps: 12 }} />)
     expect(html).toContain('Sopra le 10 ripetizioni')

@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { isLongFigure } from '../lib/figureFit'
 import { formatNumber } from '../lib/formatNumber'
 
 interface StepperNumberProps {
@@ -34,13 +35,15 @@ export function StepperNumber({
   onCommit,
 }: StepperNumberProps) {
   const errorId = useId()
+  const shown = editing ?? formatNumber(value)
+  const fit = size === 'big' && isLongFigure(shown) ? ' number-stepper__value--long' : ''
 
   return (
     <div className="number-stepper">
-      <div className={`number-stepper__value number-stepper__value--${size}`}>
+      <div className={`number-stepper__value number-stepper__value--${size}${fit}`}>
         {editing === null ? (
-          <button type="button" className="number-stepper__number" onClick={onEditStart} aria-label={`${label}: ${formatNumber(value)} ${unitSpoken}. Tocca per scrivere`}>
-            {formatNumber(value)}
+          <button type="button" className="number-stepper__number" onClick={onEditStart} aria-label={`${label}: ${shown} ${unitSpoken}. Tocca per scrivere`}>
+            {shown}
           </button>
         ) : (
           <input

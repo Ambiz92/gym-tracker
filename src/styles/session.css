@@ -451,6 +451,11 @@
   padding-top: var(--ds-space-2);
 }
 
+/* A long value such as 100,25 shrinks instead of being clipped by the stage. */
+.number-stepper__value--big.number-stepper__value--long {
+  --number-size: calc(var(--ds-text-figure-xl) * 0.74);
+}
+
 .number-stepper__value--medium {
   --number-size: var(--ds-text-figure-md);
   justify-content: center;
