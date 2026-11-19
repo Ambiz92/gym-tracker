@@ -1,6 +1,8 @@
 import type { Equipment, TargetUnit } from '../types/db'
 
 export const MAX_REPS_PER_SET = 10
+/** Heaviest weight the logger takes, bar included. */
+export const MAX_WEIGHT_KG = 1000
 
 const DECIMAL_PATTERN = /^(?:\d+(?:[.,]\d+)?|[.,]\d+)$/
 

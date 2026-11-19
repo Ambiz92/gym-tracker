@@ -1,5 +1,5 @@
-import { MAX_WEIGHT_KG } from './setFlow'
 import { clamp } from './slider'
+import { MAX_WEIGHT_KG } from './validation'
 
 /** Weight to scene geometry: plates, cable block and ruler scale. Generic slider math lives in slider.ts. */
 

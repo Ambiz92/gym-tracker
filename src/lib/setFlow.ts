@@ -1,7 +1,7 @@
 import type { Equipment, TargetUnit } from '../types/db'
 import { formatNumber } from './formatNumber'
 import { clamp } from './slider'
-import { parseDecimal } from './validation'
+import { MAX_WEIGHT_KG, parseDecimal } from './validation'
 
 export type Field = 'weight' | 'reps'
 
@@ -27,7 +27,6 @@ export type FlowAction =
   | { type: 'edit-commit' }
   | { type: 'equipment'; equipment: Equipment }
 
-export const MAX_WEIGHT_KG = 1000
 export const MAX_REPS_INPUT = 999
 
 const STEP_BY_UNIT: Record<TargetUnit, number> = { reps: 1, seconds: 5, meters: 5 }

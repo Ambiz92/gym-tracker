@@ -11,7 +11,7 @@ import {
   rulerValueAt,
   rulerX,
 } from './plates'
-import { MAX_WEIGHT_KG } from './setFlow'
+import { MAX_WEIGHT_KG } from './validation'
 
 const kgs = (total: number) => platesPerSide(total).plates.map((plate) => plate.kg)
 
