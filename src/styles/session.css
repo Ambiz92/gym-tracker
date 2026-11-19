@@ -678,7 +678,7 @@
 }
 
 .how-to::backdrop {
-  background: rgb(0 0 0 / 0.55);
+  background: var(--ds-color-scrim);
 }
 
 .how-to__body {

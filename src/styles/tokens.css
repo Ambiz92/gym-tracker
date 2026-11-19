@@ -25,6 +25,7 @@
   --ds-color-border: #d8c8c3;
   --ds-color-border-strong: #7a6163;
   --ds-color-edge: #d3c3be;                 /* hard bottom edge of rubber buttons */
+  --ds-color-scrim: rgb(28 14 17 / 0.55);   /* behind a modal sheet */
 
   /* Accent: copper. Not a plate color, so it never reads as a load */
   --ds-color-accent: #e8845a;
@@ -150,6 +151,7 @@
     --ds-color-border: #36202a;
     --ds-color-border-strong: #a08c8c;
     --ds-color-edge: #000000;
+    --ds-color-scrim: rgb(0 0 0 / 0.7);
     --ds-color-accent-hover: #f29a74;
     --ds-color-accent-text: #f09a74;
     --ds-color-accent-on-inverse: #9a3f14;
@@ -181,6 +183,7 @@
   --ds-color-border: #36202a;
   --ds-color-border-strong: #a08c8c;
   --ds-color-edge: #000000;
+  --ds-color-scrim: rgb(0 0 0 / 0.7);
   --ds-color-accent-hover: #f29a74;
   --ds-color-accent-text: #f09a74;
   --ds-color-accent-on-inverse: #9a3f14;
