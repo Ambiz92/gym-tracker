@@ -1,6 +1,6 @@
 import { useReducer, useState, type ReactNode } from 'react'
 import { repsWarning, weightStep } from '../lib/validation'
-import { flowReducer, initialFlow, repsStep, resolveValues, type SetValues } from '../lib/setFlow'
+import { flowReducer, initialFlow, repsStep, resolveValues, type Field, type SetValues } from '../lib/setFlow'
 import { equipmentLabel, setSummary, unitLabel } from '../lib/sessionProgress'
 import type { TargetUnit } from '../types/db'
 import { HowToSheet } from './HowToSheet'
@@ -16,6 +16,16 @@ const REPS_NAME: Record<TargetUnit, { label: string; spoken: string }> = {
   reps: { label: 'Ripetizioni', spoken: 'ripetizioni' },
   seconds: { label: 'Secondi', spoken: 'secondi' },
   meters: { label: 'Metri', spoken: 'metri' },
+}
+
+interface NumberView {
+  field: Field
+  label: string
+  unit: string
+  unitSpoken: string
+  inputMode: 'decimal' | 'numeric'
+  /** How far one press of the step buttons moves the number. */
+  step: number
 }
 
 interface SetLoggerProps {
@@ -34,7 +44,7 @@ interface SetLoggerProps {
   onConfirm: (values: SetValues) => void
 }
 
-/** One set at a time: the loaded equipment on a platform, giant kg and reps numbers, prefilled, with the confirm button always at the bottom. */
+/** One set at a time: the loaded equipment on a platform, a giant number and a medium one, prefilled, with the confirm button always at the bottom. */
 export function SetLogger({
   exercise,
   unit,
@@ -54,8 +64,6 @@ export function SetLogger({
   const { values, editing, error } = flow
   const repsName = REPS_NAME[unit]
   const warning = repsWarning(values.reps, unit)
-  const weightEditing = editing?.field === 'weight'
-  const repsEditing = editing?.field === 'reps'
 
   function confirm() {
     const resolved = resolveValues(flow)
@@ -63,8 +71,41 @@ export function SetLogger({
     else confirmWithLift(resolved.values)
   }
 
-  const weightStepKg = weightStep(values.equipment)
-  const stepWeight = (delta: number) => dispatch({ type: 'step', field: 'weight', delta })
+  const weightView: NumberView = {
+    field: 'weight',
+    label: 'Peso',
+    unit: 'kg',
+    unitSpoken: 'chilogrammi',
+    inputMode: 'decimal',
+    step: weightStep(values.equipment),
+  }
+  const repsView: NumberView = {
+    field: 'reps',
+    label: repsName.label,
+    unit: unitLabel(unit),
+    unitSpoken: repsName.spoken,
+    inputMode: 'numeric',
+    step: repsStep(unit),
+  }
+  // The number being logged is the giant one: the weight, or the seconds or meters of a hold or a carry.
+  const [main, side] = unit === 'reps' ? [weightView, repsView] : [repsView, weightView]
+
+  const numberProps = (view: NumberView) => {
+    const typing = editing?.field === view.field
+    return {
+      label: view.label,
+      unit: view.unit,
+      unitSpoken: view.unitSpoken,
+      inputMode: view.inputMode,
+      value: values[view.field],
+      editing: typing ? editing.text : null,
+      error: typing ? error : null,
+      onEditStart: () => dispatch({ type: 'edit-start', field: view.field }),
+      onEditText: (text: string) => dispatch({ type: 'edit-text', text }),
+      onCommit: () => dispatch({ type: 'edit-commit' }),
+    }
+  }
+  const stepOf = (view: NumberView) => (delta: number) => dispatch({ type: 'step', field: view.field, delta })
 
   return (
     <>
@@ -87,19 +128,7 @@ export function SetLogger({
           size="exercise"
           aside={<PlatePills total={Math.max(targetSets, setNumber)} done={setNumber - 1} />}
         />
-        <StepperNumber
-          label="Peso"
-          unit="kg"
-          unitSpoken="chilogrammi"
-          value={values.weight}
-          size="big"
-          inputMode="decimal"
-          editing={weightEditing ? editing.text : null}
-          error={weightEditing ? error : null}
-          onEditStart={() => dispatch({ type: 'edit-start', field: 'weight' })}
-          onEditText={(text) => dispatch({ type: 'edit-text', text })}
-          onCommit={() => dispatch({ type: 'edit-commit' })}
-        />
+        <StepperNumber {...numberProps(main)} size="big" />
         <p className="set-hint">Tocca il numero per scriverlo</p>
         <Scene
           equipment={values.equipment}
@@ -112,23 +141,10 @@ export function SetLogger({
         />
         <div className="logger__controls">
           <div className="stepper-buttons">
-            <StepButton label="Peso" step={weightStepKg} direction="down" variant="pair" onStep={stepWeight} />
-            <StepButton label="Peso" step={weightStepKg} direction="up" variant="pair" onStep={stepWeight} />
+            <StepButton label={main.label} step={main.step} direction="down" variant="pair" onStep={stepOf(main)} />
+            <StepButton label={main.label} step={main.step} direction="up" variant="pair" onStep={stepOf(main)} />
           </div>
-          <NumberStepper
-            label={repsName.label}
-            unit={unitLabel(unit)}
-            unitSpoken={repsName.spoken}
-            value={values.reps}
-            step={repsStep(unit)}
-            inputMode="numeric"
-            editing={repsEditing ? editing.text : null}
-            error={repsEditing ? error : null}
-            onStep={(delta) => dispatch({ type: 'step', field: 'reps', delta })}
-            onEditStart={() => dispatch({ type: 'edit-start', field: 'reps' })}
-            onEditText={(text) => dispatch({ type: 'edit-text', text })}
-            onCommit={() => dispatch({ type: 'edit-commit' })}
-          />
+          <NumberStepper {...numberProps(side)} step={side.step} onStep={stepOf(side)} />
           <div role="status">
             {warning && (
               <div className="set-warning">

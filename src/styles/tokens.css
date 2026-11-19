@@ -74,8 +74,8 @@
   --ds-text-2xl: 1.9rem;
   --ds-text-3xl: 2.8rem;
   --ds-text-4xl: 3.8rem;
-  --ds-text-figure-md: 3.6rem;              /* reps */
-  --ds-text-figure-xl: 7.4rem;              /* working weight */
+  --ds-text-figure-md: 3.6rem;              /* the second number: reps, or the weight on holds */
+  --ds-text-figure-xl: 7.4rem;              /* the main number: the weight, or seconds and meters on holds */
   --ds-leading-tight: 0.9;
   --ds-leading-normal: 1.4;
   --ds-weight-medium: 500;

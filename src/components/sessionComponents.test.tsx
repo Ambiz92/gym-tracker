@@ -108,6 +108,34 @@ describe('SetLogger', () => {
     expect(hold).toContain('Aumenta secondi di 5')
   })
 
+  describe('on a hold or a carry', () => {
+    const numberLabel = (html: string, size: 'big' | 'medium') => new RegExp(`value--${size}"><button[^>]*aria-label="([^"]*)"`).exec(html)?.[1]
+
+    it('puts the weight first on reps, as the giant number', () => {
+      const html = render(<SetLogger {...props} />)
+      expect(numberLabel(html, 'big')).toBe('Peso: 15 chilogrammi. Tocca per scrivere')
+      expect(numberLabel(html, 'medium')).toBe('Ripetizioni: 10 ripetizioni. Tocca per scrivere')
+    })
+
+    it.each([
+      ['seconds', 'Secondi: 30 secondi', 'Aumenta secondi di 5'],
+      ['meters', 'Metri: 30 metri', 'Aumenta metri di 5'],
+    ] as const)('makes the %s the giant number and the weight the medium one', (unit, label, bigStep) => {
+      const html = render(<SetLogger {...props} unit={unit} initial={{ weight: 0, reps: 30, equipment: 'other' }} />)
+      expect(numberLabel(html, 'big')).toBe(`${label}. Tocca per scrivere`)
+      expect(numberLabel(html, 'medium')).toBe('Peso: 0 chilogrammi. Tocca per scrivere')
+      expect(html).toContain(bigStep)
+      expect(html).toContain('Aumenta peso di')
+      expect(html).toContain('Tocca il numero per scriverlo')
+    })
+
+    it('keeps the unit next to each number', () => {
+      const html = render(<SetLogger {...props} unit="seconds" initial={{ weight: 0, reps: 30, equipment: 'other' }} />)
+      expect(html.indexOf('aria-hidden="true">sec<')).toBeGreaterThan(-1)
+      expect(html.indexOf('aria-hidden="true">sec<')).toBeLessThan(html.indexOf('aria-hidden="true">kg<'))
+    })
+  })
+
   it('warns, without disabling anything, above ten reps', () => {
     const html = render(<SetLogger {...props} initial={{ ...props.initial, reps: 12 }} />)
     expect(html).toContain('Sopra le 10 ripetizioni')
