@@ -15,7 +15,7 @@ export function ThemeSetting() {
       <span id="theme-label" className="setting-row__label">
         Tema
       </span>
-      <div className="segmented">
+      <div className="theme-switch">
         {THEME_OPTIONS.map(({ value, label }) => (
           <button
             key={value}

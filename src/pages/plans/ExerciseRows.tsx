@@ -29,7 +29,7 @@ export function ExerciseRows({ exercises, editingId, busy, error, onEdit, onSave
   const drag = useDragReorder({ disabled: busy, onReorder })
   const [removingId, setRemovingId] = useState<string | null>(null)
 
-  if (exercises.length === 0) return <p className="plans-note">Questa sessione non ha ancora esercizi.</p>
+  if (exercises.length === 0) return <p className="plans-note empty-state">Questa sessione non ha ancora esercizi.</p>
 
   return (
     <ul ref={drag.listRef} className="plans-list">

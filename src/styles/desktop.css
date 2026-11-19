@@ -56,15 +56,16 @@
     align-self: start;
     height: 100dvh;
     padding-top: var(--ds-space-5);
-    border-right: var(--ds-rule-thick) solid var(--ds-color-border-strong);
+    border-right: var(--ds-hairline) solid var(--ds-color-border);
   }
 
   .sidebar__brand {
     display: block;
     padding: 0 var(--ds-space-6) var(--ds-space-4);
-    font-size: var(--ds-text-xs);
-    font-weight: var(--ds-weight-black);
-    letter-spacing: 0.1em;
+    font-family: var(--ds-font-display);
+    font-size: var(--ds-text-xl);
+    font-weight: var(--ds-weight-display);
+    letter-spacing: 0.01em;
     text-transform: uppercase;
   }
 
@@ -72,7 +73,7 @@
     display: block;
     margin-top: auto;
     padding: var(--ds-space-4) var(--ds-space-6);
-    border-top: var(--ds-rule) solid var(--ds-color-border-strong);
+    border-top: var(--ds-hairline) solid var(--ds-color-border);
     font-size: var(--ds-text-sm);
     color: var(--ds-color-text-muted);
   }
@@ -84,6 +85,7 @@
   }
 
   .sidebar__logout {
+    min-height: var(--ds-size-touch);
     padding: 0;
     font-weight: var(--ds-weight-bold);
     text-decoration: underline;
@@ -91,7 +93,7 @@
   }
 
   .sidebar__logout:hover {
-    color: var(--ds-color-accent);
+    color: var(--ds-color-accent-text);
   }
 
   .tab-bar {
@@ -105,16 +107,27 @@
   }
 
   .tab-bar__link {
-    min-height: 0;
-    padding: var(--ds-space-4) var(--ds-space-6);
-    border-top: var(--ds-rule) solid var(--ds-color-border-strong);
-    font-size: 1.625rem;
-    letter-spacing: -0.03em;
+    display: flex;
+    align-items: center;
+    min-height: var(--ds-size-touch);
+    padding: var(--ds-space-3) var(--ds-space-6);
+    font-size: var(--ds-text-md);
+    letter-spacing: normal;
     text-transform: none;
   }
 
+  /* The marker turns upright: a lit copper bar against the sidebar edge */
+  .tab-bar__link[aria-current="page"]::before {
+    top: calc(50% - var(--ds-size-touch) / 2);
+    left: 0;
+    width: var(--ds-size-marker);
+    height: var(--ds-size-touch);
+    border-radius: 0 var(--ds-radius-sm) var(--ds-radius-sm) 0;
+  }
+
   .tab-bar__link:hover:not([aria-current="page"]) {
-    background: var(--ds-color-border);
+    background: var(--ds-color-surface);
+    color: var(--ds-color-text);
   }
 
   /* Session, read-only: exercise list and the selected exercise side by side */
@@ -122,34 +135,29 @@
     display: grid;
     grid-template-columns: 20.625rem minmax(0, 1fr);
     margin-top: var(--ds-space-4);
-    border-top: var(--ds-rule) solid var(--ds-color-border-strong);
   }
 
   .desktop-session__list {
     list-style: none;
-    border-right: var(--ds-rule) solid var(--ds-color-border-strong);
+    border-right: var(--ds-hairline) solid var(--ds-color-border);
   }
 
   .desktop-session__item {
     display: block;
     min-height: 4rem;
     padding: var(--ds-space-3) var(--ds-space-3) var(--ds-space-3) 0;
-    border-bottom: 1px solid var(--ds-color-border);
+    border-bottom: var(--ds-hairline) solid var(--ds-color-border);
   }
 
   .desktop-session__item:hover:not([aria-current]) {
-    background: var(--ds-color-border);
+    background: var(--ds-color-surface);
   }
 
   .desktop-session__item[aria-current] {
     padding-left: var(--ds-space-3);
-    background: var(--ds-color-text);
-    color: var(--ds-color-bg);
-  }
-
-  .desktop-session__item[aria-current] .exercise-card__detail {
-    color: inherit;
-    opacity: 0.75;
+    border-radius: var(--ds-radius-md);
+    background: var(--ds-color-surface);
+    box-shadow: var(--ds-shadow-press);
   }
 
   .desktop-session__item[aria-current]:focus-visible {
@@ -163,18 +171,13 @@
   .exercise-detail__title {
     margin: var(--ds-space-2) 0 var(--ds-space-3);
     font-size: var(--ds-text-2xl);
-    font-weight: var(--ds-weight-black);
-    letter-spacing: -0.04em;
-    line-height: var(--ds-leading-tight);
     overflow-wrap: anywhere;
   }
 
   .exercise-detail__suggestion {
-    font-size: var(--ds-text-xs);
+    font-size: var(--ds-text-sm);
     font-weight: var(--ds-weight-black);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--ds-color-accent);
+    color: var(--ds-color-accent-text);
   }
 
   .exercise-detail__steps {
@@ -188,14 +191,16 @@
     display: grid;
     grid-template-columns: 1.875rem 1fr;
     padding: var(--ds-space-3) 0;
-    border-top: 1px solid var(--ds-color-border);
+    border-top: var(--ds-hairline) solid var(--ds-color-border);
     counter-increment: step;
   }
 
   .exercise-detail__steps li::before {
     content: counter(step);
-    font-weight: var(--ds-weight-black);
-    color: var(--ds-color-accent);
+    font-family: var(--ds-font-figures);
+    font-weight: var(--ds-weight-display);
+    font-variant-numeric: tabular-nums;
+    color: var(--ds-color-accent-text);
   }
 
   .exercise-detail__empty {
@@ -205,13 +210,7 @@
   }
 
   .exercise-detail__label {
-    margin-top: var(--ds-space-6);
-    padding-top: var(--ds-space-2);
-    border-top: var(--ds-rule) solid var(--ds-color-border-strong);
-    font-size: var(--ds-text-xs);
-    font-weight: var(--ds-weight-black);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    margin-top: var(--ds-space-8);
   }
 
   .exercise-detail__sets {
@@ -219,21 +218,20 @@
     max-width: 28rem;
     margin-top: var(--ds-space-2);
     border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
   }
 
   .exercise-detail__sets th {
     padding: var(--ds-space-2) 0;
-    border-bottom: var(--ds-rule) solid var(--ds-color-border-strong);
-    font-size: var(--ds-text-xs);
-    letter-spacing: 0.1em;
+    border-bottom: var(--ds-hairline) solid var(--ds-color-border-strong);
+    font-size: var(--ds-text-sm);
     text-align: left;
-    text-transform: uppercase;
     color: var(--ds-color-text-muted);
   }
 
   .exercise-detail__sets td {
     padding: var(--ds-space-3) 0;
-    border-bottom: 1px solid var(--ds-color-border);
+    border-bottom: var(--ds-hairline) solid var(--ds-color-border);
     font-weight: var(--ds-weight-bold);
   }
 
@@ -245,16 +243,13 @@
   .desktop-note {
     margin: var(--ds-space-3) 0;
     padding: var(--ds-space-3) var(--ds-space-4);
-    border: var(--ds-rule) solid var(--ds-color-border-strong);
+    border: var(--ds-rule) dashed var(--ds-color-border-strong);
+    border-radius: var(--ds-radius-md);
     font-size: var(--ds-text-sm);
   }
 
-  .desktop-note strong {
-    color: var(--ds-color-accent);
-  }
-
   .session-list .row-link:hover:not(.row-link--inverted) {
-    background: var(--ds-color-border);
+    background: var(--ds-color-surface);
   }
 
   .session-table {
@@ -265,33 +260,32 @@
 
   .session-table th {
     padding: var(--ds-space-2) 0;
-    border-bottom: var(--ds-rule) solid var(--ds-color-border-strong);
-    font-size: var(--ds-text-xs);
-    letter-spacing: 0.1em;
+    border-bottom: var(--ds-hairline) solid var(--ds-color-border-strong);
+    font-size: var(--ds-text-sm);
     text-align: left;
-    text-transform: uppercase;
     color: var(--ds-color-text-muted);
   }
 
   .session-table td {
     position: relative;
     padding: var(--ds-space-4) 0;
-    border-bottom: 1px solid var(--ds-color-border);
+    border-bottom: var(--ds-hairline) solid var(--ds-color-border);
     font-weight: var(--ds-weight-bold);
   }
 
   .session-table__index {
     width: 5rem;
+    font-family: var(--ds-font-figures);
     font-size: var(--ds-text-3xl);
-    font-weight: var(--ds-weight-black);
-    letter-spacing: -0.05em;
+    font-weight: var(--ds-weight-display);
+    font-variant-numeric: tabular-nums;
     line-height: 1;
+    color: var(--ds-color-text-muted);
   }
 
   .session-table__name {
-    font-size: var(--ds-text-xl);
+    font-size: var(--ds-text-lg);
     font-weight: var(--ds-weight-black);
-    letter-spacing: -0.02em;
   }
 
   /* The whole row is the click target. */
@@ -304,65 +298,42 @@
   .session-table__tag,
   .session-table__bonus {
     margin-left: var(--ds-space-2);
-    font-size: var(--ds-text-xs);
-    font-weight: var(--ds-weight-black);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  .session-table__tag {
-    color: var(--ds-color-accent);
-  }
-
-  .session-table__bonus {
-    color: var(--ds-color-text-muted);
   }
 
   .session-table td.session-table__go {
     padding-right: var(--ds-space-3);
-    font-size: var(--ds-text-xl);
+    font-size: var(--ds-text-lg);
     text-align: right;
+    color: var(--ds-color-text-muted);
   }
 
   .session-table__row:hover:not(.session-table__row--next) {
-    background: var(--ds-color-border);
+    background: var(--ds-color-surface);
   }
 
-  .session-table__row--next {
-    background: var(--ds-color-text);
-    color: var(--ds-color-bg);
-  }
-
+  /* The next session: a plate, drawn on the cells because a table row cannot carry radius or shadow. */
   .session-table__row--next td {
-    border-color: var(--ds-color-text);
+    border-color: transparent;
+    background: var(--ds-color-surface);
   }
 
   .session-table__row--next td:first-child {
     padding-left: var(--ds-space-3);
+    border-radius: var(--ds-radius-md) 0 0 var(--ds-radius-md);
   }
 
-  .session-table__row--next .session-table__index,
-  .session-table__row--next .session-table__tag {
-    color: var(--ds-color-accent-on-inverse);
+  .session-table__row--next td:last-child {
+    border-radius: 0 var(--ds-radius-md) var(--ds-radius-md) 0;
   }
 
   .exercise-row:hover:not([aria-current]) {
-    background: var(--ds-color-border);
+    background: var(--ds-color-surface);
   }
 
   .exercise-row[aria-current] {
     padding-inline: var(--ds-space-3);
-    background: var(--ds-color-text);
-    color: var(--ds-color-bg);
-  }
-
-  .exercise-row[aria-current] .exercise-row__detail {
-    color: inherit;
-    opacity: 0.75;
-  }
-
-  .exercise-row[aria-current] .exercise-row__tag {
-    color: var(--ds-color-accent-on-inverse);
+    background: var(--ds-color-surface);
+    box-shadow: var(--ds-shadow-press);
   }
 
   .exercise-row[aria-current]:focus-visible {
@@ -392,7 +363,7 @@
 
   .more-factor {
     padding: var(--ds-space-3) 0;
-    border-bottom: 1px solid var(--ds-color-border);
+    border-bottom: var(--ds-hairline) solid var(--ds-color-border);
   }
 
   /* Master-detail pages: Storico, Libreria */
@@ -408,7 +379,7 @@
 
   .split__list {
     padding-right: var(--ds-space-6);
-    border-right: var(--ds-rule) solid var(--ds-color-border-strong);
+    border-right: var(--ds-hairline) solid var(--ds-color-border);
   }
 
   .split__detail {
@@ -426,11 +397,6 @@
     display: none;
   }
 
-  .split .row-link--inverted {
-    margin-inline: 0;
-    padding-inline: var(--ds-space-3);
-  }
-
   /* Plan editor: sessions of the plan | exercises of the open session */
   .plan-panes {
     display: grid;
@@ -439,7 +405,7 @@
 
   .plan-panes__sessions {
     padding-right: var(--ds-space-5);
-    border-right: var(--ds-rule) solid var(--ds-color-border-strong);
+    border-right: var(--ds-hairline) solid var(--ds-color-border);
   }
 
   .plan-panes__editor {
@@ -447,7 +413,7 @@
   }
 
   .plan-panes__sessions .page-header__title {
-    font-size: var(--ds-text-xl);
+    font-size: var(--ds-text-2xl);
   }
 
   /* Both panes are always visible, so the way back is not needed. */
@@ -455,35 +421,11 @@
     display: none;
   }
 
+  /* The open session of the plan: a plate, like the open row of any list */
   .plan-row--selected {
-    background: var(--ds-color-text);
-    color: var(--ds-color-bg);
-  }
-
-  .plan-row--selected .plan-row__grip {
-    color: inherit;
-  }
-
-  .plan-row--selected .row-link__detail {
-    color: inherit;
-    opacity: 0.75;
-  }
-
-  /* Plan list: the whole row of the open plan, activation radio included */
-  .plan-pick--selected {
-    background: var(--ds-color-text);
-    color: var(--ds-color-bg);
-  }
-
-  .plan-pick--selected .plan-radio input {
-    border-color: var(--ds-color-bg);
-  }
-
-  .plan-pick--selected .plan-radio input:checked {
-    background: var(--ds-color-bg);
-  }
-
-  .plan-pick--selected .plan-radio input:checked::after {
-    background: var(--ds-color-text);
+    border-top-color: transparent;
+    border-radius: var(--ds-radius-md);
+    background: var(--ds-color-surface);
+    box-shadow: var(--ds-shadow-press);
   }
 }

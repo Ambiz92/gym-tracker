@@ -97,6 +97,7 @@
   --ds-rule: 2px;
   --ds-rule-thick: 5px;
   --ds-focus-width: 3px;
+  --ds-hairline: 1px;                       /* row dividers and table rules */
 
   /* Radius and elevation: rubber, not glass */
   --ds-radius-sm: 3px;
@@ -116,6 +117,11 @@
 
   /* Layout */
   --ds-size-touch: 2.75rem;
+  --ds-size-button: 3.5rem;
+  --ds-size-field: 3.25rem;
+  --ds-size-marker: 0.3125rem;              /* thickness of the copper bar over the current tab */
+  --ds-pill-width: 0.5625rem;               /* plate pill: the unit of progress */
+  --ds-pill-height: 1.5rem;
   --ds-size-column: 30rem;
   --ds-size-tab: 3.75rem;
   --ds-size-sidebar: 15.625rem;

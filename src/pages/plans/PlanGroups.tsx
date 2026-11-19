@@ -47,7 +47,7 @@ function PlanRows({ plans, selectedId, busy, onActivate }: PlanRowsProps) {
 
 /** The plans of the list screen: the active one, the others, then the archived ones. */
 export function PlanGroups({ plans, selectedId, busy, error, onActivate }: PlanGroupsProps) {
-  if (plans.length === 0) return <p className="plans-note">Nessuna scheda. Creane una per iniziare.</p>
+  if (plans.length === 0) return <p className="plans-note empty-state">Nessuna scheda. Creane una per iniziare.</p>
 
   const { active, others, archived } = groupPlans(plans)
   return (
