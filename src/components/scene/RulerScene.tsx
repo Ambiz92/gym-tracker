@@ -35,7 +35,7 @@ export function RulerScene({ value, unit, onChange }: RulerSceneProps) {
     range,
     value: shown,
     label,
-    valueText: `${formatNumber(shown)} ${spoken}, su ${max}`,
+    valueText: `${formatNumber(value)} ${spoken}, su ${max}`,
     orientation: 'horizontal',
     valueAt: ({ x }) => rulerValueAt(x, max, X0, X1),
     onChange,

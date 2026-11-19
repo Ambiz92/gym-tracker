@@ -60,8 +60,16 @@ describe('CableScene', () => {
     expect(html.match(/class="cable-block(?: cable-block--lifted)?"/g)).toHaveLength(11)
   })
 
-  it('keeps a weight beyond the stack on the last block', () => {
-    expect(renderToStaticMarkup(<CableScene weight={500} onChange={noop} />)).toContain('aria-valuenow="55"')
+  it('keeps a weight beyond the stack on the last block, but says the real weight', () => {
+    const beyond = renderToStaticMarkup(<CableScene weight={70} onChange={noop} />)
+    expect(beyond).toContain('aria-valuenow="55"')
+    expect(beyond).toContain('aria-valuetext="70 chili, perno al blocco 11 di 11"')
+  })
+
+  it('says the real weight when it falls between two blocks', () => {
+    const between = renderToStaticMarkup(<CableScene weight={12.5} onChange={noop} />)
+    expect(between).toContain('aria-valuenow="15"')
+    expect(between).toContain('aria-valuetext="12,5 chili, perno al blocco 3 di 11"')
   })
 })
 
@@ -79,6 +87,12 @@ describe('RulerScene', () => {
     expect(html).toContain('aria-label="Distanza del trasporto"')
     expect(html).toContain('aria-valuemax="60"')
     expect(html).toContain('aria-valuetext="40 metri, su 60"')
+  })
+
+  it('keeps the marker in range but says the real value when it is below the first mark', () => {
+    const html = renderToStaticMarkup(<RulerScene value={0} unit="seconds" onChange={noop} />)
+    expect(html).toContain('aria-valuenow="5"')
+    expect(html).toContain('aria-valuetext="0 secondi, su 90"')
   })
 
   it('grows the scale when the value is beyond it', () => {

@@ -27,7 +27,8 @@ export function CableScene({ weight, onChange }: CableSceneProps) {
     range: RANGE,
     value: pinnedKg,
     label: 'Peso del cavo',
-    valueText: `${formatNumber(pinnedKg)} chili, perno al blocco ${pinned} di ${CABLE_BLOCKS}`,
+    // The real weight, which the pin only approximates when it is off the blocks.
+    valueText: `${formatNumber(weight)} chili, perno al blocco ${pinned} di ${CABLE_BLOCKS}`,
     orientation: 'vertical',
     valueAt: ({ y }) => cableWeightAt(y - STACK_TOP, BLOCK_HEIGHT),
     onChange,
