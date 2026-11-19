@@ -149,7 +149,7 @@
   cursor: pointer;
 }
 
-.equipment-field__option span {
+.equipment-field__options .equipment-field__option span {
   min-height: var(--ds-size-field);
   padding: 0 var(--ds-space-2);
 }
