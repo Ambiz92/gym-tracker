@@ -46,7 +46,7 @@
 
 .session-label a {
   text-decoration: underline;
-  text-decoration-color: var(--ds-color-accent);
+  text-decoration-color: var(--ds-color-accent-text);
   text-decoration-thickness: var(--ds-hairline);
   text-underline-offset: 3px;
 }
@@ -701,7 +701,7 @@
   font-weight: var(--ds-weight-black);
   text-transform: uppercase;
   text-decoration: underline;
-  text-decoration-color: var(--ds-color-accent);
+  text-decoration-color: var(--ds-color-accent-text);
   text-decoration-thickness: var(--ds-hairline);
   text-underline-offset: 4px;
 }
