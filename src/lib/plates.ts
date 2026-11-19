@@ -1,3 +1,5 @@
+import { clamp } from './slider'
+
 /** Pure helpers behind the logger scene: plates on the bar, the cable stack and the ruler. */
 
 export const BAR_KG = 20
@@ -52,8 +54,6 @@ export function platesPerSide(totalKg: number): PlateLoad {
 export const CABLE_BLOCKS = 11
 export const CABLE_BLOCK_KG = 5
 
-export const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value))
-
 /** Block (1-based) the pin sits on for a weight, clamped to the stack. */
 export const cableBlock = (weightKg: number): number => clamp(Math.round(weightKg / CABLE_BLOCK_KG), 1, CABLE_BLOCKS)
 
@@ -77,39 +77,3 @@ export const rulerX = (value: number, max: number, x0: number, x1: number): numb
 /** Value under a horizontal position of a ruler drawn from x0 to x1. */
 export const rulerValueAt = (x: number, max: number, x0: number, x1: number): number =>
   ((x - x0) / (x1 - x0)) * max
-
-export interface SliderRange {
-  min: number
-  max: number
-  step: number
-}
-
-/** The nearest multiple of the step, kept inside the range. */
-export const snapToStep = (value: number, { min, max, step }: SliderRange): number =>
-  clamp(Math.round(value / step) * step, min, max)
-
-function keyDirection(key: string, downIncreases: boolean): number | null {
-  switch (key) {
-    case 'ArrowRight':
-      return 1
-    case 'ArrowLeft':
-      return -1
-    case 'ArrowDown':
-      return downIncreases ? 1 : -1
-    case 'ArrowUp':
-      return downIncreases ? -1 : 1
-    default:
-      return null
-  }
-}
-
-/**
- * Value after a key press on a slider; null for keys it does not handle.
- * On a vertical stack the pin moves down as the weight grows, so down is the increasing key.
- */
-export function valueAfterKey(key: string, value: number, range: SliderRange, downIncreases: boolean): number | null {
-  if (key === 'Home') return range.min
-  if (key === 'End') return range.max
-  const direction = keyDirection(key, downIncreases)
-  return direction === null ? null : clamp(value + direction * range.step, range.min, range.max)
-}

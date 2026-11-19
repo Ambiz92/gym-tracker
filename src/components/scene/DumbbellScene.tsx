@@ -1,5 +1,5 @@
 import { formatNumber } from '../../lib/formatNumber'
-import { clamp } from '../../lib/plates'
+import { clamp } from '../../lib/slider'
 import { SceneFrame, knurl, shade, sheen, useSceneId } from './SceneFrame'
 
 const CENTER_Y = 80

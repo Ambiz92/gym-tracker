@@ -1,5 +1,6 @@
 import { formatNumber } from '../../lib/formatNumber'
-import { RULER_STEP, clamp, rulerMax, rulerValueAt, rulerX } from '../../lib/plates'
+import { RULER_STEP, rulerMax, rulerValueAt, rulerX } from '../../lib/plates'
+import { clamp } from '../../lib/slider'
 import type { TargetUnit } from '../../types/db'
 import { SceneFrame, shade, useSceneId } from './SceneFrame'
 import { useSlider } from './useSlider'

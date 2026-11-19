@@ -1,5 +1,5 @@
 import type { KeyboardEvent, PointerEvent, SVGProps } from 'react'
-import { snapToStep, valueAfterKey, type SliderRange } from '../../lib/plates'
+import { snapToStep, valueAfterKey, type SliderRange } from '../../lib/slider'
 import { VIEW_BOX } from './SceneFrame'
 
 interface SliderOptions {
