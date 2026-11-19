@@ -14,7 +14,7 @@ function renderMore(email: string | null = null) {
   const unused = () => Promise.reject(new Error('not used when rendering'))
   return renderToStaticMarkup(
     <AuthContext.Provider
-      value={{ status: 'signed_in', email, signIn: unused, verifyCode: unused, startEnrollment: unused, verifyEnrollment: unused, signOut: unused }}
+      value={{ status: 'signed_in', email, oauthError: null, signIn: unused, signInWithGoogle: unused, verifyCode: unused, startEnrollment: unused, verifyEnrollment: unused, signOut: unused }}
     >
       <More />
     </AuthContext.Provider>,

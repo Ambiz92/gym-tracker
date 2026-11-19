@@ -8,5 +8,6 @@ if (!url || !anonKey) {
 }
 
 // Anon key only: the service_role key must never reach the front end.
-// detectSessionInUrl is off: there is no OAuth or magic-link flow, and the hash belongs to the router.
-export const supabase = createClient(url, anonKey, { auth: { detectSessionInUrl: false } })
+// detectSessionInUrl is off because the hash belongs to the router: src/auth/oauthReturn.ts reads the
+// Google return itself. PKCE puts a one-time `?code=` in the query instead of tokens in the hash.
+export const supabase = createClient(url, anonKey, { auth: { flowType: 'pkce', detectSessionInUrl: false } })

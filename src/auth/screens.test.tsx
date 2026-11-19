@@ -6,13 +6,25 @@ import { Login } from '../pages/Login'
 import { MfaChallenge } from '../pages/MfaChallenge'
 import { MfaEnroll } from '../pages/MfaEnroll'
 import { More } from '../pages/More'
-import { AuthContext } from './AuthProvider'
+import { AuthContext, type AuthContextValue } from './AuthProvider'
+import { classifyError } from './errors'
 
-function render(ui: ReactElement) {
+function render(ui: ReactElement, overrides: Partial<AuthContextValue> = {}) {
   const unused = () => Promise.reject(new Error('not used when rendering'))
   return renderToStaticMarkup(
     <AuthContext.Provider
-      value={{ status: 'signed_out', email: null, signIn: unused, verifyCode: unused, startEnrollment: unused, verifyEnrollment: unused, signOut: unused }}
+      value={{
+        status: 'signed_out',
+        email: null,
+        oauthError: null,
+        signIn: unused,
+        signInWithGoogle: unused,
+        verifyCode: unused,
+        startEnrollment: unused,
+        verifyEnrollment: unused,
+        signOut: unused,
+        ...overrides,
+      }}
     >
       <MemoryRouter>{ui}</MemoryRouter>
     </AuthContext.Provider>,
@@ -27,6 +39,24 @@ test('login offers autofill-friendly email and password fields and no sign-up pa
   expect(html).toContain('autoComplete="current-password"')
   expect(html).toContain('Accedi')
   expect(html.toLowerCase()).not.toMatch(/registr|crea (un )?account|sign.?up/)
+})
+
+test('login offers Google as a plain text button, next to the password form and not submitting it', () => {
+  const html = render(<Login />)
+  expect(html).toMatch(/<button type="button"[^>]*>(?:(?!<\/button>).)*Continua con Google/)
+  expect(html).toContain('Accedi')
+  expect(html).not.toMatch(/<(svg|img)/)
+})
+
+test('a refused Google account is explained on the login, as an alert', () => {
+  const oauthError = classifyError({ message: 'Signups not allowed for this instance', code: 'signup_disabled' }, 'oauth')
+  const html = render(<Login />, { oauthError })
+  expect(html).toContain('role="alert"')
+  expect(html).toContain('Questo account Google non è stato invitato.')
+})
+
+test('the login shows no alert before anything went wrong', () => {
+  expect(render(<Login />)).not.toContain('role="alert"')
 })
 
 test('the code step asks for a numeric one-time code and offers a way back', () => {

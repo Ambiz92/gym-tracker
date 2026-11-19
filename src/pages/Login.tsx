@@ -7,12 +7,12 @@ import { Field } from '../components/Field'
 import { PageHeader } from '../components/PageHeader'
 import { PrimaryButton } from '../components/PrimaryButton'
 
-/** First step: email and password. There is no sign-up: the single account is created by hand. */
+/** First step: Google, or email and password for the owner. There is no sign-up: accounts are created by hand. */
 export function Login() {
-  const { signIn } = useAuth()
+  const { signIn, signInWithGoogle, oauthError } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const { busy, error, run } = useFormAction()
+  const { busy, error, run } = useFormAction(oauthError?.message)
 
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -21,7 +21,7 @@ export function Login() {
 
   return (
     <>
-      <PageHeader meta="Gym Tracker" metaEnd="Accesso" title="Entra." subtitle="Solo per te." />
+      <PageHeader meta="Gym Tracker" metaEnd="Accesso" title="Entra." subtitle="Solo su invito." />
       <form onSubmit={submit}>
         <Field
           label="Email"
@@ -45,6 +45,9 @@ export function Login() {
         <FormActions>
           <PrimaryButton type="submit" busy={busy}>
             Accedi
+          </PrimaryButton>
+          <PrimaryButton variant="outline" disabled={busy} onClick={() => void run(signInWithGoogle)}>
+            Continua con Google
           </PrimaryButton>
         </FormActions>
       </form>

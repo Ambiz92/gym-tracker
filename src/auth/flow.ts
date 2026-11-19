@@ -1,4 +1,5 @@
 import { type AuthErrorLike, type AuthFailure, type AuthStep, classifyError, failure } from './errors'
+import type { OAuthReturn } from './oauthReturn'
 
 export type AuthStatus = 'loading' | 'signed_out' | 'needs_mfa' | 'signed_in'
 
@@ -17,6 +18,8 @@ type Reply<T> = Promise<{ data: T | null; error: AuthErrorLike | null }>
 /** The slice of supabase-js `auth` this app uses; tests implement it with a fake. */
 export interface AuthApi {
   signInWithPassword(credentials: { email: string; password: string }): Promise<{ error: AuthErrorLike | null }>
+  signInWithOAuth(credentials: { provider: 'google'; options: { redirectTo: string } }): Promise<{ error: AuthErrorLike | null }>
+  exchangeCodeForSession(authCode: string, options?: { flowId?: string }): Promise<{ error: AuthErrorLike | null }>
   signOut(options: { scope: 'local' }): Promise<{ error: AuthErrorLike | null }>
   getSession(): Promise<{ data: { session: { user: { email?: string } } | null }; error: AuthErrorLike | null }>
   onAuthStateChange(callback: (event: string) => void): { data: { subscription: { unsubscribe(): void } } }
@@ -110,7 +113,27 @@ export function signIn(api: AuthApi, email: string, password: string): Promise<R
   })
 }
 
-function incompleteCode(): { ok: false; error: AuthFailure } {
+/** Sends the browser to Google; supabase-js navigates away, so success means the page is about to unload. */
+export function signInWithGoogle(api: AuthApi, redirectTo: string): Promise<Result<null>> {
+  return guarded(async () => {
+    const { error } = await api.signInWithOAuth({ provider: 'google', options: { redirectTo } })
+    if (error) return fail(error, 'oauth')
+    return { ok: true, value: null }
+  })
+}
+
+/** Finishes the return from Google: exchanges the PKCE code for a session, or reports the refusal. */
+export function completeOAuthReturn(api: AuthApi, returned: OAuthReturn): Promise<Result<AuthStatus>> {
+  if ('error' in returned) return Promise.resolve(fail(returned.error, 'oauth'))
+
+  return guarded(async () => {
+    const { error } = await api.exchangeCodeForSession(returned.code, { flowId: returned.flowId })
+    if (error) return fail(error, 'oauth')
+    return resolveStatus(api, 'oauth')
+  })
+}
+
+function incompleteCode():{ ok: false; error: AuthFailure } {
   return { ok: false, error: failure('invalid_code', `Inserisci le ${CODE_LENGTH} cifre del codice.`) }
 }
 

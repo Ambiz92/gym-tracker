@@ -1,11 +1,13 @@
 import { describe, expect, test } from 'vitest'
-import { CODE, createFakeAuth, EMAIL, PASSWORD } from './fakeAuth'
+import { CODE, createFakeAuth, EMAIL, GOOGLE_CODE, PASSWORD } from './fakeAuth'
 import {
   type AuthStatus,
+  completeOAuthReturn,
   currentEmail,
   normalizeCode,
   resolveStatus,
   signIn,
+  signInWithGoogle,
   signOut,
   startEnrollment,
   statusFromAssurance,
@@ -142,6 +144,69 @@ describe('signIn', () => {
     fake.state.crash.add('signInWithPassword')
 
     expect(await signIn(fake.api, EMAIL, PASSWORD)).toMatchObject({ ok: false, error: { kind: 'unavailable' } })
+  })
+})
+
+describe('signInWithGoogle', () => {
+  const REDIRECT = 'https://user.github.io/gym-tracker/'
+
+  test('asks Supabase for the Google flow, coming back to the given page', async () => {
+    const fake = createFakeAuth()
+
+    expect(await signInWithGoogle(fake.api, REDIRECT)).toEqual({ ok: true, value: null })
+    expect(fake.state.calls).toEqual([`signInWithOAuth:google:${REDIRECT}`])
+  })
+
+  test('a failing request is reported, not swallowed', async () => {
+    const fake = createFakeAuth()
+    fake.state.fail.signInWithOAuth = { message: 'x', name: 'AuthRetryableFetchError', status: 0 }
+    expect(await signInWithGoogle(fake.api, REDIRECT)).toMatchObject({ ok: false, error: { kind: 'network' } })
+
+    fake.state.crash.add('signInWithOAuth')
+    expect(await signInWithGoogle(fake.api, REDIRECT)).toMatchObject({ ok: false, error: { kind: 'unavailable' } })
+  })
+})
+
+describe('completeOAuthReturn', () => {
+  test('a user without a factor is signed in straight after the code exchange', async () => {
+    const fake = createFakeAuth()
+
+    expect(valueOf(await completeOAuthReturn(fake.api, { code: GOOGLE_CODE, flowId: 'abc' }))).toBe('signed_in')
+    expect(fake.state.calls).toContain(`exchangeCodeForSession:${GOOGLE_CODE}:abc`)
+  })
+
+  test('a Google session on an account with an authenticator still asks for the code', async () => {
+    const fake = createFakeAuth({ enrolled: true })
+
+    expect(valueOf(await completeOAuthReturn(fake.api, { code: GOOGLE_CODE }))).toBe('needs_mfa')
+  })
+
+  test('a code that cannot be exchanged leaves the user signed out, with a message', async () => {
+    const fake = createFakeAuth()
+
+    expect(await completeOAuthReturn(fake.api, { code: 'stale' })).toMatchObject({ ok: false, error: { kind: 'oauth_failed' } })
+    expect(fake.state.session).toBeNull()
+  })
+
+  test('a refused account is reported as not invited, without any request', async () => {
+    const fake = createFakeAuth()
+    const result = await completeOAuthReturn(fake.api, { error: { message: 'Signups not allowed for this instance', code: 'signup_disabled' } })
+
+    expect(result).toMatchObject({ ok: false, error: { kind: 'not_invited', message: 'Questo account Google non è stato invitato.' } })
+    expect(fake.state.calls).toEqual([])
+  })
+
+  test('a provider error that is not a refusal gets the generic message', async () => {
+    const fake = createFakeAuth()
+
+    expect(await completeOAuthReturn(fake.api, { error: { message: 'access_denied' } })).toMatchObject({ ok: false, error: { kind: 'oauth_failed' } })
+  })
+
+  test('an exchange that throws is reported as unavailable', async () => {
+    const fake = createFakeAuth()
+    fake.state.crash.add('exchangeCodeForSession')
+
+    expect(await completeOAuthReturn(fake.api, { code: GOOGLE_CODE })).toMatchObject({ ok: false, error: { kind: 'unavailable' } })
   })
 })
 
