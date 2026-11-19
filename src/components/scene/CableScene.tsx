@@ -6,6 +6,8 @@ import { useSlider } from './useSlider'
 const BLOCK_HEIGHT = 12
 const STACK_TOP = FLOOR_Y - CABLE_BLOCKS * BLOCK_HEIGHT
 const STACK = { x: 152, width: 116 }
+// The stack column and the pin head beside it: the part of the scene that holds the page still on touch.
+const DRAG_RIGHT = 290
 const RANGE = { min: CABLE_BLOCK_KG, max: CABLE_BLOCKS * CABLE_BLOCK_KG, step: CABLE_BLOCK_KG }
 
 interface CableSceneProps {
@@ -56,6 +58,7 @@ export function CableScene({ weight, onChange }: CableSceneProps) {
         <path className="cable-pin-grip" d={`M274 ${pinY - 2.5}h8M274 ${pinY + 2.5}h8`} />
         <rect className="scene-steel" x="209" y="0" width="2" height={STACK_TOP - 2} />
       </g>
+      <rect className="cable-drag" x={STACK.x} y={STACK_TOP} width={DRAG_RIGHT - STACK.x} height={FLOOR_Y - STACK_TOP} />
     </SceneFrame>
   )
 }

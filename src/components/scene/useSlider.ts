@@ -1,5 +1,5 @@
-import type { KeyboardEvent, PointerEvent, SVGProps } from 'react'
-import { snapToStep, valueAfterKey, type SliderRange } from '../../lib/slider'
+import { useState, type KeyboardEvent, type PointerEvent, type SVGProps } from 'react'
+import { createDragGesture, snapToStep, valueAfterKey, type SliderRange } from '../../lib/slider'
 import { VIEW_BOX } from './SceneFrame'
 
 interface SliderOptions {
@@ -14,8 +14,10 @@ interface SliderOptions {
   onChange: (value: number) => void
 }
 
-/** Slider behavior for a scene's svg: pointer drag with capture, arrow keys, Home and End. */
+/** Slider behavior for a scene's svg: pointer drag with capture (touch moves it after a small slop), arrow keys, Home and End. */
 export function useSlider({ range, value, label, valueText, orientation, valueAt, onChange }: SliderOptions): SVGProps<SVGSVGElement> {
+  const [gesture] = useState(createDragGesture)
+
   function change(next: number) {
     if (next !== value) onChange(next)
   }
@@ -41,10 +43,10 @@ export function useSlider({ range, value, label, valueText, orientation, valueAt
     'aria-valuetext': valueText,
     onPointerDown: (event) => {
       event.currentTarget.setPointerCapture(event.pointerId)
-      pick(event)
+      if (gesture.start(event.pointerType, event.clientX, event.clientY)) pick(event)
     },
     onPointerMove: (event) => {
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) pick(event)
+      if (event.currentTarget.hasPointerCapture(event.pointerId) && gesture.move(event.clientX, event.clientY)) pick(event)
     },
     onKeyDown: (event: KeyboardEvent<SVGSVGElement>) => {
       const next = valueAfterKey(event.key, value, range, orientation === 'vertical')

@@ -37,3 +37,26 @@ export function valueAfterKey(key: string, value: number, range: SliderRange, do
   const direction = keyDirection(key, downIncreases)
   return direction === null ? null : clamp(value + direction * range.step, range.min, range.max)
 }
+
+/** How far a finger must travel, in CSS px, before it moves a slider; a tap or the start of a scroll stays harmless. */
+export const TOUCH_SLOP_PX = 8
+
+/** Decides when a pointer drag may change the value: at once for mouse and pen, after the slop for touch. */
+export function createDragGesture(slop: number = TOUCH_SLOP_PX) {
+  let waitingFrom: { x: number; y: number } | null = null
+
+  return {
+    /** True when the value should follow the pointer right away. */
+    start(pointerType: string, x: number, y: number): boolean {
+      waitingFrom = pointerType === 'touch' ? { x, y } : null
+      return waitingFrom === null
+    },
+    /** True when a move of the captured pointer should change the value. */
+    move(x: number, y: number): boolean {
+      if (!waitingFrom) return true
+      if (Math.hypot(x - waitingFrom.x, y - waitingFrom.y) < slop) return false
+      waitingFrom = null
+      return true
+    },
+  }
+}

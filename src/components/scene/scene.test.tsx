@@ -1,4 +1,4 @@
-import type { KeyboardEvent, PointerEvent } from 'react'
+import type { KeyboardEvent, PointerEvent, SVGProps } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { rulerValueAt } from '../../lib/plates'
@@ -118,26 +118,33 @@ describe('PlateGlyph', () => {
 
 describe('slider behavior', () => {
   const range = { min: 5, max: 90, step: 5 }
+  // The hook keeps the pointer gesture in state, so it runs inside a render.
   const setup = (value: number, orientation: 'horizontal' | 'vertical' = 'horizontal') => {
     const onChange = vi.fn()
-    const props = useSlider({
-      range,
-      value,
-      label: 'Durata',
-      valueText: `${value}`,
-      orientation,
-      valueAt: ({ x }) => rulerValueAt(x, 90, 84, 276),
-      onChange,
-    })
+    let props: SVGProps<SVGSVGElement> = {}
+    function Probe() {
+      props = useSlider({
+        range,
+        value,
+        label: 'Durata',
+        valueText: `${value}`,
+        orientation,
+        valueAt: ({ x }) => rulerValueAt(x, 90, 84, 276),
+        onChange,
+      })
+      return null
+    }
+    renderToStaticMarkup(<Probe />)
     return { onChange, props }
   }
   const key = (name: string) => ({ key: name, preventDefault: vi.fn() }) as unknown as KeyboardEvent<SVGSVGElement>
   // The svg is 240 px wide, like the view box, so a client x maps to the scene x minus 60.
-  const pointer = (clientX: number, captured = true) =>
+  const pointer = (clientX: number, captured = true, pointerType = 'mouse', clientY = 0) =>
     ({
       clientX,
-      clientY: 0,
+      clientY,
       pointerId: 1,
+      pointerType,
       currentTarget: {
         getBoundingClientRect: () => ({ left: 0, top: 0, width: 240 }),
         setPointerCapture: vi.fn(),
@@ -193,6 +200,28 @@ describe('slider behavior', () => {
     const hovering = setup(30)
     hovering.props.onPointerMove?.(pointer(204, false))
     expect(hovering.onChange).not.toHaveBeenCalled()
+  })
+
+  it('does not change the value on a touch tap, however long the finger rests', () => {
+    const { onChange, props } = setup(30)
+    props.onPointerDown?.(pointer(124, true, 'touch'))
+    props.onPointerMove?.(pointer(127, true, 'touch', 3))
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('follows a touch drag once the finger has travelled the slop', () => {
+    const { onChange, props } = setup(30)
+    props.onPointerDown?.(pointer(124, true, 'touch'))
+    props.onPointerMove?.(pointer(130, true, 'touch'))
+    expect(onChange).not.toHaveBeenCalled()
+    props.onPointerMove?.(pointer(204, true, 'touch'))
+    expect(onChange).toHaveBeenCalledWith(85)
+  })
+
+  it('sets the value on a pen press, like the mouse', () => {
+    const { onChange, props } = setup(30)
+    props.onPointerDown?.(pointer(124, true, 'pen'))
+    expect(onChange).toHaveBeenCalledWith(45)
   })
 
   it('clamps a drag past the ends', () => {

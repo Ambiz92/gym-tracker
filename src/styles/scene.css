@@ -11,12 +11,22 @@
   overflow: hidden;
 }
 
-/* Cable and ruler are sliders: no page scroll while dragging, and a focus ring inside the full-bleed edge. */
+/* Cable and ruler are sliders: a grab cursor and a focus ring inside the full-bleed edge. */
 .scene-svg[role="slider"] {
   cursor: grab;
-  touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* The ruler drags sideways, so the page still scrolls up and down over it. */
+.scene-svg[aria-orientation="horizontal"] {
+  touch-action: pan-y;
+}
+
+/* The cable drags up and down: only the stack column and the pin hold the page still. */
+.cable-drag {
+  fill: transparent;
+  touch-action: none;
 }
 
 .scene-svg[role="slider"]:active {
