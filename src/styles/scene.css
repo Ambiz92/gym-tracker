@@ -58,6 +58,7 @@
 
 .scene-iron {
   fill: var(--ds-scene-iron);
+  stroke: var(--ds-plate-rim);
 }
 
 .scene-hub {
