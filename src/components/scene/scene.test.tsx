@@ -224,6 +224,14 @@ describe('slider behavior', () => {
     expect(onChange).toHaveBeenCalledWith(45)
   })
 
+  it('ignores a pointer on an svg with no width, instead of reporting NaN', () => {
+    const { onChange, props } = setup(30)
+    const event = pointer(124)
+    event.currentTarget.getBoundingClientRect = () => ({ left: 0, top: 0, width: 0 }) as DOMRect
+    props.onPointerDown?.(event)
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
   it('clamps a drag past the ends', () => {
     const { onChange, props } = setup(30)
     props.onPointerMove?.(pointer(-500))

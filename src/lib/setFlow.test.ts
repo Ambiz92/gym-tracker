@@ -45,6 +45,11 @@ describe('setting a number directly', () => {
     expect(run(start, { type: 'set', field: 'reps', value: 5000 }).values.reps).toBe(999)
   })
 
+  it('keeps the current value when given something that is not a number', () => {
+    expect(run(start, { type: 'set', field: 'weight', value: NaN }).values.weight).toBe(15)
+    expect(run(start, { type: 'step', field: 'reps', delta: NaN }).values.reps).toBe(10)
+  })
+
   it('does not accumulate floating point noise', () => {
     expect(run(start, { type: 'set', field: 'weight', value: 0.1 + 0.2 }).values.weight).toBe(0.3)
   })

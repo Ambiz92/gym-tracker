@@ -54,17 +54,20 @@ function parseField(field: Field, text: string): Parsed {
   return { value: parsed }
 }
 
-const clampField = (field: Field, value: number): number =>
-  field === 'weight' ? Math.min(MAX_WEIGHT_KG, Math.max(0, round2(value))) : Math.min(MAX_REPS_INPUT, Math.max(1, round2(value)))
+/** The value kept inside the field's limits; the current value when it is not a number. */
+const clampField = (field: Field, value: number, current: number): number => {
+  if (Number.isNaN(value)) return current
+  return field === 'weight' ? Math.min(MAX_WEIGHT_KG, Math.max(0, round2(value))) : Math.min(MAX_REPS_INPUT, Math.max(1, round2(value)))
+}
 
 const withField = (values: SetValues, field: Field, value: number): SetValues => ({ ...values, [field]: value })
 
 export function flowReducer(state: FlowState, action: FlowAction): FlowState {
   switch (action.type) {
     case 'step':
-      return { values: withField(state.values, action.field, clampField(action.field, state.values[action.field] + action.delta)), editing: null, error: null }
+      return { values: withField(state.values, action.field, clampField(action.field, state.values[action.field] + action.delta, state.values[action.field])), editing: null, error: null }
     case 'set':
-      return { values: withField(state.values, action.field, clampField(action.field, action.value)), editing: null, error: null }
+      return { values: withField(state.values, action.field, clampField(action.field, action.value, state.values[action.field])), editing: null, error: null }
     case 'edit-start':
       return { ...state, editing: { field: action.field, text: formatNumber(state.values[action.field]) }, error: null }
     case 'edit-text':

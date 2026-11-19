@@ -19,11 +19,12 @@ export function useSlider({ range, value, label, valueText, orientation, valueAt
   const [gesture] = useState(createDragGesture)
 
   function change(next: number) {
-    if (next !== value) onChange(next)
+    if (Number.isFinite(next) && next !== value) onChange(next)
   }
 
   function pick(event: PointerEvent<SVGSVGElement>) {
     const rect = event.currentTarget.getBoundingClientRect()
+    if (rect.width <= 0) return
     const scale = rect.width / VIEW_BOX.width
     const point = {
       x: VIEW_BOX.x + (event.clientX - rect.left) / scale,
