@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   BAR_KG,
+  MAX_PLATES_PER_SIDE,
   PLATES,
   cableBlock,
   cableWeightAt,
@@ -35,6 +36,21 @@ describe('platesPerSide', () => {
     expect(platesPerSide(21)).toEqual({ plates: [], exact: false })
     expect(kgs(23)).toEqual([1.25])
     expect(platesPerSide(23).exact).toBe(false)
+  })
+
+  it('draws nothing for a weight that is not a finite number', () => {
+    for (const weight of [Infinity, -Infinity, NaN]) expect(platesPerSide(weight)).toEqual({ plates: [], exact: false })
+  })
+
+  it('treats a huge weight as the largest the logger takes', () => {
+    expect(platesPerSide(1e12)).toEqual(platesPerSide(1000))
+    expect(platesPerSide(1000).plates.length).toBeLessThanOrEqual(MAX_PLATES_PER_SIDE)
+  })
+
+  it('never puts more plates on a side than the cap, and says the load is not exact', () => {
+    const load = platesPerSide(900)
+    expect(load.plates).toHaveLength(MAX_PLATES_PER_SIDE)
+    expect(load.exact).toBe(false)
   })
 
   it('does not drift on decimal weights', () => {

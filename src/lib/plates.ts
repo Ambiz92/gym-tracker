@@ -1,3 +1,4 @@
+import { MAX_WEIGHT_KG } from './setFlow'
 import { clamp } from './slider'
 
 /** Pure helpers behind the logger scene: plates on the bar, the cable stack and the ruler. */
@@ -36,14 +37,17 @@ export interface PlateLoad {
 
 const toCents = (kg: number): number => Math.round(kg * 100)
 
-/** Greedy plates per side for a total weight; below the bar it is the bare bar. */
+/** More than a sleeve can hold; keeps a huge weight from rendering a wall of plates. */
+export const MAX_PLATES_PER_SIDE = 16
+
+/** Greedy plates per side for a total weight, capped at the largest weight the logger takes; below the bar it is the bare bar. */
 export function platesPerSide(totalKg: number): PlateLoad {
-  if (totalKg < BAR_KG) return { plates: [], exact: false }
-  let remaining = toCents((totalKg - BAR_KG) / 2)
+  if (!Number.isFinite(totalKg) || totalKg < BAR_KG) return { plates: [], exact: false }
+  let remaining = toCents((Math.min(totalKg, MAX_WEIGHT_KG) - BAR_KG) / 2)
   const plates: Plate[] = []
   for (const plate of PLATES) {
     const cents = toCents(plate.kg)
-    while (remaining >= cents) {
+    while (remaining >= cents && plates.length < MAX_PLATES_PER_SIDE) {
       plates.push(plate)
       remaining -= cents
     }
