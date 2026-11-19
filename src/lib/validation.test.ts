@@ -44,8 +44,8 @@ describe('parseDecimal', () => {
 })
 
 describe('weightStep', () => {
-  it('is 2.5 kg for barbell and 1 kg otherwise', () => {
-    expect(weightStep('barbell')).toBe(2.5)
+  it('is 1.25 kg (per side) for barbell and 1 kg otherwise', () => {
+    expect(weightStep('barbell')).toBe(1.25)
     expect(weightStep('dumbbell')).toBe(1)
     expect(weightStep('other')).toBe(1)
   })

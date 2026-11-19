@@ -81,7 +81,7 @@ describe('SetLogger', () => {
     setNumber: 2,
     targetSets: 3,
     position: { current: 4, total: 7 },
-    initial: { weight: 15, reps: 10, equipment: 'barbell' as const },
+    initial: { weight: 62.5, reps: 10, equipment: 'barbell' as const },
     hint: 'Ultima volta 12,5 kg × 10 · suggerito 15 ↑',
     backTo: '/session/s1',
     onBack: noop,
@@ -93,9 +93,12 @@ describe('SetLogger', () => {
     const html = render(<SetLogger {...props} />)
     expect(html).toContain('<h1 class="session-header__title">Curl con bilanciere</h1>')
     expect(html).toContain('Serie 2 / 3')
-    expect(html).toContain('Peso: 15 chilogrammi. Tocca per scrivere')
+    expect(html).toContain('Peso per lato: 21,25 chilogrammi. Tocca per scrivere')
     expect(html).toContain('Ripetizioni: 10 ripetizioni. Tocca per scrivere')
-    expect(html).toContain('Diminuisci peso di 2,5')
+    expect(html).toContain('aria-label="Meno 1,25 chili per lato"')
+    expect(html).toContain('aria-label="Più 1,25 chili per lato"')
+    expect(html).toContain('2 × 21,25 + sbarra 20 = 62,5 kg')
+    expect(html).toContain('62,5 KG × 10')
     expect(html).toContain('Ultima volta 12,5 kg × 10 · suggerito 15 ↑')
     expect(html).toContain('Conferma serie 2')
     expect(html).not.toContain('set-warning')
@@ -109,11 +112,11 @@ describe('SetLogger', () => {
   })
 
   describe('on a hold or a carry', () => {
-    const numberLabel = (html: string, size: 'big' | 'medium') => new RegExp(`value--${size}"><button[^>]*aria-label="([^"]*)"`).exec(html)?.[1]
+    const numberLabel = (html: string, size: 'big' | 'medium') => new RegExp(`value--${size}[^"]*"><button[^>]*aria-label="([^"]*)"`).exec(html)?.[1]
 
     it('puts the weight first on reps, as the giant number', () => {
       const html = render(<SetLogger {...props} />)
-      expect(numberLabel(html, 'big')).toBe('Peso: 15 chilogrammi. Tocca per scrivere')
+      expect(numberLabel(html, 'big')).toBe('Peso per lato: 21,25 chilogrammi. Tocca per scrivere')
       expect(numberLabel(html, 'medium')).toBe('Ripetizioni: 10 ripetizioni. Tocca per scrivere')
     })
 
@@ -136,9 +139,45 @@ describe('SetLogger', () => {
     })
   })
 
+  describe('on a barbell', () => {
+    const barbell = (weight: number) => render(<SetLogger {...props} initial={{ ...props.initial, weight }} />)
+
+    it('shows the load of one side as the giant number, with the total under it', () => {
+      const html = barbell(142.5)
+      expect(html).toContain('Peso per lato: 61,25 chilogrammi')
+      expect(html).toContain('<p class="set-total">2 × 61,25 + sbarra 20 = 142,5 kg</p>')
+      expect(html).toContain('Peso per lato · tocca il numero per scriverlo')
+      expect(html).not.toContain('Tocca il numero per scriverlo')
+    })
+
+    it('shows an empty side on the bare bar', () => {
+      const html = barbell(20)
+      expect(html).toContain('Peso per lato: 0 chilogrammi')
+      expect(html).toContain('2 × 0 + sbarra 20 = 20 kg')
+    })
+
+    it('says so when the weight is below the bar', () => {
+      const html = barbell(15)
+      expect(html).toContain('Peso per lato: 0 chilogrammi')
+      expect(html).toContain('sotto la sbarra da 20 kg: 15 kg')
+      expect(html).not.toContain('2 ×')
+    })
+
+    it('keeps the total on the save button', () => {
+      expect(barbell(142.5)).toContain('142,5 KG × 10')
+    })
+
+    it('shows no total line on dumbbells', () => {
+      const html = render(<SetLogger {...props} initial={{ ...props.initial, equipment: 'dumbbell' }} />)
+      expect(html).not.toContain('set-total')
+      expect(html).toContain('Peso: 62,5 chilogrammi')
+    })
+  })
+
   it('shrinks the giant number only when the value is long', () => {
-    expect(render(<SetLogger {...props} initial={{ ...props.initial, weight: 62.5 }} />)).not.toContain('number-stepper__value--long')
-    const long = render(<SetLogger {...props} initial={{ ...props.initial, weight: 100.25 }} />)
+    const dumbbell = { ...props.initial, equipment: 'dumbbell' as const }
+    expect(render(<SetLogger {...props} initial={{ ...dumbbell, weight: 62.5 }} />)).not.toContain('number-stepper__value--long')
+    const long = render(<SetLogger {...props} initial={{ ...dumbbell, weight: 100.25 }} />)
     expect(long).toContain('number-stepper__value--big number-stepper__value--long')
     expect(long).toContain('Peso: 100,25 chilogrammi')
   })

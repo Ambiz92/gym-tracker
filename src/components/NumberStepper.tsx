@@ -87,11 +87,13 @@ interface StepButtonProps {
   direction: 'down' | 'up'
   /** "pair" shows the step next to the sign; "flank" sits beside a number and shows the sign only. */
   variant: 'pair' | 'flank'
+  /** What one press moves, spelled out for assistive tech: "1,25 chili per lato". Defaults to the label and the step. */
+  stepSpoken?: string
   onStep: (delta: number) => void
 }
 
 /** Rubber button that lowers or raises a number by its step. */
-export function StepButton({ label, step, direction, variant, onStep }: StepButtonProps) {
+export function StepButton({ label, step, direction, variant, stepSpoken, onStep }: StepButtonProps) {
   const stepText = formatNumber(step)
   const down = direction === 'down'
 
@@ -99,7 +101,7 @@ export function StepButton({ label, step, direction, variant, onStep }: StepButt
     <button
       type="button"
       className={`step-button step-button--${variant}`}
-      aria-label={`${down ? 'Diminuisci' : 'Aumenta'} ${label.toLowerCase()} di ${stepText}`}
+      aria-label={stepSpoken ? `${down ? 'Meno' : 'Più'} ${stepSpoken}` : `${down ? 'Diminuisci' : 'Aumenta'} ${label.toLowerCase()} di ${stepText}`}
       onClick={() => onStep(down ? -step : step)}
     >
       <span aria-hidden="true">{down ? '−' : '+'}</span>
@@ -110,16 +112,17 @@ export function StepButton({ label, step, direction, variant, onStep }: StepButt
 
 interface NumberStepperProps extends Omit<StepperNumberProps, 'size'> {
   step: number
+  stepSpoken?: string
   onStep: (delta: number) => void
 }
 
 /** A number between its − and + buttons. */
-export function NumberStepper({ step, onStep, ...number }: NumberStepperProps) {
+export function NumberStepper({ step, stepSpoken, onStep, ...number }: NumberStepperProps) {
   return (
     <div className="number-stepper-row">
-      <StepButton label={number.label} step={step} direction="down" variant="flank" onStep={onStep} />
+      <StepButton label={number.label} step={step} stepSpoken={stepSpoken} direction="down" variant="flank" onStep={onStep} />
       <StepperNumber {...number} size="medium" />
-      <StepButton label={number.label} step={step} direction="up" variant="flank" onStep={onStep} />
+      <StepButton label={number.label} step={step} stepSpoken={stepSpoken} direction="up" variant="flank" onStep={onStep} />
     </div>
   )
 }

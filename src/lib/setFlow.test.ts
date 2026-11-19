@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { flowReducer, initialFlow, repsStep, resolveValues, type FlowAction, type FlowState } from './setFlow'
 
-const start = initialFlow({ weight: 15, reps: 10, equipment: 'barbell' })
+const start = initialFlow({ weight: 15, reps: 10, equipment: 'dumbbell' })
 const run = (state: FlowState, ...actions: FlowAction[]): FlowState => actions.reduce(flowReducer, state)
 
 describe('stepping', () => {
@@ -57,7 +57,7 @@ describe('setting a number directly', () => {
 
 describe('typing a number', () => {
   it('starts from the current value written with a comma', () => {
-    const state = run(initialFlow({ weight: 12.5, reps: 8, equipment: 'barbell' }), { type: 'edit-start', field: 'weight' })
+    const state = run(initialFlow({ weight: 12.5, reps: 8, equipment: 'dumbbell' }), { type: 'edit-start', field: 'weight' })
     expect(state.editing).toEqual({ field: 'weight', text: '12,5' })
   })
 
@@ -102,7 +102,7 @@ describe('resolveValues', () => {
 
   it('applies a number still being typed, so a tap on confirm needs no blur first', () => {
     const state = run(start, { type: 'edit-start', field: 'reps' }, { type: 'edit-text', text: '6' })
-    expect(resolveValues(state)).toEqual({ values: { weight: 15, reps: 6, equipment: 'barbell' } })
+    expect(resolveValues(state)).toEqual({ values: { weight: 15, reps: 6, equipment: 'dumbbell' } })
   })
 
   it('reports invalid typed text instead of confirming', () => {
@@ -112,5 +112,51 @@ describe('resolveValues', () => {
 })
 
 it('changes the equipment without touching the numbers', () => {
-  expect(run(start, { type: 'equipment', equipment: 'dumbbell' }).values).toEqual({ weight: 15, reps: 10, equipment: 'dumbbell' })
+  expect(run(start, { type: 'equipment', equipment: 'barbell' }).values).toEqual({ weight: 15, reps: 10, equipment: 'barbell' })
+})
+
+describe('on a barbell the weight is typed and stepped per side', () => {
+  const bar = (weight: number) => initialFlow({ weight, reps: 8, equipment: 'barbell' })
+  const commit = (state: FlowState, text: string) =>
+    run(state, { type: 'edit-start', field: 'weight' }, { type: 'edit-text', text }, { type: 'edit-commit' })
+
+  it('moves the total by twice the step', () => {
+    expect(run(bar(60), { type: 'step', field: 'weight', delta: 1.25 }).values.weight).toBe(62.5)
+    expect(run(bar(60), { type: 'step', field: 'weight', delta: -1.25 }).values.weight).toBe(57.5)
+  })
+
+  it('steps a total below the bar up to one step over it, and not down', () => {
+    expect(run(bar(15), { type: 'step', field: 'weight', delta: 1.25 }).values.weight).toBe(22.5)
+    expect(run(bar(15), { type: 'step', field: 'weight', delta: -1.25 }).values.weight).toBe(15)
+  })
+
+  it('leaves the reps and the other equipment alone', () => {
+    expect(run(bar(60), { type: 'step', field: 'reps', delta: 1 }).values).toMatchObject({ weight: 60, reps: 9 })
+    expect(run(initialFlow({ weight: 60, reps: 8, equipment: 'other' }), { type: 'step', field: 'weight', delta: 1.25 }).values.weight).toBe(61.25)
+  })
+
+  it('starts typing from the load of one side', () => {
+    expect(run(bar(62.5), { type: 'edit-start', field: 'weight' }).editing).toEqual({ field: 'weight', text: '21,25' })
+    expect(run(bar(15), { type: 'edit-start', field: 'weight' }).editing).toEqual({ field: 'weight', text: '0' })
+  })
+
+  it.each([
+    ['21,25', 62.5],
+    ['0', 20],
+    ['490', 1000],
+  ])('stores %s per side as a total of %s', (text, total) => {
+    expect(commit(bar(60), text)).toMatchObject({ values: { weight: total }, editing: null, error: null })
+  })
+
+  it.each(['', 'abc', '-5', '491'])('rejects %j per side and keeps the field open', (text) => {
+    const state = commit(bar(60), text)
+    expect(state.values.weight).toBe(60)
+    expect(state.editing).not.toBeNull()
+    expect(state.error).toMatch(/peso di un lato/)
+  })
+
+  it('confirms typed text as a total', () => {
+    const state = run(bar(60), { type: 'edit-start', field: 'weight' }, { type: 'edit-text', text: '30' })
+    expect(resolveValues(state)).toEqual({ values: { weight: 80, reps: 8, equipment: 'barbell' } })
+  })
 })

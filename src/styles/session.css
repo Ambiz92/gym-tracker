@@ -516,6 +516,15 @@
   color: var(--ds-color-text-muted);
 }
 
+/* What the load of one side adds up to, under the giant number. */
+.set-total {
+  margin-top: var(--ds-space-1);
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-color-text-muted);
+}
+
 /* Rubber buttons: a hard bottom edge that presses flat */
 .step-button {
   min-height: 3.25rem;

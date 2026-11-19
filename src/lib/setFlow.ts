@@ -1,5 +1,6 @@
 import type { Equipment, TargetUnit } from '../types/db'
 import { formatNumber } from './formatNumber'
+import { MAX_KG_PER_SIDE, perSideFromTotal, stepBarbellTotal, totalFromPerSide } from './plates'
 import { clamp } from './slider'
 import { MAX_WEIGHT_KG, parseDecimal } from './validation'
 
@@ -7,6 +8,7 @@ export type Field = 'weight' | 'reps'
 
 /** What the user is about to confirm as the next set. */
 export interface SetValues {
+  /** Total in kg, bar included. The logger steps and types it per side on a barbell, but this is what is saved. */
   weight: number
   reps: number
   equipment: Equipment
@@ -40,8 +42,16 @@ export const initialFlow = (values: SetValues): FlowState => ({ values, editing:
 
 type Parsed = { value: number } | { error: string }
 
-function parseField(field: Field, text: string): Parsed {
+const isPerSide = (field: Field, equipment: Equipment): boolean => field === 'weight' && equipment === 'barbell'
+
+function parseField(field: Field, text: string, equipment: Equipment): Parsed {
   const parsed = parseDecimal(text)
+  if (isPerSide(field, equipment)) {
+    if (parsed === null || parsed > MAX_KG_PER_SIDE) {
+      return { error: `Scrivi il peso di un lato tra 0 e ${MAX_KG_PER_SIDE} kg, per esempio 21,25.` }
+    }
+    return { value: totalFromPerSide(parsed) }
+  }
   if (field === 'weight') {
     if (parsed === null || parsed > MAX_WEIGHT_KG) {
       return { error: `Scrivi un peso tra 0 e ${MAX_WEIGHT_KG} kg, per esempio 12,5.` }
@@ -77,16 +87,23 @@ const setField = (state: FlowState, field: Field, value: number): FlowState => (
 export function flowReducer(state: FlowState, action: FlowAction): FlowState {
   switch (action.type) {
     case 'step':
+      // On a barbell the weight moves one side at a time.
+      if (isPerSide(action.field, state.values.equipment)) {
+        return setField(state, 'weight', stepBarbellTotal(state.values.weight, action.delta))
+      }
       return setField(state, action.field, state.values[action.field] + action.delta)
     case 'set':
       return setField(state, action.field, action.value)
-    case 'edit-start':
-      return { ...state, editing: { field: action.field, text: formatNumber(state.values[action.field]) }, error: null }
+    case 'edit-start': {
+      const { values } = state
+      const shown = isPerSide(action.field, values.equipment) ? perSideFromTotal(values.weight) : values[action.field]
+      return { ...state, editing: { field: action.field, text: formatNumber(shown) }, error: null }
+    }
     case 'edit-text':
       return state.editing ? { ...state, editing: { ...state.editing, text: action.text }, error: null } : state
     case 'edit-commit': {
       if (!state.editing) return state
-      const parsed = parseField(state.editing.field, state.editing.text)
+      const parsed = parseField(state.editing.field, state.editing.text, state.values.equipment)
       if ('error' in parsed) return { ...state, error: parsed.error }
       return { values: withField(state.values, state.editing.field, parsed.value), editing: null, error: null }
     }
@@ -98,7 +115,7 @@ export function flowReducer(state: FlowState, action: FlowAction): FlowState {
 /** The values to confirm, applying a number still being typed; the message when that text is invalid. */
 export function resolveValues(state: FlowState): { values: SetValues } | { error: string } {
   if (!state.editing) return { values: state.values }
-  const parsed = parseField(state.editing.field, state.editing.text)
+  const parsed = parseField(state.editing.field, state.editing.text, state.values.equipment)
   if ('error' in parsed) return parsed
   return { values: withField(state.values, state.editing.field, parsed.value) }
 }

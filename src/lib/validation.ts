@@ -19,7 +19,7 @@ export function parseDecimal(text: string): number | null {
   return Number(trimmed.replace(',', '.'))
 }
 
-/** Step of the weight input in kg: plates on a barbell, single dumbbell increments otherwise. */
+/** Step of the weight input in kg: the smallest plate, added to each side, on a barbell; single dumbbell increments otherwise. */
 export function weightStep(equipment: Equipment): number {
-  return equipment === 'barbell' ? 2.5 : 1
+  return equipment === 'barbell' ? 1.25 : 1
 }

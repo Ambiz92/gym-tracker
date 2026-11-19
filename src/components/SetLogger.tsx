@@ -1,7 +1,9 @@
 import { useReducer, useState, type ReactNode } from 'react'
+import { formatNumber } from '../lib/formatNumber'
+import { perSideFromTotal } from '../lib/plates'
 import { repsWarning, weightStep } from '../lib/validation'
 import { flowReducer, initialFlow, repsStep, resolveValues, type Field, type SetValues } from '../lib/setFlow'
-import { equipmentLabel, setSummary, unitLabel } from '../lib/sessionProgress'
+import { barbellTotalNote, equipmentLabel, setSummary, unitLabel } from '../lib/sessionProgress'
 import type { TargetUnit } from '../types/db'
 import { HowToSheet } from './HowToSheet'
 import { NumberStepper, StepButton, StepperNumber } from './NumberStepper'
@@ -26,6 +28,8 @@ interface NumberView {
   inputMode: 'decimal' | 'numeric'
   /** How far one press of the step buttons moves the number. */
   step: number
+  /** The step spelled out when it is not plain kg of the number shown, e.g. "1,25 chili per lato". */
+  stepSpoken?: string
 }
 
 interface SetLoggerProps {
@@ -71,13 +75,17 @@ export function SetLogger({
     else confirmWithLift(resolved.values)
   }
 
+  // On a barbell the weight is shown, stepped and typed for one side; the reducer keeps the total.
+  const barbell = values.equipment === 'barbell'
+  const weightStepKg = weightStep(values.equipment)
   const weightView: NumberView = {
     field: 'weight',
-    label: 'Peso',
+    label: barbell ? 'Peso per lato' : 'Peso',
     unit: 'kg',
     unitSpoken: 'chilogrammi',
     inputMode: 'decimal',
-    step: weightStep(values.equipment),
+    step: weightStepKg,
+    stepSpoken: barbell ? `${formatNumber(weightStepKg)} chili per lato` : undefined,
   }
   const repsView: NumberView = {
     field: 'reps',
@@ -97,7 +105,7 @@ export function SetLogger({
       unit: view.unit,
       unitSpoken: view.unitSpoken,
       inputMode: view.inputMode,
-      value: values[view.field],
+      value: view.field === 'weight' && barbell ? perSideFromTotal(values.weight) : values[view.field],
       editing: typing ? editing.text : null,
       error: typing ? error : null,
       onEditStart: () => dispatch({ type: 'edit-start', field: view.field }),
@@ -105,6 +113,9 @@ export function SetLogger({
       onCommit: () => dispatch({ type: 'edit-commit' }),
     }
   }
+  const totalNote = barbell && (
+    <p className="set-total">{barbellTotalNote(values.weight)}</p>
+  )
   const stepOf = (view: NumberView) => (delta: number) => dispatch({ type: 'step', field: view.field, delta })
 
   return (
@@ -131,7 +142,8 @@ export function SetLogger({
         {/* The saved values are fixed when the lift starts, so nothing is editable until it settles. */}
         <div inert={lifting}>
           <StepperNumber {...numberProps(main)} size="big" />
-          <p className="set-hint">Tocca il numero per scriverlo</p>
+          <p className="set-hint">{main === weightView && barbell ? 'Peso per lato · tocca il numero per scriverlo' : 'Tocca il numero per scriverlo'}</p>
+          {main === weightView && totalNote}
         </div>
         <Scene
           equipment={values.equipment}
@@ -144,10 +156,11 @@ export function SetLogger({
         />
         <div className="logger__controls" inert={lifting}>
           <div className="stepper-buttons">
-            <StepButton label={main.label} step={main.step} direction="down" variant="pair" onStep={stepOf(main)} />
-            <StepButton label={main.label} step={main.step} direction="up" variant="pair" onStep={stepOf(main)} />
+            <StepButton label={main.label} step={main.step} stepSpoken={main.stepSpoken} direction="down" variant="pair" onStep={stepOf(main)} />
+            <StepButton label={main.label} step={main.step} stepSpoken={main.stepSpoken} direction="up" variant="pair" onStep={stepOf(main)} />
           </div>
-          <NumberStepper {...numberProps(side)} step={side.step} onStep={stepOf(side)} />
+          <NumberStepper {...numberProps(side)} step={side.step} stepSpoken={side.stepSpoken} onStep={stepOf(side)} />
+          {side === weightView && totalNote}
           <div role="status">
             {warning && (
               <div className="set-warning">
