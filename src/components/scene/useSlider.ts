@@ -14,6 +14,19 @@ interface SliderOptions {
   onChange: (value: number) => void
 }
 
+type Box = Pick<DOMRect, 'left' | 'top' | 'width' | 'height'>
+
+/** A client point in scene units. The svg fits the view box inside its box and centers it, so a box wider than the scene's ratio leaves bands at the sides. */
+export function scenePoint(box: Box, clientX: number, clientY: number): { x: number; y: number } {
+  const scale = Math.min(box.width / VIEW_BOX.width, box.height / VIEW_BOX.height)
+  const bandX = (box.width - VIEW_BOX.width * scale) / 2
+  const bandY = (box.height - VIEW_BOX.height * scale) / 2
+  return {
+    x: VIEW_BOX.x + (clientX - box.left - bandX) / scale,
+    y: VIEW_BOX.y + (clientY - box.top - bandY) / scale,
+  }
+}
+
 /** Slider behavior for a scene's svg: pointer drag with capture (touch moves it after a small slop), arrow keys, Home and End. */
 export function useSlider({ range, value, label, valueText, orientation, valueAt, onChange }: SliderOptions): SVGProps<SVGSVGElement> {
   const [gesture] = useState(createDragGesture)
@@ -24,13 +37,8 @@ export function useSlider({ range, value, label, valueText, orientation, valueAt
 
   function pick(event: PointerEvent<SVGSVGElement>) {
     const rect = event.currentTarget.getBoundingClientRect()
-    if (rect.width <= 0) return
-    const scale = rect.width / VIEW_BOX.width
-    const point = {
-      x: VIEW_BOX.x + (event.clientX - rect.left) / scale,
-      y: VIEW_BOX.y + (event.clientY - rect.top) / scale,
-    }
-    change(snapToStep(valueAt(point), range))
+    if (rect.width <= 0 || rect.height <= 0) return
+    change(snapToStep(valueAt(scenePoint(rect, event.clientX, event.clientY)), range))
   }
 
   return {

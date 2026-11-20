@@ -8,7 +8,7 @@ import { DumbbellScene } from './DumbbellScene'
 import { PlateGlyph } from './PlateGlyph'
 import { RulerScene } from './RulerScene'
 import { Scene } from './Scene'
-import { useSlider } from './useSlider'
+import { scenePoint, useSlider } from './useSlider'
 
 const noop = () => {}
 
@@ -174,7 +174,7 @@ describe('slider behavior', () => {
       pointerId: 1,
       pointerType,
       currentTarget: {
-        getBoundingClientRect: () => ({ left: 0, top: 0, width: 240 }),
+        getBoundingClientRect: () => ({ left: 0, top: 0, width: 240, height: 190 }),
         setPointerCapture: vi.fn(),
         hasPointerCapture: () => captured,
       },
@@ -269,5 +269,23 @@ describe('slider behavior', () => {
   it('exposes the slider semantics', () => {
     const { props } = setup(30)
     expect(props).toMatchObject({ role: 'slider', tabIndex: 0, 'aria-valuemin': 5, 'aria-valuemax': 90, 'aria-valuenow': 30 })
+  })
+})
+
+describe('scenePoint', () => {
+  it('maps a box with the ratio of the view box straight onto it', () => {
+    expect(scenePoint({ left: 10, top: 20, width: 240, height: 190 }, 130, 115)).toEqual({ x: 180, y: 95 })
+  })
+
+  it('centers the scene in a box that is wider than it', () => {
+    const box = { left: 0, top: 0, width: 480, height: 190 }
+    // 120 px of band on each side: the box center is the scene center, and one px is one unit.
+    expect(scenePoint(box, 240, 95)).toEqual({ x: 180, y: 95 })
+    expect(scenePoint(box, 120, 0)).toEqual({ x: 60, y: 0 })
+  })
+
+  it('centers the scene in a box that is taller than it', () => {
+    const box = { left: 0, top: 0, width: 240, height: 290 }
+    expect(scenePoint(box, 0, 145)).toEqual({ x: 60, y: 95 })
   })
 })
