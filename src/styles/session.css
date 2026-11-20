@@ -675,6 +675,54 @@
   color: var(--ds-color-on-accent);
 }
 
+/* Short phones: tighter gaps and a smaller giant number keep the controls above the dock without scrolling. Touch targets stay at 44 px or more. */
+@media (max-height: 760px) {
+  .app__content:has(.logger) {
+    padding-top: var(--ds-space-2);
+  }
+
+  .logger {
+    --ds-text-figure-xl: 5.6rem;
+  }
+
+  .number-stepper__value--big {
+    padding-top: 0;
+  }
+
+  .set-hint {
+    margin-top: var(--ds-space-1);
+  }
+
+  .stepper-buttons {
+    margin-top: var(--ds-space-2);
+  }
+
+  .step-button {
+    min-height: 3rem;
+  }
+
+  .step-button--flank {
+    width: 3.25rem;
+    min-height: 3.25rem;
+  }
+
+  .number-stepper-row {
+    margin-top: var(--ds-space-2);
+  }
+
+  .session-dock {
+    padding-block: var(--ds-space-2);
+  }
+
+  .save-button {
+    min-height: var(--ds-size-button);
+  }
+
+  .save-button__text {
+    padding-block: var(--ds-space-2);
+  }
+}
+
 /* Bottom sheet */
 .how-to {
   position: fixed;

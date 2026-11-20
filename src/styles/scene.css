@@ -7,7 +7,9 @@
 .scene-svg {
   display: block;
   width: 100%;
-  height: auto;
+  /* Sized by the screen height so the controls and the dock stay on the first screen; the drawing is centered in the full-width stage. */
+  height: clamp(8rem, 24vh, 16rem);
+  height: clamp(8rem, 24dvh, 16rem);
   overflow: hidden;
 }
 
