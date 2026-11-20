@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { PlanExerciseDetail, SessionDetail } from '../../data/activePlan'
-import { adoptCatalogExercise } from '../../data/catalog'
-import { createExercise, listExercises } from '../../data/exercises'
+import { adoptCatalogExercise, listCatalog } from '../../data/catalog'
+import { createExercise, listAdoptedCatalogIds, listExercises } from '../../data/exercises'
 import { addPlanExercise, removePlanExercise } from '../../data/plans'
 import { useAsync } from '../../hooks/useAsync'
 import { sortExercises } from '../../lib/exerciseList'
@@ -9,6 +9,7 @@ import { SheetController, type SheetAction } from '../../lib/exerciseSheet'
 import { targetOf } from '../../lib/planForm'
 import type { Exercise } from '../../types/db'
 import { AddExercisesSheet } from './AddExercisesSheet'
+import type { CatalogData } from './PickResults'
 import { describePlanError } from './errors'
 
 const FAILURES: Record<SheetAction, string> = {
@@ -16,6 +17,11 @@ const FAILURES: Record<SheetAction, string> = {
   remove: 'Rimozione non riuscita. Riprova.',
   create: 'Creazione non riuscita. Controlla la connessione e riprova: i dati nel modulo sono ancora qui.',
   adopt: 'Non sono riuscito a copiare l’esercizio dal catalogo. Controlla la connessione e riprova.',
+}
+
+async function loadCatalog(): Promise<CatalogData> {
+  const [entries, adoptedIds] = await Promise.all([listCatalog(), listAdoptedCatalogIds()])
+  return { entries, adoptedIds }
 }
 
 interface AddExercisesProps {
@@ -26,9 +32,10 @@ interface AddExercisesProps {
   onClose: () => void
 }
 
-/** Loads the library and wires the sheet to the session: each tap is a stored change, so closing the sheet has nothing to save. */
+/** Loads the library and the catalog and wires the sheet to the session: each tap is a stored change, so closing the sheet has nothing to save. */
 export function AddExercises({ session, onAdded, onRemoved, onClose }: AddExercisesProps) {
   const library = useAsync(listExercises, [])
+  const catalog = useAsync(loadCatalog, [])
   const [created, setCreated] = useState<Exercise[]>([])
   const latest = useRef({ onAdded, onRemoved })
   useEffect(() => {
@@ -62,9 +69,11 @@ export function AddExercises({ session, onAdded, onRemoved, onClose }: AddExerci
     <AddExercisesSheet
       sessionName={session.name}
       library={merged}
+      catalog={catalog}
       state={state}
       onToggle={(exercise) => void controller.toggle(exercise)}
       onCreate={(values) => controller.createAndAdd(values)}
+      onAdopt={(entry) => controller.adoptAndAdd(entry)}
       onClose={onClose}
     />
   )
