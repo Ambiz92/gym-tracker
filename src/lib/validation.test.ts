@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseDecimal, repsWarning, weightStep } from './validation'
+import { MAX_KG_PER_SIDE, MAX_WEIGHT_KG, maxWeightKg, parseDecimal, repsWarning, weightStep } from './validation'
 
 describe('repsWarning', () => {
   it('warns above 10 reps', () => {
@@ -44,9 +44,21 @@ describe('parseDecimal', () => {
 })
 
 describe('weightStep', () => {
-  it('is 1.25 kg (per side) for barbell and 1 kg otherwise', () => {
+  it('is 1.25 kg (the smallest plate) for barbell and 1 kg otherwise', () => {
     expect(weightStep('barbell')).toBe(1.25)
     expect(weightStep('dumbbell')).toBe(1)
     expect(weightStep('other')).toBe(1)
+  })
+})
+
+describe('maxWeightKg', () => {
+  it('limits a barbell to the load of one side', () => {
+    expect(maxWeightKg('barbell')).toBe(MAX_KG_PER_SIDE)
+    expect(MAX_KG_PER_SIDE).toBe(500)
+  })
+
+  it('leaves the other equipment at the general maximum', () => {
+    expect(maxWeightKg('dumbbell')).toBe(MAX_WEIGHT_KG)
+    expect(maxWeightKg('other')).toBe(MAX_WEIGHT_KG)
   })
 })

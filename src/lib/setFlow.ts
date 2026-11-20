@@ -1,14 +1,13 @@
 import type { Equipment, TargetUnit } from '../types/db'
 import { formatNumber } from './formatNumber'
-import { MAX_KG_PER_SIDE, perSideFromTotal, totalFromPerSide } from './plates'
 import { clamp } from './slider'
-import { MAX_WEIGHT_KG, parseDecimal } from './validation'
+import { maxWeightKg, parseDecimal } from './validation'
 
 export type Field = 'weight' | 'reps'
 
 /** What the user is about to confirm as the next set. */
 export interface SetValues {
-  /** Total in kg; on a barbell the plates of both sides, bar excluded. The logger steps and types it per side, but this is what is saved. */
+  /** Kg as shown and saved: one dumbbell, or the load of ONE side of a barbell. */
   weight: number
   reps: number
   equipment: Equipment
@@ -42,19 +41,17 @@ export const initialFlow = (values: SetValues): FlowState => ({ values, editing:
 
 type Parsed = { value: number } | { error: string }
 
-const isPerSide = (field: Field, equipment: Equipment): boolean => field === 'weight' && equipment === 'barbell'
-
 function parseField(field: Field, text: string, equipment: Equipment): Parsed {
   const parsed = parseDecimal(text)
-  if (isPerSide(field, equipment)) {
-    if (parsed === null || parsed > MAX_KG_PER_SIDE) {
-      return { error: `Scrivi il peso di un lato tra 0 e ${MAX_KG_PER_SIDE} kg, per esempio 7,5.` }
-    }
-    return { value: totalFromPerSide(parsed) }
-  }
   if (field === 'weight') {
-    if (parsed === null || parsed > MAX_WEIGHT_KG) {
-      return { error: `Scrivi un peso tra 0 e ${MAX_WEIGHT_KG} kg, per esempio 12,5.` }
+    const max = maxWeightKg(equipment)
+    if (parsed === null || parsed > max) {
+      return {
+        error:
+          equipment === 'barbell'
+            ? `Scrivi il peso di un lato tra 0 e ${max} kg, per esempio 15.`
+            : `Scrivi un peso tra 0 e ${max} kg, per esempio 12,5.`,
+      }
     }
     return { value: round2(parsed) }
   }
@@ -64,22 +61,18 @@ function parseField(field: Field, text: string, equipment: Equipment): Parsed {
   return { value: parsed }
 }
 
-const FIELD_BOUNDS: Record<Field, { min: number; max: number }> = {
-  weight: { min: 0, max: MAX_WEIGHT_KG },
-  reps: { min: 1, max: MAX_REPS_INPUT },
-}
-
 /** The value kept inside the field's limits; the current value when it is not a number. */
-function clampField(field: Field, value: number, current: number): number {
+function clampField(field: Field, value: number, equipment: Equipment, current: number): number {
   if (Number.isNaN(value)) return current
-  return clamp(round2(value), FIELD_BOUNDS[field].min, FIELD_BOUNDS[field].max)
+  const [min, max] = field === 'weight' ? [0, maxWeightKg(equipment)] : [1, MAX_REPS_INPUT]
+  return clamp(round2(value), min, max)
 }
 
 const withField = (values: SetValues, field: Field, value: number): SetValues => ({ ...values, [field]: value })
 
 /** The flow with one number replaced by a value kept inside its limits; whatever was being typed is dropped. */
 const setField = (state: FlowState, field: Field, value: number): FlowState => ({
-  values: withField(state.values, field, clampField(field, value, state.values[field])),
+  values: withField(state.values, field, clampField(field, value, state.values.equipment, state.values[field])),
   editing: null,
   error: null,
 })
@@ -87,15 +80,11 @@ const setField = (state: FlowState, field: Field, value: number): FlowState => (
 export function flowReducer(state: FlowState, action: FlowAction): FlowState {
   switch (action.type) {
     case 'step':
-      // On a barbell the step is per side, so the total moves twice as much.
-      return setField(state, action.field, state.values[action.field] + action.delta * (isPerSide(action.field, state.values.equipment) ? 2 : 1))
+      return setField(state, action.field, state.values[action.field] + action.delta)
     case 'set':
       return setField(state, action.field, action.value)
-    case 'edit-start': {
-      const { values } = state
-      const shown = isPerSide(action.field, values.equipment) ? perSideFromTotal(values.weight) : values[action.field]
-      return { ...state, editing: { field: action.field, text: formatNumber(shown) }, error: null }
-    }
+    case 'edit-start':
+      return { ...state, editing: { field: action.field, text: formatNumber(state.values[action.field]) }, error: null }
     case 'edit-text':
       return state.editing ? { ...state, editing: { ...state.editing, text: action.text }, error: null } : state
     case 'edit-commit': {
@@ -105,7 +94,10 @@ export function flowReducer(state: FlowState, action: FlowAction): FlowState {
       return { values: withField(state.values, state.editing.field, parsed.value), editing: null, error: null }
     }
     case 'equipment':
-      return { ...state, values: { ...state.values, equipment: action.equipment } }
+      return {
+        ...state,
+        values: { ...state.values, equipment: action.equipment, weight: Math.min(state.values.weight, maxWeightKg(action.equipment)) },
+      }
   }
 }
 

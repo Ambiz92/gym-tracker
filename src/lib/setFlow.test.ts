@@ -115,54 +115,60 @@ it('changes the equipment without touching the numbers', () => {
   expect(run(start, { type: 'equipment', equipment: 'barbell' }).values).toEqual({ weight: 15, reps: 10, equipment: 'barbell' })
 })
 
-describe('on a barbell the weight is typed and stepped per side', () => {
+describe('on a barbell the weight is the load of one side, with no conversion', () => {
   const bar = (weight: number) => initialFlow({ weight, reps: 8, equipment: 'barbell' })
   const commit = (state: FlowState, text: string) =>
     run(state, { type: 'edit-start', field: 'weight' }, { type: 'edit-text', text }, { type: 'edit-commit' })
 
-  it('moves the total by twice the step', () => {
-    expect(run(bar(60), { type: 'step', field: 'weight', delta: 1.25 }).values.weight).toBe(62.5)
-    expect(run(bar(60), { type: 'step', field: 'weight', delta: -1.25 }).values.weight).toBe(57.5)
+  it('steps by the delta given, which the logger sets to the smallest plate', () => {
+    expect(run(bar(15), { type: 'step', field: 'weight', delta: 1.25 }).values.weight).toBe(16.25)
+    expect(run(bar(15), { type: 'step', field: 'weight', delta: -1.25 }).values.weight).toBe(13.75)
   })
 
-  it('steps a light load like any other, down to zero and not below', () => {
-    expect(run(bar(15), { type: 'step', field: 'weight', delta: 1.25 }).values.weight).toBe(17.5)
-    expect(run(bar(2.5), { type: 'step', field: 'weight', delta: -1.25 }).values.weight).toBe(0)
+  it('steps down to zero and not below', () => {
+    expect(run(bar(1.25), { type: 'step', field: 'weight', delta: -1.25 }).values.weight).toBe(0)
     expect(run(bar(0), { type: 'step', field: 'weight', delta: -1.25 }).values.weight).toBe(0)
   })
 
-  it('stops at the logger maximum', () => {
-    expect(run(bar(1000), { type: 'step', field: 'weight', delta: 1.25 }).values.weight).toBe(1000)
+  it('stops at the maximum of one side', () => {
+    expect(run(bar(500), { type: 'step', field: 'weight', delta: 1.25 }).values.weight).toBe(500)
+    expect(run(bar(0), { type: 'set', field: 'weight', value: 800 }).values.weight).toBe(500)
   })
 
   it('leaves the reps and the other equipment alone', () => {
-    expect(run(bar(60), { type: 'step', field: 'reps', delta: 1 }).values).toMatchObject({ weight: 60, reps: 9 })
-    expect(run(initialFlow({ weight: 60, reps: 8, equipment: 'other' }), { type: 'step', field: 'weight', delta: 1.25 }).values.weight).toBe(61.25)
+    expect(run(bar(15), { type: 'step', field: 'reps', delta: 1 }).values).toMatchObject({ weight: 15, reps: 9 })
+    expect(run(initialFlow({ weight: 600, reps: 8, equipment: 'other' }), { type: 'step', field: 'weight', delta: 1.25 }).values.weight).toBe(601.25)
   })
 
-  it('starts typing from the load of one side', () => {
-    expect(run(bar(62.5), { type: 'edit-start', field: 'weight' }).editing).toEqual({ field: 'weight', text: '31,25' })
-    expect(run(bar(15), { type: 'edit-start', field: 'weight' }).editing).toEqual({ field: 'weight', text: '7,5' })
+  it('starts typing from the stored weight itself', () => {
+    expect(run(bar(15), { type: 'edit-start', field: 'weight' }).editing).toEqual({ field: 'weight', text: '15' })
+    expect(run(bar(62.5), { type: 'edit-start', field: 'weight' }).editing).toEqual({ field: 'weight', text: '62,5' })
   })
 
   it.each([
-    ['7,5', 15],
-    ['31,25', 62.5],
+    ['12,5', 12.5],
+    ['15', 15],
+    ['62.5', 62.5],
     ['0', 0],
-    ['500', 1000],
-  ])('stores %s per side as a total of %s', (text, total) => {
-    expect(commit(bar(60), text)).toMatchObject({ values: { weight: total }, editing: null, error: null })
+    ['500', 500],
+  ])('stores exactly what is typed: %s is saved as %s', (text, stored) => {
+    expect(commit(bar(60), text)).toMatchObject({ values: { weight: stored }, editing: null, error: null })
   })
 
-  it.each(['', 'abc', '-5', '501'])('rejects %j per side and keeps the field open', (text) => {
+  it.each(['', 'abc', '-5', '501'])('rejects %j and keeps the field open', (text) => {
     const state = commit(bar(60), text)
     expect(state.values.weight).toBe(60)
     expect(state.editing).not.toBeNull()
-    expect(state.error).toMatch(/peso di un lato/)
+    expect(state.error).toBe('Scrivi il peso di un lato tra 0 e 500 kg, per esempio 15.')
   })
 
-  it('confirms typed text as a total', () => {
+  it('confirms typed text as it is', () => {
     const state = run(bar(60), { type: 'edit-start', field: 'weight' }, { type: 'edit-text', text: '25' })
-    expect(resolveValues(state)).toEqual({ values: { weight: 50, reps: 8, equipment: 'barbell' } })
+    expect(resolveValues(state)).toEqual({ values: { weight: 25, reps: 8, equipment: 'barbell' } })
+  })
+
+  it('keeps the weight inside one side maximum when switching to a barbell', () => {
+    const state = run(initialFlow({ weight: 800, reps: 8, equipment: 'other' }), { type: 'equipment', equipment: 'barbell' })
+    expect(state.values.weight).toBe(500)
   })
 })

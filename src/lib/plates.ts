@@ -1,9 +1,9 @@
 import { clamp } from './slider'
-import { MAX_WEIGHT_KG } from './validation'
+import { MAX_KG_PER_SIDE } from './validation'
 
 /** Weight to scene geometry: plates, cable block and ruler scale. Generic slider math lives in slider.ts. */
 
-/** Barbell weights are the plates only, both sides together: the bar is information, so it enters no calculation and no drawing. */
+/** Barbell weights are the load of ONE side; the bar and the total are information only. */
 export const BAR_KG = 20
 
 export type PlateId = '25' | '20' | '15' | '10' | '5' | '2-5' | '1-25'
@@ -32,20 +32,11 @@ export const PLATES: readonly Plate[] = [
 export interface PlateLoad {
   /** Plates on one side of the bar, heaviest first. */
   plates: Plate[]
-  /** True only when the plates drawn add up exactly to the requested weight: not for one the plates cannot make, one clamped to MAX_WEIGHT_KG or one cut by MAX_PLATES_PER_SIDE. */
+  /** True only when the plates drawn add up exactly to the requested weight: not for one the plates cannot make, one clamped to MAX_KG_PER_SIDE or one cut by MAX_PLATES_PER_SIDE. */
   exact: boolean
 }
 
 const toCents = (kg: number): number => Math.round(kg * 100)
-
-/** Heaviest load of one side that keeps the total within MAX_WEIGHT_KG. */
-export const MAX_KG_PER_SIDE = MAX_WEIGHT_KG / 2
-
-/** Load of one side for a plates total. */
-export const perSideFromTotal = (totalKg: number): number => toCents(totalKg / 2) / 100
-
-/** Plates total for the load of one side, kept between 0 and MAX_WEIGHT_KG. */
-export const totalFromPerSide = (perSideKg: number): number => clamp(toCents(2 * perSideKg) / 100, 0, MAX_WEIGHT_KG)
 
 export interface PlacedPlate {
   plate: Plate
@@ -72,10 +63,10 @@ export function placePlates(
 /** More than a sleeve can hold; keeps a huge weight from rendering a wall of plates. */
 export const MAX_PLATES_PER_SIDE = 16
 
-/** Greedy plates of one side for a plates total, capped at the largest weight the logger takes. */
-export function platesPerSide(totalKg: number): PlateLoad {
-  if (!Number.isFinite(totalKg) || totalKg < 0) return { plates: [], exact: false }
-  let remaining = toCents(perSideFromTotal(Math.min(totalKg, MAX_WEIGHT_KG)))
+/** Greedy plates for the load of one side, capped at the largest load the logger takes. */
+export function platesPerSide(sideKg: number): PlateLoad {
+  if (!Number.isFinite(sideKg) || sideKg < 0) return { plates: [], exact: false }
+  let remaining = toCents(Math.min(sideKg, MAX_KG_PER_SIDE))
   const plates: Plate[] = []
   for (const plate of PLATES) {
     const cents = toCents(plate.kg)
@@ -84,7 +75,7 @@ export function platesPerSide(totalKg: number): PlateLoad {
       remaining -= cents
     }
   }
-  return { plates, exact: remaining === 0 && totalKg <= MAX_WEIGHT_KG }
+  return { plates, exact: remaining === 0 && sideKg <= MAX_KG_PER_SIDE }
 }
 
 export const CABLE_BLOCKS = 11

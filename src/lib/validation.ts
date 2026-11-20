@@ -1,8 +1,13 @@
 import type { Equipment, TargetUnit } from '../types/db'
 
 export const MAX_REPS_PER_SET = 10
-/** Heaviest weight the logger takes; on a barbell the plates of both sides together. */
+/** Heaviest weight the logger takes, except on a barbell. */
 export const MAX_WEIGHT_KG = 1000
+/** Heaviest barbell weight the logger takes: the load of one side. */
+export const MAX_KG_PER_SIDE = 500
+
+/** Heaviest weight the logger takes for the equipment. */
+export const maxWeightKg = (equipment: Equipment): number => (equipment === 'barbell' ? MAX_KG_PER_SIDE : MAX_WEIGHT_KG)
 
 const DECIMAL_PATTERN = /^(?:\d+(?:[.,]\d+)?|[.,]\d+)$/
 
@@ -19,7 +24,7 @@ export function parseDecimal(text: string): number | null {
   return Number(trimmed.replace(',', '.'))
 }
 
-/** Step of the weight input in kg: the smallest plate, added to each side, on a barbell; single dumbbell increments otherwise. */
+/** Step of the weight input in kg: the smallest plate on a barbell; single dumbbell increments otherwise. */
 export function weightStep(equipment: Equipment): number {
   return equipment === 'barbell' ? 1.25 : 1
 }

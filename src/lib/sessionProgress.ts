@@ -1,6 +1,6 @@
 import type { Equipment, LastSet, PlanExercise, TargetUnit } from '../types/db'
 import { formatNumber } from './formatNumber'
-import { BAR_KG, perSideFromTotal } from './plates'
+import { BAR_KG } from './plates'
 import type { PrefillRow } from './prefill'
 import { setsOf, type Draft, type DraftSet } from './sessionDraft'
 import type { SetValues } from './setFlow'
@@ -60,9 +60,11 @@ export function startingValues({ row, previous, suggestedKg }: StartingValuesInp
   }
 }
 
-const perSideText = (totalKg: number): string => `${formatNumber(totalKg)} kg (${formatNumber(perSideFromTotal(totalKg))} per lato)`
+/** "12,5 kg", or "15 kg per lato" on a barbell. */
+const weightText = (kg: number, equipment: Equipment): string =>
+  `${formatNumber(kg)} kg${equipment === 'barbell' ? ' per lato' : ''}`
 
-/** "Ultima volta 12,5 kg × 10 · suggerito 15 ↑", or a first-time note. A barbell weight also spells out its load per side, as the logger shows it. */
+/** "Ultima volta 12,5 kg × 10 · suggerito 15 ↑", or a first-time note; a barbell weight says "per lato". */
 export function lastTimeHint(
   lastSets: readonly LastSet[],
   setNumber: number,
@@ -73,22 +75,22 @@ export function lastTimeHint(
   const reference = sorted.find((set) => set.set_number === setNumber) ?? sorted.at(-1)
   if (!reference) return 'Prima volta con questo esercizio'
 
-  const barbell = reference.equipment_used === 'barbell'
-  const weightText = (kg: number) => (barbell ? perSideText(kg) : `${formatNumber(kg)} kg`)
-  const last = `Ultima volta ${weightText(reference.weight_kg)} × ${reference.reps}${UNIT_SUFFIX[unit]}`
+  const equipment = reference.equipment_used
+  const barbell = equipment === 'barbell'
+  const last = `Ultima volta ${weightText(reference.weight_kg, equipment)} × ${reference.reps}${UNIT_SUFFIX[unit]}`
   if (suggestedKg === null) return last
-  return `${last} · suggerito ${barbell ? perSideText(suggestedKg) : formatNumber(suggestedKg)} ↑`
+  return `${last} · suggerito ${barbell ? weightText(suggestedKg, equipment) : formatNumber(suggestedKg)} ↑`
 }
 
-/** What a barbell load is made of, under the giant number: "2 × 7,5 kg + sbarra 20 kg = 35 kg". The bar is information only. */
-export const barbellTotalNote = (platesKg: number): string =>
-  `2 × ${formatNumber(perSideFromTotal(platesKg))} kg + sbarra ${BAR_KG} kg = ${formatNumber(platesKg + BAR_KG)} kg`
+/** Under the giant number: "2 × 15 kg + sbarra 20 kg = 50 kg". Information only, the weight stays the one side. */
+export const barbellTotalNote = (sideKg: number): string =>
+  `2 × ${formatNumber(sideKg)} kg + sbarra ${BAR_KG} kg = ${formatNumber(2 * sideKg + BAR_KG)} kg`
 
-/** The set about to be saved, in caps for the save button: "62,5 KG × 8", "20 KG × 30 SEC", or just "30 SEC" without a weight. */
-export function setSummary({ weight, reps }: Pick<SetValues, 'weight' | 'reps'>, unit: TargetUnit): string {
+/** The set about to be saved, in caps for the save button: "62,5 KG × 8", "15 KG PER LATO × 8", "20 KG × 30 SEC", or just "30 SEC" without a weight. */
+export function setSummary({ weight, reps, equipment }: SetValues, unit: TargetUnit): string {
   const repsText = `${reps} ${UNIT_LABEL[unit]}`.toUpperCase()
   if (weight === 0) return repsText
-  const load = `${formatNumber(weight)} KG`
+  const load = weightText(weight, equipment).toUpperCase()
   return unit === 'reps' ? `${load} × ${reps}` : `${load} × ${repsText}`
 }
 
@@ -97,15 +99,15 @@ export function targetLabel(target: Pick<PlanExercise, 'target_sets' | 'target_r
   return `${target.target_sets}×${target.target_reps}${UNIT_SUFFIX[target.target_unit]}`
 }
 
-/** "3 × 15 kg" or "2 × 15 kg · 1 × 12,5 kg": the weights of the sets, runs of the same weight collapsed. */
-export function loadLabel(weightsKg: readonly number[]): string {
+/** "3 × 15 kg" or "2 × 15 kg · 1 × 12,5 kg": the weights of the sets, runs of the same weight collapsed; "per lato" on a barbell. */
+export function loadLabel(weightsKg: readonly number[], equipment: Equipment): string {
   const runs: { weightKg: number; count: number }[] = []
   for (const weightKg of weightsKg) {
     const last = runs.at(-1)
     if (last?.weightKg === weightKg) last.count += 1
     else runs.push({ weightKg, count: 1 })
   }
-  return runs.map(({ weightKg, count }) => `${count} × ${formatNumber(weightKg)} kg`).join(' · ')
+  return runs.map(({ weightKg, count }) => `${count} × ${weightText(weightKg, equipment)}`).join(' · ')
 }
 
 export interface SummaryRow {

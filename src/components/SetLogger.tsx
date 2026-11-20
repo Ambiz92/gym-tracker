@@ -1,6 +1,5 @@
 import { useReducer, useState, type ReactNode } from 'react'
 import { formatNumber } from '../lib/formatNumber'
-import { perSideFromTotal } from '../lib/plates'
 import { repsWarning, weightStep } from '../lib/validation'
 import { flowReducer, initialFlow, repsStep, resolveValues, type Field, type SetValues } from '../lib/setFlow'
 import { barbellTotalNote, equipmentLabel, setSummary, unitLabel } from '../lib/sessionProgress'
@@ -75,7 +74,7 @@ export function SetLogger({
     else confirmWithLift(resolved.values)
   }
 
-  // On a barbell the weight is shown, stepped and typed for one side; the reducer keeps the total.
+  // On a barbell the weight is the load of one side, shown, stepped, typed and saved as is.
   const barbell = values.equipment === 'barbell'
   const weightStepKg = weightStep(values.equipment)
   const weightView: NumberView = {
@@ -105,7 +104,7 @@ export function SetLogger({
       unit: view.unit,
       unitSpoken: view.unitSpoken,
       inputMode: view.inputMode,
-      value: view.field === 'weight' && barbell ? perSideFromTotal(values.weight) : values[view.field],
+      value: values[view.field],
       editing: typing ? editing.text : null,
       error: typing ? error : null,
       onEditStart: () => dispatch({ type: 'edit-start', field: view.field }),

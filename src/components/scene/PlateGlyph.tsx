@@ -9,7 +9,7 @@ const BAR_START = 2
 const PLATE_GAP = 1
 
 interface PlateGlyphProps {
-  /** Total of the plates on both sides, bar excluded. */
+  /** Load of one side in kg. */
   weight: number
 }
 

@@ -13,23 +13,23 @@ import { scenePoint, useSlider } from './useSlider'
 const noop = () => {}
 
 describe('BarbellScene', () => {
-  it('describes the plates of one side', () => {
+  it('describes the plates of one side, the weight being the load of that side', () => {
     const html = renderToStaticMarkup(<BarbellScene weight={62.5} />)
     expect(html).toContain('role="img"')
-    expect(html).toContain('aria-label="Bilanciere con 25, 5, 1,25 kg per lato"')
+    expect(html).toContain('aria-label="Bilanciere con 25, 25, 10, 2,5 kg per lato"')
   })
 
   it('draws one group per plate, with the diameter shared by the competition plates', () => {
-    const html = renderToStaticMarkup(<BarbellScene weight={80} />)
+    const html = renderToStaticMarkup(<BarbellScene weight={40} />)
     expect(html.match(/class="plate-g /g)).toHaveLength(2)
     expect(html).toContain('plate-tone--25')
     expect(html).toContain('plate-tone--15')
   })
 
-  it('draws the plates of half the weight, with no bar to subtract', () => {
+  it('draws the plates of the weight itself, with no halving and no bar to subtract', () => {
     const html = renderToStaticMarkup(<BarbellScene weight={15} />)
-    expect(html).toContain('aria-label="Bilanciere con 5, 2,5 kg per lato"')
-    expect(html.match(/class="plate-g /g)).toHaveLength(2)
+    expect(html).toContain('aria-label="Bilanciere con 15 kg per lato"')
+    expect(html.match(/class="plate-g /g)).toHaveLength(1)
   })
 
   it('draws the bare bar without a weight', () => {
@@ -40,7 +40,7 @@ describe('BarbellScene', () => {
 
   it('says so when the plates cannot reach the weight', () => {
     const unreachable = renderToStaticMarkup(<BarbellScene weight={3} />)
-    expect(unreachable).toContain('Bilanciere con 1,25 kg per lato. Il peso di 3 kg non si ottiene esattamente con i dischi')
+    expect(unreachable).toContain('Bilanciere con 2,5 kg per lato. Il peso di 3 kg per lato non si ottiene esattamente con i dischi')
   })
 })
 
@@ -132,11 +132,12 @@ describe('PlateGlyph', () => {
   it('is decorative and draws the plates of the load', () => {
     const html = renderToStaticMarkup(<PlateGlyph weight={62.5} />)
     expect(html).toContain('aria-hidden="true"')
-    expect(html.match(/class="plate /g)).toHaveLength(3)
+    expect(html.match(/class="plate /g)).toHaveLength(4)
   })
 
-  it('draws the plates of one side, half of the weight', () => {
-    expect(renderToStaticMarkup(<PlateGlyph weight={15} />).match(/class="plate /g)).toHaveLength(2)
+  it('draws the plates of one side for the weight itself', () => {
+    expect(renderToStaticMarkup(<PlateGlyph weight={15} />).match(/class="plate /g)).toHaveLength(1)
+    expect(renderToStaticMarkup(<PlateGlyph weight={62.5} />).match(/class="plate /g)).toHaveLength(4)
   })
 
   it('draws just the bar without a weight', () => {

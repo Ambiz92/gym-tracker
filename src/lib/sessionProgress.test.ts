@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { LastSet } from '../types/db'
+import type { Equipment, LastSet } from '../types/db'
 import { addSet, ackWorkout, newDraft, removeSet, type Draft } from './sessionDraft'
 import {
   barbellTotalNote,
@@ -54,6 +54,11 @@ describe('startingValues', () => {
     expect(startingValues({ row, previous: undefined, suggestedKg: 15 })).toEqual({ weight: 15, reps: 8, equipment: 'barbell' })
   })
 
+  it('opens a barbell on the last weight as it was saved, which is the load of one side', () => {
+    const lastTime = { set_number: 1, reps: 10, weight_kg: 15, equipment_used: 'barbell' as const }
+    expect(startingValues({ row: lastTime, previous: undefined, suggestedKg: null })).toEqual({ weight: 15, reps: 10, equipment: 'barbell' })
+  })
+
   it('falls back to the prefill weight, then to zero', () => {
     expect(startingValues({ row, previous: undefined, suggestedKg: null }).weight).toBe(12.5)
     expect(startingValues({ row: { ...row, weight_kg: null }, previous: undefined, suggestedKg: null }).weight).toBe(0)
@@ -66,9 +71,9 @@ describe('startingValues', () => {
 })
 
 describe('barbellTotalNote', () => {
-  it('spells out the two sides and the bar, which is only information', () => {
-    expect(barbellTotalNote(15)).toBe('2 × 7,5 kg + sbarra 20 kg = 35 kg')
-    expect(barbellTotalNote(62.5)).toBe('2 × 31,25 kg + sbarra 20 kg = 82,5 kg')
+  it('spells out the total of the two sides and the bar, which is only information', () => {
+    expect(barbellTotalNote(15)).toBe('2 × 15 kg + sbarra 20 kg = 50 kg')
+    expect(barbellTotalNote(62.5)).toBe('2 × 62,5 kg + sbarra 20 kg = 145 kg')
     expect(barbellTotalNote(0)).toBe('2 × 0 kg + sbarra 20 kg = 20 kg')
   })
 })
@@ -87,11 +92,11 @@ describe('lastTimeHint', () => {
     expect(lastTimeHint([last(1, 20, 40)], 1, 'meters', null)).toBe('Ultima volta 40 kg × 20 m')
   })
 
-  it('spells out the load per side of a barbell weight, because the logger shows one side', () => {
+  it('says "per lato" on a barbell weight, which is the load of one side', () => {
     expect(lastTimeHint([last(1, 10, 15, 'barbell')], 1, 'reps', 17.5)).toBe(
-      'Ultima volta 15 kg (7,5 per lato) × 10 · suggerito 17,5 kg (8,75 per lato) ↑',
+      'Ultima volta 15 kg per lato × 10 · suggerito 17,5 kg per lato ↑',
     )
-    expect(lastTimeHint([last(1, 10, 15, 'barbell')], 1, 'reps', null)).toBe('Ultima volta 15 kg (7,5 per lato) × 10')
+    expect(lastTimeHint([last(1, 10, 15, 'barbell')], 1, 'reps', null)).toBe('Ultima volta 15 kg per lato × 10')
   })
 
   it('says so on the first time', () => {
@@ -113,26 +118,37 @@ describe('labels', () => {
 })
 
 describe('setSummary', () => {
+  const values = (weight: number, reps: number, equipment: Equipment = 'dumbbell') => ({ weight, reps, equipment })
+
   it('writes the weight and the reps in caps', () => {
-    expect(setSummary({ weight: 62.5, reps: 8 }, 'reps')).toBe('62,5 KG × 8')
+    expect(setSummary(values(62.5, 8), 'reps')).toBe('62,5 KG × 8')
+  })
+
+  it('says "per lato" on a barbell weight', () => {
+    expect(setSummary(values(15, 10, 'barbell'), 'reps')).toBe('15 KG PER LATO × 10')
+    expect(setSummary(values(15, 30, 'barbell'), 'seconds')).toBe('15 KG PER LATO × 30 SEC')
   })
 
   it('names the unit of a timed or distance set', () => {
-    expect(setSummary({ weight: 20, reps: 30 }, 'seconds')).toBe('20 KG × 30 SEC')
-    expect(setSummary({ weight: 15, reps: 40 }, 'meters')).toBe('15 KG × 40 M')
+    expect(setSummary(values(20, 30), 'seconds')).toBe('20 KG × 30 SEC')
+    expect(setSummary(values(15, 40), 'meters')).toBe('15 KG × 40 M')
   })
 
   it('leaves the weight out when there is none', () => {
-    expect(setSummary({ weight: 0, reps: 30 }, 'seconds')).toBe('30 SEC')
-    expect(setSummary({ weight: 0, reps: 12 }, 'reps')).toBe('12 RIP')
+    expect(setSummary(values(0, 30), 'seconds')).toBe('30 SEC')
+    expect(setSummary(values(0, 12, 'barbell'), 'reps')).toBe('12 RIP')
   })
 })
 
 describe('loadLabel', () => {
   it('collapses runs of the same weight', () => {
-    expect(loadLabel([15, 15, 12.5])).toBe('2 × 15 kg · 1 × 12,5 kg')
-    expect(loadLabel([30, 30, 30])).toBe('3 × 30 kg')
-    expect(loadLabel([20, 22.5, 20])).toBe('1 × 20 kg · 1 × 22,5 kg · 1 × 20 kg')
+    expect(loadLabel([15, 15, 12.5], 'dumbbell')).toBe('2 × 15 kg · 1 × 12,5 kg')
+    expect(loadLabel([30, 30, 30], 'other')).toBe('3 × 30 kg')
+    expect(loadLabel([20, 22.5, 20], 'dumbbell')).toBe('1 × 20 kg · 1 × 22,5 kg · 1 × 20 kg')
+  })
+
+  it('says "per lato" on a barbell, whose weights are the load of one side', () => {
+    expect(loadLabel([15, 15, 12.5], 'barbell')).toBe('2 × 15 kg per lato · 1 × 12,5 kg per lato')
   })
 })
 

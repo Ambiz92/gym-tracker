@@ -11,11 +11,11 @@ const MIN_LABEL_THICKNESS = 14
 function describeLoad(weight: number, plates: readonly Plate[], exact: boolean): string {
   const load = plates.length > 0 ? `Bilanciere con ${plates.map((plate) => formatNumber(plate.kg)).join(', ')} kg per lato` : 'Bilanciere senza dischi'
   if (exact) return load
-  return `${load}. Il peso di ${formatNumber(weight)} kg non si ottiene esattamente con i dischi`
+  return `${load}. Il peso di ${formatNumber(weight)} kg per lato non si ottiene esattamente con i dischi`
 }
 
 interface BarbellSceneProps {
-  /** Total of the plates on both sides, bar excluded. */
+  /** Load of one side in kg. */
   weight: number
 }
 

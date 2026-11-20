@@ -56,7 +56,7 @@ export function SessionSummary({ sessionName, backTo, minutes, rows, notes, onNo
                     <span className="summary-row__name">{row.name}</span>
                     <small className="summary-row__load">
                       {row.equipment === 'barbell' && <PlateGlyph weight={row.weightKg} />}
-                      {loadLabel(row.weightsKg)}
+                      {loadLabel(row.weightsKg, row.equipment)}
                     </small>
                   </span>
                   <span className={delta.accent ? 'summary-row__chip summary-row__chip--up' : 'summary-row__chip'}>

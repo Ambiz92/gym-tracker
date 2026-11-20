@@ -46,7 +46,7 @@ export function ExerciseDetail({ name, equipment, muscles, executionSteps, unit,
             <tr>
               <th scope="col">Serie</th>
               <th scope="col">{unitLabel(unit)}</th>
-              <th scope="col">Kg</th>
+              <th scope="col">{equipment === 'barbell' ? 'Kg per lato' : 'Kg'}</th>
             </tr>
           </thead>
           <tbody>
