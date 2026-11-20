@@ -28,6 +28,7 @@ function planExercise(id: string, name: string): PlanExerciseDetail {
       notes: null,
       starting_weight_kg: null,
       archived: false,
+      catalog_id: null,
     },
   }
 }

@@ -27,12 +27,29 @@ export interface Exercise {
   notes: string | null
   starting_weight_kg: number | null
   archived: boolean
+  /** The catalog entry this exercise was copied from; null for a personal one. */
+  catalog_id: string | null
 }
 export type ExerciseInsert = Insert<
   Exercise,
-  'id' | 'muscles' | 'execution_steps' | 'notes' | 'starting_weight_kg' | 'archived'
+  'id' | 'muscles' | 'execution_steps' | 'notes' | 'starting_weight_kg' | 'archived' | 'catalog_id'
 >
 export type ExerciseUpdate = Update<Exercise>
+
+/** A read-only standard exercise: choosing it copies it into the user's own `exercise` rows. */
+export interface CatalogExercise {
+  id: string
+  slug: string
+  name_it: string
+  name_en: string
+  synonyms: string[]
+  equipment: Equipment
+  primary_muscle: string
+  secondary_muscles: string[]
+  execution_steps: string | null
+  source: string
+  source_id: string
+}
 
 export interface Plan {
   id: string

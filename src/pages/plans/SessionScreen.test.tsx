@@ -12,7 +12,7 @@ const inRouter = (node: ReactNode) => renderToStaticMarkup(<MemoryRouter>{node}<
 const noop = () => {}
 
 function exercise(id: string): Exercise {
-  return { id, owner_id: 'u1', name: `Esercizio ${id}`, equipment: 'barbell', muscles: null, execution_steps: null, notes: null, starting_weight_kg: null, archived: false }
+  return { id, owner_id: 'u1', name: `Esercizio ${id}`, equipment: 'barbell', muscles: null, execution_steps: null, notes: null, starting_weight_kg: null, archived: false, catalog_id: null }
 }
 
 function row(id: string, overrides: Partial<PlanExerciseDetail> = {}): PlanExerciseDetail {

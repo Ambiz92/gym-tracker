@@ -13,6 +13,7 @@ function exercise(name: string, overrides: Partial<Exercise> = {}): Exercise {
     notes: null,
     starting_weight_kg: null,
     archived: false,
+    catalog_id: null,
     ...overrides,
   }
 }
