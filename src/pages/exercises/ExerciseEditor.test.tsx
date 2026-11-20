@@ -16,6 +16,7 @@ const exercise: Exercise = {
   notes: null,
   starting_weight_kg: null,
   archived: false,
+  catalog_id: null,
 }
 
 const render = (value: Exercise | null) =>

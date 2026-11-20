@@ -8,7 +8,7 @@ const owner = { owner_id: 'u1' }
 // One fully typed row per table: adding a column to a row type breaks this file until CSV_COLUMNS follows.
 const sample: ExportTables = {
   exercise: [
-    { id: 'e1', ...owner, name: 'Rematore, bilanciere', equipment: 'barbell', muscles: null, execution_steps: null, notes: '=HYPERLINK("x")', starting_weight_kg: 25, archived: true },
+    { id: 'e1', ...owner, name: 'Rematore, bilanciere', equipment: 'barbell', muscles: null, execution_steps: null, notes: '=HYPERLINK("x")', starting_weight_kg: 25, archived: true, catalog_id: null },
   ],
   plan: [{ id: 'p1', ...owner, name: 'Forza', is_active: true, archived: false }],
   plan_session: [{ id: 's1', ...owner, plan_id: 'p1', name: 'A', subtitle: null, position: 1, is_optional: false, archived: false }],
@@ -38,7 +38,7 @@ describe('buildCsvFiles', () => {
     const exercise = files[0]!
     expect(exercise.rowCount).toBe(1)
     const [, row] = exercise.content.split('\r\n')
-    expect(row).toBe('e1,u1,"Rematore, bilanciere",barbell,,,"\'=HYPERLINK(""x"")",25,true')
+    expect(row).toBe('e1,u1,"Rematore, bilanciere",barbell,,,"\'=HYPERLINK(""x"")",25,true,')
   })
 
   test('an empty table still has its header', () => {

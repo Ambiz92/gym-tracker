@@ -118,6 +118,7 @@ describe('formFromExercise', () => {
     notes: null,
     starting_weight_kg: 12.5,
     archived: false,
+    catalog_id: null,
   }
 
   it('fills the form with an Italian decimal and split steps', () => {
