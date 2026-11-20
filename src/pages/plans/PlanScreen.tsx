@@ -1,27 +1,13 @@
 import { useState, type Dispatch, type SetStateAction } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { SessionHeader } from '../../components/SessionHeader'
-import type { EditablePlan, PlanDetail } from '../../data/activePlan'
-import {
-  addSession,
-  archivePlan,
-  deletePlan,
-  duplicatePlan,
-  renamePlan,
-  reorderSessions,
-  restorePlan,
-  restoreSession,
-  setActivePlan,
-} from '../../data/plans'
-import { useAction } from '../../hooks/useAction'
+import type { EditablePlan } from '../../data/activePlan'
 import { countLabel } from '../../lib/planList'
-import { moveItem, moveTo } from '../../lib/reorder'
 import { ArchivedSessions } from './ArchivedSessions'
-import { describePlanError } from './errors'
 import { NameForm } from './NameForm'
 import { PlanManage } from './PlanManage'
 import { SessionRows } from './SessionRows'
+import { usePlanActions } from './usePlanActions'
 import '../../styles/plans.css'
 
 function statusLabel(plan: EditablePlan): string {
@@ -39,79 +25,16 @@ interface PlanScreenProps {
 
 /** One plan: rename, activate, duplicate, archive or delete it, and add, reorder or restore its sessions. */
 export function PlanScreen({ plan, onChange: setPlan }: PlanScreenProps) {
-  const navigate = useNavigate()
   const [panel, setPanel] = useState<Panel>(null)
-  const edit = useAction(describePlanError)
-  const danger = useAction(describePlanError)
-  const sessions = useAction(describePlanError)
-  const busy = edit.busy || danger.busy || sessions.busy
+  const actions = usePlanActions(plan, setPlan)
+  const { edit, danger, sessions, busy } = actions
 
   async function handleRename(name: string) {
-    if (!(await edit.run(() => renamePlan(plan.id, name), 'Rinomina non riuscita. Riprova.'))) return
-    setPlan((current) => ({ ...current, name }))
-    setPanel(null)
-  }
-
-  async function handleActivate() {
-    const failure =
-      'Attivazione non riuscita. Controlla la connessione: se in Schede nessuna risulta attiva, riprova ad attivarne una.'
-    if (await edit.run(() => setActivePlan(plan.id), failure)) setPlan((current) => ({ ...current, is_active: true }))
-  }
-
-  async function handleArchive(archived: boolean) {
-    const done = await danger.run(
-      () => (archived ? archivePlan(plan.id) : restorePlan(plan.id)),
-      archived ? 'Archiviazione non riuscita. Riprova.' : 'Ripristino non riuscito. Riprova.',
-    )
-    if (done) setPlan((current) => ({ ...current, archived, is_active: false }))
-  }
-
-  async function handleDelete() {
-    if (await danger.run(() => deletePlan(plan.id), 'Eliminazione non riuscita. Riprova.')) navigate('/plans')
+    if (await actions.rename(name)) setPanel(null)
   }
 
   async function handleAddSession(name: string) {
-    const added = await sessions.run(async () => {
-      const session = await addSession(plan.id, { name })
-      setPlan((current) => ({ ...current, sessions: [...current.sessions, { ...session, exercises: [], warmup: [] }] }))
-    }, 'Aggiunta non riuscita. Controlla la connessione e riprova.')
-    if (added) setPanel(null)
-  }
-
-  async function applyOrder(reordered: PlanDetail['sessions']) {
-    // The archived sessions go last in the payload: they keep their rows in the unique position index.
-    const done = await sessions.run(
-      () => reorderSessions([...reordered, ...plan.archivedSessions]),
-      'Riordino non riuscito. Riprova.',
-    )
-    if (done) setPlan((current) => ({ ...current, sessions: reordered }))
-  }
-
-  const handleMove = (index: number, offset: -1 | 1) => applyOrder(moveItem(plan.sessions, index, offset))
-  const handleReorder = (from: number, to: number) => applyOrder(moveTo(plan.sessions, from, to))
-
-  async function handleRestoreSession(id: string) {
-    let position = 0
-    const done = await sessions.run(async () => {
-      position = await restoreSession(plan.id, id)
-    }, 'Ripristino non riuscito. Riprova.')
-    if (!done) return
-    setPlan((current) => {
-      const restored = current.archivedSessions.find((session) => session.id === id)
-      if (!restored) return current
-      return {
-        ...current,
-        sessions: [...current.sessions, { ...restored, archived: false, position }],
-        archivedSessions: current.archivedSessions.filter((session) => session.id !== id),
-      }
-    })
-  }
-
-  async function handleDuplicate() {
-    await edit.run(async () => {
-      const copy = await duplicatePlan(plan.id)
-      navigate(`/plans/${copy.id}`)
-    }, 'Duplicazione non riuscita. Controlla la connessione e riprova.')
+    if (await actions.addNewSession(name)) setPanel(null)
   }
 
   return (
@@ -142,14 +65,14 @@ export function PlanScreen({ plan, onChange: setPlan }: PlanScreenProps) {
       ) : (
         <div className="plans-actions">
           {!plan.archived && !plan.is_active && (
-            <PrimaryButton busy={edit.busy} disabled={busy} onClick={handleActivate}>
+            <PrimaryButton busy={edit.busy} disabled={busy} onClick={() => void actions.activate()}>
               Imposta come attiva
             </PrimaryButton>
           )}
           <PrimaryButton variant="outline" disabled={busy} onClick={() => setPanel('rename')}>
             Rinomina
           </PrimaryButton>
-          <PrimaryButton variant="outline" disabled={busy} onClick={handleDuplicate}>
+          <PrimaryButton variant="outline" disabled={busy} onClick={() => void actions.duplicate()}>
             Duplica scheda
           </PrimaryButton>
         </div>
@@ -161,7 +84,13 @@ export function PlanScreen({ plan, onChange: setPlan }: PlanScreenProps) {
           {sessions.error}
         </p>
       )}
-      <SessionRows planId={plan.id} sessions={plan.sessions} busy={busy} onMove={handleMove} onReorder={handleReorder} />
+      <SessionRows
+        planId={plan.id}
+        sessions={plan.sessions}
+        busy={busy}
+        onMove={actions.moveSession}
+        onReorder={actions.reorderSession}
+      />
       {panel === 'add-session' ? (
         <NameForm
           noun="sessione"
@@ -179,15 +108,15 @@ export function PlanScreen({ plan, onChange: setPlan }: PlanScreenProps) {
         </div>
       )}
 
-      <ArchivedSessions sessions={plan.archivedSessions} busy={busy} onRestore={handleRestoreSession} />
+      <ArchivedSessions sessions={plan.archivedSessions} busy={busy} onRestore={actions.restoreArchivedSession} />
 
       <PlanManage
         name={plan.name}
         archived={plan.archived}
         busy={busy}
         error={danger.error}
-        onArchive={handleArchive}
-        onDelete={handleDelete}
+        onArchive={actions.archive}
+        onDelete={actions.remove}
       />
     </>
   )
