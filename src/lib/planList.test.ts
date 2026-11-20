@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countLabel, groupPlans, planDetail, planListSignature } from './planList'
+import { countLabel, groupPlans, planCounts, planDetail, planListSignature } from './planList'
 
 const plan = (name: string, is_active = false, archived = false) => ({ name, is_active, archived })
 
@@ -27,6 +27,16 @@ describe('labels', () => {
   it('describes a plan by its counts', () => {
     expect(planDetail({ sessionCount: 3, exerciseCount: 19 })).toBe('3 sessioni · 19 esercizi')
     expect(planDetail({ sessionCount: 1, exerciseCount: 1 })).toBe('1 sessione · 1 esercizio')
+  })
+})
+
+describe('planCounts', () => {
+  it('counts sessions and the exercises across them', () => {
+    expect(planCounts({ sessions: [{ exercises: [{}, {}] }, { exercises: [{}] }, { exercises: [] }] })).toEqual({
+      sessionCount: 3,
+      exerciseCount: 3,
+    })
+    expect(planCounts({ sessions: [] })).toEqual({ sessionCount: 0, exerciseCount: 0 })
   })
 })
 

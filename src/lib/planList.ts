@@ -19,10 +19,18 @@ export function countLabel(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`
 }
 
+type WithSessions = { sessions: readonly { exercises: readonly unknown[] }[] }
+
+/** Live sessions and exercises of a plan, as the list rows and the builder footer count them. */
+export function planCounts(plan: WithSessions): { sessionCount: number; exerciseCount: number } {
+  const exerciseCount = plan.sessions.reduce((total, session) => total + session.exercises.length, 0)
+  return { sessionCount: plan.sessions.length, exerciseCount }
+}
+
 /** What the plan list shows of a plan: when this changes, the list is stale. */
-export function planListSignature(plan: Pick<Plan, 'name' | 'is_active' | 'archived'> & { sessions: readonly { exercises: readonly unknown[] }[] }): string {
-  const exercises = plan.sessions.reduce((total, session) => total + session.exercises.length, 0)
-  return JSON.stringify([plan.name, plan.is_active, plan.archived, plan.sessions.length, exercises])
+export function planListSignature(plan: Pick<Plan, 'name' | 'is_active' | 'archived'> & WithSessions): string {
+  const { sessionCount, exerciseCount } = planCounts(plan)
+  return JSON.stringify([plan.name, plan.is_active, plan.archived, sessionCount, exerciseCount])
 }
 
 /** Second line of a plan row: "3 sessioni · 19 esercizi". */
