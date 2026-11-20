@@ -13,6 +13,7 @@ export interface Check {
 type Verdict = Pick<Check, 'pass' | 'detail'>
 
 const PERMISSION_DENIED = '42501'
+const UNIQUE_VIOLATION = '23505'
 
 function describeError(error: NonNullable<Outcome['error']>): string {
   return `error ${error.code || 'none'}: ${error.message}`
@@ -38,6 +39,26 @@ export function judgeWrite({ data, error }: Outcome): Verdict {
     return { pass: denied, detail: describeError(error) }
   }
   return { pass: false, detail: `not denied, response data: ${JSON.stringify(data)}` }
+}
+
+/** A signed-in read must succeed. An empty result is fine here: the catalog may not be seeded yet. */
+export function judgeSignedInRead({ data, error }: Outcome): Verdict {
+  if (error) return { pass: false, detail: describeError(error) }
+  if (!Array.isArray(data)) return { pass: false, detail: `unexpected response: ${JSON.stringify(data)}` }
+  return { pass: true, detail: `${data.length} rows` }
+}
+
+/** The restrictive policy must hide the rows: HTTP 200 and nothing, not a permission error. */
+export function judgeHiddenByPolicy({ data, error }: Outcome): Verdict {
+  if (error) return { pass: false, detail: describeError(error) }
+  if (Array.isArray(data) && data.length === 0) return { pass: true, detail: 'empty result' }
+  return { pass: false, detail: `returned data: ${JSON.stringify(data)}` }
+}
+
+/** The unique index must refuse a second row with the same key. */
+export function judgeDuplicate({ data, error }: Outcome): Verdict {
+  if (error) return { pass: error.code === UNIQUE_VIOLATION, detail: describeError(error) }
+  return { pass: false, detail: `duplicate accepted: ${JSON.stringify(data)}` }
 }
 
 /** Sign-ups must be refused by the project, not by an email validator. */
