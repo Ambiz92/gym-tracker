@@ -1,5 +1,6 @@
 import { HashRouter, Outlet, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
+import type { OAuthReturn } from './auth/oauthReturn'
 import { AuthStep, RequireAuth } from './auth/RequireAuth'
 import { AuthLayout } from './components/AuthLayout'
 import { Layout } from './components/Layout'
@@ -46,16 +47,18 @@ export function AppRoutes() {
               </AuthStep>
             }
           />
-          <Route
-            path="/login/enroll"
-            element={
-              <AuthStep path="/login/enroll">
-                <MfaEnroll />
-              </AuthStep>
-            }
-          />
         </Route>
         <Route element={<RequireAuth />}>
+          {/* Voluntary: nothing links here, since a session without a factor is already signed in. */}
+          <Route
+            element={
+              <AuthLayout>
+                <Outlet />
+              </AuthLayout>
+            }
+          >
+            <Route path="/login/enroll" element={<MfaEnroll />} />
+          </Route>
           <Route
             element={
               <Layout>
@@ -83,9 +86,9 @@ export function AppRoutes() {
 }
 
 // HashRouter: GitHub Pages has no SPA fallback for deep links.
-export function App() {
+export function App({ oauthReturn }: { oauthReturn: OAuthReturn | null }) {
   return (
-    <AuthProvider api={supabase.auth}>
+    <AuthProvider api={supabase.auth} oauthReturn={oauthReturn}>
       <HashRouter>
         <AppRoutes />
       </HashRouter>

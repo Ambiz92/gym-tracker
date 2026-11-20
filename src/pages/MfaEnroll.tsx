@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { CodeForm } from '../auth/CodeForm'
 import type { Enrollment } from '../auth/flow'
@@ -7,9 +8,14 @@ import { useFormAction } from '../auth/useFormAction'
 import { PageHeader } from '../components/PageHeader'
 import { PrimaryButton } from '../components/PrimaryButton'
 
-/** One-time setup of the authenticator app, shown when the account has no verified TOTP factor. */
+/**
+ * Optional setup of an authenticator app; once verified, every later login asks for its code.
+ * A user who already has a verified factor may open it too: only unverified factors are dropped,
+ * and Supabase asks for aal2 before adding another.
+ */
 export function MfaEnroll() {
-  const { startEnrollment, verifyEnrollment, signOut } = useAuth()
+  const { startEnrollment, verifyEnrollment } = useAuth()
+  const navigate = useNavigate()
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null)
   const { busy, error, run } = useFormAction()
 
@@ -23,13 +29,24 @@ export function MfaEnroll() {
     })
   }
 
+  // The status stays signed_in after the first code, so nothing redirects away on its own.
+  async function confirm(factorId: string, code: string) {
+    const failure = await verifyEnrollment(factorId, code)
+    if (!failure) goHome()
+    return failure
+  }
+
+  function goHome() {
+    navigate('/', { replace: true })
+  }
+
   return (
     <>
       <PageHeader
         meta="Gym Tracker"
-        metaEnd="Passo 2 / 2"
+        metaEnd="Sicurezza"
         title="Collega l’app."
-        subtitle="Prima volta: serve un’app Authenticator"
+        subtitle="Facoltativo: un codice in più a ogni accesso"
       />
       {enrollment ? (
         <>
@@ -41,7 +58,7 @@ export function MfaEnroll() {
           <p className="field__message">
             Non riesci a inquadrarlo? Inserisci questa chiave a mano: <code style={{ wordBreak: 'break-all' }}>{enrollment.secret}</code>
           </p>
-          <CodeForm onSubmit={(code) => verifyEnrollment(enrollment.factorId, code)} />
+          <CodeForm onSubmit={(code) => confirm(enrollment.factorId, code)} onBack={goHome} />
         </>
       ) : (
         <>
@@ -50,7 +67,7 @@ export function MfaEnroll() {
             <PrimaryButton busy={busy} onClick={start}>
               Mostra il codice QR
             </PrimaryButton>
-            <PrimaryButton variant="outline" disabled={busy} onClick={() => void run(signOut)}>
+            <PrimaryButton variant="outline" disabled={busy} onClick={goHome}>
               Indietro
             </PrimaryButton>
           </FormActions>

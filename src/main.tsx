@@ -4,6 +4,7 @@ import './styles/tokens.css'
 import './styles/global.css'
 import './styles/components.css'
 import { App } from './App'
+import { takeOAuthReturn } from './auth/oauthReturn'
 // After App, whose screens import their own sheets: the desktop rules must override them all.
 import './styles/desktop.css'
 
@@ -16,8 +17,11 @@ if (window.top !== window.self) {
   throw new Error('Framed: refusing to start')
 }
 
+// Read before the router starts: a refusal puts its error in the hash, which HashRouter would take for a route.
+const oauthReturn = takeOAuthReturn(window)
+
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <App oauthReturn={oauthReturn} />
   </StrictMode>,
 )

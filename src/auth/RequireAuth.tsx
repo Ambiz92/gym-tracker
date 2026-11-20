@@ -9,7 +9,7 @@ function Loading() {
   return <Skeleton label="Caricamento…" />
 }
 
-/** Route guard: only an aal2 session reaches the app; everyone else goes to the step they are on. */
+/** Route guard: only a signed-in session reaches the app; everyone else goes to the step they are on. */
 export function RequireAuth() {
   const { status } = useAuth()
   if (status === 'signed_in') return <Outlet />

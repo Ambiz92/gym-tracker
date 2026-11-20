@@ -1,6 +1,7 @@
 import { type AuthErrorLike, type AuthFailure, type AuthStep, classifyError, failure } from './errors'
+import type { OAuthReturn } from './oauthReturn'
 
-export type AuthStatus = 'loading' | 'signed_out' | 'needs_mfa' | 'needs_enroll' | 'signed_in'
+export type AuthStatus = 'loading' | 'signed_out' | 'needs_mfa' | 'signed_in'
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: AuthFailure }
 
@@ -17,6 +18,8 @@ type Reply<T> = Promise<{ data: T | null; error: AuthErrorLike | null }>
 /** The slice of supabase-js `auth` this app uses; tests implement it with a fake. */
 export interface AuthApi {
   signInWithPassword(credentials: { email: string; password: string }): Promise<{ error: AuthErrorLike | null }>
+  signInWithOAuth(credentials: { provider: 'google'; options: { redirectTo: string } }): Promise<{ error: AuthErrorLike | null }>
+  exchangeCodeForSession(authCode: string, options?: { flowId?: string }): Promise<{ error: AuthErrorLike | null }>
   signOut(options: { scope: 'local' }): Promise<{ error: AuthErrorLike | null }>
   getSession(): Promise<{ data: { session: { user: { email?: string } } | null }; error: AuthErrorLike | null }>
   onAuthStateChange(callback: (event: string) => void): { data: { subscription: { unsubscribe(): void } } }
@@ -39,10 +42,13 @@ export function normalizeCode(raw: string): string {
   return raw.replace(/\D/g, '').slice(0, CODE_LENGTH)
 }
 
-/** Only an aal2 session is logged in; aal1 needs the code, or the enrollment when no factor is verified. */
+/**
+ * aal1 needs the code only when a verified factor exists (nextLevel aal2); without one the user is in.
+ * The owner's account relies on its factor: if it were ever removed, a password alone would sign in.
+ */
 export function statusFromAssurance(currentLevel: string | null, nextLevel: string | null): AuthStatus {
   if (currentLevel === 'aal2') return 'signed_in'
-  if (currentLevel === 'aal1') return nextLevel === 'aal2' ? 'needs_mfa' : 'needs_enroll'
+  if (currentLevel === 'aal1') return nextLevel === 'aal2' ? 'needs_mfa' : 'signed_in'
   return 'signed_out'
 }
 
@@ -55,8 +61,6 @@ export function stepPath(status: AuthStatus): string | null {
       return '/login'
     case 'needs_mfa':
       return '/login/code'
-    case 'needs_enroll':
-      return '/login/enroll'
     case 'signed_in':
       return '/'
   }
@@ -109,7 +113,27 @@ export function signIn(api: AuthApi, email: string, password: string): Promise<R
   })
 }
 
-function incompleteCode(): { ok: false; error: AuthFailure } {
+/** Sends the browser to Google; supabase-js navigates away, so success means the page is about to unload. */
+export function signInWithGoogle(api: AuthApi, redirectTo: string): Promise<Result<null>> {
+  return guarded(async () => {
+    const { error } = await api.signInWithOAuth({ provider: 'google', options: { redirectTo } })
+    if (error) return fail(error, 'oauth')
+    return { ok: true, value: null }
+  })
+}
+
+/** Finishes the return from Google: exchanges the PKCE code for a session, or reports the refusal. */
+export function completeOAuthReturn(api: AuthApi, returned: OAuthReturn): Promise<Result<AuthStatus>> {
+  if ('error' in returned) return Promise.resolve(fail(returned.error, 'oauth'))
+
+  return guarded(async () => {
+    const { error } = await api.exchangeCodeForSession(returned.code, { flowId: returned.flowId })
+    if (error) return fail(error, 'oauth')
+    return resolveStatus(api, 'oauth')
+  })
+}
+
+function incompleteCode():{ ok: false; error: AuthFailure } {
   return { ok: false, error: failure('invalid_code', `Inserisci le ${CODE_LENGTH} cifre del codice.`) }
 }
 

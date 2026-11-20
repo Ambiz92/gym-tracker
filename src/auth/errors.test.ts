@@ -35,3 +35,22 @@ test('an expired session is reported as such on any step', () => {
 test('an unexpected client error outside the login steps is not blamed on the user', () => {
   expect(classifyError({ message: 'x', status: 422, code: 'too_many_enrolled_mfa_factors' }, 'other').kind).toBe('unavailable')
 })
+
+test.each([
+  [{ message: 'Signups not allowed for this instance', code: 'signup_disabled' }],
+  [{ message: 'Signups not allowed for this instance' }],
+  [{ message: 'signup not allowed for this instance' }],
+])('%j on the Google return means the account was not invited', (error) => {
+  expect(classifyError(error, 'oauth')).toEqual({ kind: 'not_invited', message: 'Questo account Google non è stato invitato.' })
+})
+
+test('other Google failures are generic, but rate limits and outages keep their own message', () => {
+  expect(classifyError({ message: 'access denied', code: 'access_denied' }, 'oauth').kind).toBe('oauth_failed')
+  expect(classifyError({ message: 'PKCE code verifier not found', name: 'AuthPKCECodeVerifierMissingError' }, 'oauth').kind).toBe('oauth_failed')
+  expect(classifyError({ message: 'x', status: 429 }, 'oauth').kind).toBe('rate_limited')
+  expect(classifyError({ message: 'x', status: 502 }, 'oauth').kind).toBe('unavailable')
+})
+
+test('a signup refusal is only recognised on the Google step', () => {
+  expect(classifyError({ message: 'Signups not allowed', code: 'signup_disabled' }, 'password').kind).toBe('invalid_credentials')
+})

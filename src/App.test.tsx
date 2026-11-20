@@ -12,7 +12,7 @@ function renderAt(path: string, status: AuthStatus = 'signed_in') {
   const unused = () => Promise.reject(new Error('not used when rendering'))
   return renderToStaticMarkup(
     <AuthContext.Provider
-      value={{ status, email: null, signIn: unused, verifyCode: unused, startEnrollment: unused, verifyEnrollment: unused, signOut: unused }}
+      value={{ status, email: null, oauthError: null, clearOauthError: () => undefined, signIn: unused, signInWithGoogle: unused, verifyCode: unused, startEnrollment: unused, verifyEnrollment: unused, signOut: unused }}
     >
       <MemoryRouter initialEntries={[path]}>
         <AppRoutes />
@@ -24,7 +24,7 @@ function renderAt(path: string, status: AuthStatus = 'signed_in') {
 test.each([
   ['/login', 'signed_out', 'Entra.'],
   ['/login/code', 'needs_mfa', 'Il codice.'],
-  ['/login/enroll', 'needs_enroll', 'Collega l’app.'],
+  ['/login/enroll', 'signed_in', 'Collega l’app.'],
 ] as const)('%s renders in the auth layout: a main landmark, no navigation', (path, status, title) => {
   const html = renderAt(path, status)
   expect(html).toContain('<main')
@@ -35,11 +35,21 @@ test.each([
 test.each([
   ['signed_out', '/'],
   ['needs_mfa', '/more'],
-  ['needs_enroll', '/plans'],
 ] as const)('%s never shows the app at %s', (status, path) => {
   const html = renderAt(path, status)
   expect(html).not.toContain('<nav')
   expect(html).not.toContain('<main')
+})
+
+test('a signed-out visitor to any path is offered the Google button on the login', () => {
+  expect(renderAt('/login', 'signed_out')).toContain('Continua con Google')
+})
+
+test('the voluntary enrollment is for a signed-in session only', () => {
+  for (const status of ['signed_out', 'needs_mfa'] as const) {
+    const html = renderAt('/login/enroll', status)
+    expect(html).not.toContain('Collega l’app.')
+  }
 })
 
 test('while the stored session is read, the app shows a status line and no screen', () => {
@@ -51,6 +61,7 @@ test('while the stored session is read, the app shows a status line and no scree
 test('a login screen is not shown to a user it does not belong to', () => {
   expect(renderAt('/login', 'needs_mfa')).not.toContain('Entra.')
   expect(renderAt('/login/code', 'signed_out')).not.toContain('Il codice.')
+  expect(renderAt('/login', 'signed_in')).not.toContain('Entra.')
 })
 
 test.each(['/', '/session/1', '/plans', '/plans/1', '/plans/1/sessions/2', '/exercises', '/history', '/history/1', '/more'])(

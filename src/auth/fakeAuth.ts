@@ -6,13 +6,15 @@ import type { AuthApi } from './flow'
 export const EMAIL = 'me@example.com'
 export const PASSWORD = 'correct horse'
 export const CODE = '123456'
+/** The authorization code the fake accepts when the browser comes back from Google. */
+export const GOOGLE_CODE = 'google-auth-code'
 
 interface Factor {
   id: string
   status: 'verified' | 'unverified'
 }
 
-type Method = 'signInWithPassword' | 'getSession' | 'getAuthenticatorAssuranceLevel' | 'listFactors' | 'enroll' | 'unenroll' | 'challenge' | 'verify' | 'challengeAndVerify' | 'signOut'
+type Method = 'signInWithPassword' | 'signInWithOAuth' | 'exchangeCodeForSession' | 'getSession' | 'getAuthenticatorAssuranceLevel' | 'listFactors' | 'enroll' | 'unenroll' | 'challenge' | 'verify' | 'challengeAndVerify' | 'signOut'
 
 /** `enrolled` starts the account with a verified authenticator; `fail` makes one method return an error, `crash` throw. */
 export function createFakeAuth({ enrolled = false }: { enrolled?: boolean } = {}) {
@@ -49,6 +51,18 @@ export function createFakeAuth({ enrolled = false }: { enrolled?: boolean } = {}
       if (injected) return { error: injected }
       if (email !== EMAIL || password !== PASSWORD) {
         return { error: { message: 'Invalid login credentials', name: 'AuthApiError', status: 400, code: 'invalid_credentials' } }
+      }
+      state.session = { aal: 'aal1' }
+      return { error: null }
+    },
+    async signInWithOAuth({ provider, options }) {
+      return { error: enter('signInWithOAuth', `${provider}:${options.redirectTo}`) }
+    },
+    async exchangeCodeForSession(authCode, options) {
+      const injected = enter('exchangeCodeForSession', `${authCode}:${options?.flowId ?? ''}`)
+      if (injected) return { error: injected }
+      if (authCode !== GOOGLE_CODE) {
+        return { error: { message: 'PKCE code verifier not found in storage.', name: 'AuthPKCECodeVerifierMissingError' } }
       }
       state.session = { aal: 'aal1' }
       return { error: null }

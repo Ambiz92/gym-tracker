@@ -9,10 +9,12 @@ import { useFormAction } from './useFormAction'
 
 interface CodeFormProps {
   onSubmit: (code: string) => Promise<AuthFailure | null>
+  /** Leaves the form; by default signs out of the half-open session, back to the login. */
+  onBack?: () => void
 }
 
-/** Six-digit authenticator code with a way back to the login (signing out of the half-open session). */
-export function CodeForm({ onSubmit }: CodeFormProps) {
+/** Six-digit authenticator code with a way back. */
+export function CodeForm({ onSubmit, onBack }: CodeFormProps) {
   const { signOut } = useAuth()
   const [code, setCode] = useState('')
   const { busy, error, run } = useFormAction()
@@ -39,7 +41,7 @@ export function CodeForm({ onSubmit }: CodeFormProps) {
         <PrimaryButton type="submit" busy={busy}>
           Conferma
         </PrimaryButton>
-        <PrimaryButton variant="outline" disabled={busy} onClick={() => void run(signOut)}>
+        <PrimaryButton variant="outline" disabled={busy} onClick={onBack ?? (() => void run(signOut))}>
           Indietro
         </PrimaryButton>
       </FormActions>

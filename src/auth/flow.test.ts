@@ -1,11 +1,13 @@
 import { describe, expect, test } from 'vitest'
-import { CODE, createFakeAuth, EMAIL, PASSWORD } from './fakeAuth'
+import { CODE, createFakeAuth, EMAIL, GOOGLE_CODE, PASSWORD } from './fakeAuth'
 import {
   type AuthStatus,
+  completeOAuthReturn,
   currentEmail,
   normalizeCode,
   resolveStatus,
   signIn,
+  signInWithGoogle,
   signOut,
   startEnrollment,
   statusFromAssurance,
@@ -20,7 +22,7 @@ describe('statusFromAssurance', () => {
   test.each<[string | null, string | null, AuthStatus]>([
     ['aal2', 'aal2', 'signed_in'],
     ['aal1', 'aal2', 'needs_mfa'],
-    ['aal1', 'aal1', 'needs_enroll'],
+    ['aal1', 'aal1', 'signed_in'],
     [null, null, 'signed_out'],
   ])('%s -> %s is %s', (current, next, expected) => {
     expect(statusFromAssurance(current, next)).toBe(expected)
@@ -31,7 +33,6 @@ test('every status maps to its screen, and loading to none', () => {
   expect(stepPath('loading')).toBeNull()
   expect(stepPath('signed_out')).toBe('/login')
   expect(stepPath('needs_mfa')).toBe('/login/code')
-  expect(stepPath('needs_enroll')).toBe('/login/enroll')
   expect(stepPath('signed_in')).toBe('/')
 })
 
@@ -52,8 +53,17 @@ describe('resolveStatus', () => {
     const withFactor = createFakeAuth({ enrolled: true })
     withFactor.state.session = { aal: 'aal1' }
 
-    expect(valueOf(await resolveStatus(withoutFactor.api, 'other'))).toBe('needs_enroll')
+    expect(valueOf(await resolveStatus(withoutFactor.api, 'other'))).toBe('signed_in')
     expect(valueOf(await resolveStatus(withFactor.api, 'other'))).toBe('needs_mfa')
+  })
+
+  test('an abandoned unverified factor does not make the code mandatory', async () => {
+    const fake = createFakeAuth()
+    fake.state.session = { aal: 'aal1' }
+    await startEnrollment(fake.api)
+
+    expect(fake.state.factors).toEqual([{ id: 'f1', status: 'unverified' }])
+    expect(valueOf(await resolveStatus(fake.api, 'other'))).toBe('signed_in')
   })
 
   test('only an aal2 session is signed in', async () => {
@@ -110,12 +120,12 @@ describe('signIn', () => {
     expect(valueOf(await signIn(fake.api, ` ${EMAIL} `, PASSWORD))).toBe('needs_mfa')
   })
 
-  test('a correct password is not a login: it leads to the code or to the enrollment', async () => {
+  test('a correct password asks for the code only when an authenticator is enrolled', async () => {
     const enrolled = createFakeAuth({ enrolled: true })
     const fresh = createFakeAuth()
 
     expect(valueOf(await signIn(enrolled.api, EMAIL, PASSWORD))).toBe('needs_mfa')
-    expect(valueOf(await signIn(fresh.api, EMAIL, PASSWORD))).toBe('needs_enroll')
+    expect(valueOf(await signIn(fresh.api, EMAIL, PASSWORD))).toBe('signed_in')
   })
 
   test.each([
@@ -134,6 +144,69 @@ describe('signIn', () => {
     fake.state.crash.add('signInWithPassword')
 
     expect(await signIn(fake.api, EMAIL, PASSWORD)).toMatchObject({ ok: false, error: { kind: 'unavailable' } })
+  })
+})
+
+describe('signInWithGoogle', () => {
+  const REDIRECT = 'https://user.github.io/gym-tracker/'
+
+  test('asks Supabase for the Google flow, coming back to the given page', async () => {
+    const fake = createFakeAuth()
+
+    expect(await signInWithGoogle(fake.api, REDIRECT)).toEqual({ ok: true, value: null })
+    expect(fake.state.calls).toEqual([`signInWithOAuth:google:${REDIRECT}`])
+  })
+
+  test('a failing request is reported, not swallowed', async () => {
+    const fake = createFakeAuth()
+    fake.state.fail.signInWithOAuth = { message: 'x', name: 'AuthRetryableFetchError', status: 0 }
+    expect(await signInWithGoogle(fake.api, REDIRECT)).toMatchObject({ ok: false, error: { kind: 'network' } })
+
+    fake.state.crash.add('signInWithOAuth')
+    expect(await signInWithGoogle(fake.api, REDIRECT)).toMatchObject({ ok: false, error: { kind: 'unavailable' } })
+  })
+})
+
+describe('completeOAuthReturn', () => {
+  test('a user without a factor is signed in straight after the code exchange', async () => {
+    const fake = createFakeAuth()
+
+    expect(valueOf(await completeOAuthReturn(fake.api, { code: GOOGLE_CODE, flowId: 'abc' }))).toBe('signed_in')
+    expect(fake.state.calls).toContain(`exchangeCodeForSession:${GOOGLE_CODE}:abc`)
+  })
+
+  test('a Google session on an account with an authenticator still asks for the code', async () => {
+    const fake = createFakeAuth({ enrolled: true })
+
+    expect(valueOf(await completeOAuthReturn(fake.api, { code: GOOGLE_CODE }))).toBe('needs_mfa')
+  })
+
+  test('a code that cannot be exchanged leaves the user signed out, with a message', async () => {
+    const fake = createFakeAuth()
+
+    expect(await completeOAuthReturn(fake.api, { code: 'stale' })).toMatchObject({ ok: false, error: { kind: 'oauth_failed' } })
+    expect(fake.state.session).toBeNull()
+  })
+
+  test('a refused account is reported as not invited, without any request', async () => {
+    const fake = createFakeAuth()
+    const result = await completeOAuthReturn(fake.api, { error: { message: 'Signups not allowed for this instance', code: 'signup_disabled' } })
+
+    expect(result).toMatchObject({ ok: false, error: { kind: 'not_invited', message: 'Questo account Google non è stato invitato.' } })
+    expect(fake.state.calls).toEqual([])
+  })
+
+  test('a provider error that is not a refusal gets the generic message', async () => {
+    const fake = createFakeAuth()
+
+    expect(await completeOAuthReturn(fake.api, { error: { message: 'access_denied' } })).toMatchObject({ ok: false, error: { kind: 'oauth_failed' } })
+  })
+
+  test('an exchange that throws is reported as unavailable', async () => {
+    const fake = createFakeAuth()
+    fake.state.crash.add('exchangeCodeForSession')
+
+    expect(await completeOAuthReturn(fake.api, { code: GOOGLE_CODE })).toMatchObject({ ok: false, error: { kind: 'unavailable' } })
   })
 })
 
@@ -175,9 +248,9 @@ describe('verifyCode', () => {
 })
 
 describe('enrollment', () => {
-  test('first login: password, enroll, first code, then signed in', async () => {
+  test('voluntary: signed in without a factor, enroll, first code, and the next login asks for it', async () => {
     const fake = createFakeAuth()
-    expect(valueOf(await signIn(fake.api, EMAIL, PASSWORD))).toBe('needs_enroll')
+    expect(valueOf(await signIn(fake.api, EMAIL, PASSWORD))).toBe('signed_in')
 
     const started = await startEnrollment(fake.api)
     expect(started).toEqual({
@@ -187,6 +260,9 @@ describe('enrollment', () => {
     expect(fake.state.calls).toContain('enroll:totp:Gym Tracker')
 
     expect(valueOf(await verifyEnrollment(fake.api, 'f1', CODE))).toBe('signed_in')
+
+    await signOut(fake.api)
+    expect(valueOf(await signIn(fake.api, EMAIL, PASSWORD))).toBe('needs_mfa')
   })
 
   test('a wrong first code leaves the enrollment open for a retry', async () => {
@@ -195,7 +271,7 @@ describe('enrollment', () => {
     await startEnrollment(fake.api)
 
     expect(await verifyEnrollment(fake.api, 'f1', '000000')).toMatchObject({ ok: false, error: { kind: 'invalid_code' } })
-    expect(valueOf(await resolveStatus(fake.api, 'other'))).toBe('needs_enroll')
+    expect(fake.state.factors).toEqual([{ id: 'f1', status: 'unverified' }])
     expect(valueOf(await verifyEnrollment(fake.api, 'f1', CODE))).toBe('signed_in')
   })
 
@@ -206,6 +282,17 @@ describe('enrollment', () => {
     await startEnrollment(fake.api)
 
     expect(fake.state.factors).toEqual([{ id: 'f2', status: 'unverified' }])
+  })
+
+  test('a verified factor is never dropped by starting another enrollment', async () => {
+    const fake = createFakeAuth({ enrolled: true })
+    fake.state.session = { aal: 'aal2' }
+    await startEnrollment(fake.api)
+
+    expect(fake.state.factors).toEqual([
+      { id: 'f0', status: 'verified' },
+      { id: 'f1', status: 'unverified' },
+    ])
   })
 
   test('an incomplete first code is refused without a request', async () => {

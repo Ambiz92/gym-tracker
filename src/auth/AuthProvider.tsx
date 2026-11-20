@@ -1,30 +1,9 @@
-import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react'
-import type { AuthFailure } from './errors'
-import {
-  type AuthApi,
-  type AuthStatus,
-  type Enrollment,
-  currentEmail,
-  type Result,
-  resolveStatus,
-  signIn,
-  signOut,
-  startEnrollment,
-  verifyCode,
-  verifyEnrollment,
-} from './flow'
+import { createContext, type ReactNode, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { type AuthActions, createAuthController, type AuthState } from './authController'
+import type { AuthApi } from './flow'
+import { type OAuthReturn, oauthRedirectUrl } from './oauthReturn'
 
-/** Actions resolve to `null` on success and to the failure to show otherwise. */
-export interface AuthContextValue {
-  status: AuthStatus
-  /** Account of the signed-in user; null until it is read and when signed out. */
-  email: string | null
-  signIn(email: string, password: string): Promise<AuthFailure | null>
-  verifyCode(code: string): Promise<AuthFailure | null>
-  startEnrollment(): Promise<Result<Enrollment>>
-  verifyEnrollment(factorId: string, code: string): Promise<AuthFailure | null>
-  signOut(): Promise<AuthFailure | null>
-}
+export type AuthContextValue = AuthState & AuthActions
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
 
@@ -36,60 +15,23 @@ export function useAuth(): AuthContextValue {
 
 interface AuthProviderProps {
   api: AuthApi
+  /** What the provider left in the URL on this page load, read before the router starts. */
+  oauthReturn?: OAuthReturn | null
   children: ReactNode
 }
 
-/** Holds the auth status; the session itself persists through supabase-js (localStorage, auto refresh). */
-export function AuthProvider({ api, children }: AuthProviderProps) {
-  const [status, setStatus] = useState<AuthStatus>('loading')
-  const [email, setEmail] = useState<string | null>(null)
-
-  useEffect(() => {
-    let active = true
-    // Fail closed: a session that cannot be read sends the user to the login.
-    void resolveStatus(api, 'other').then((result) => {
-      if (active) setStatus(result.ok ? result.value : 'signed_out')
-    })
-    // supabase-js also signs out on its own (revoked or unrefreshable session, another tab).
-    const { data } = api.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') setStatus('signed_out')
-    })
-    return () => {
-      active = false
-      data.subscription.unsubscribe()
-    }
-  }, [api])
-
-  useEffect(() => {
-    if (status !== 'signed_in') return
-    let active = true
-    void currentEmail(api).then((value) => {
-      if (active) setEmail(value)
-    })
-    return () => {
-      active = false
-    }
-  }, [api, status])
-
-  const actions = useMemo(() => {
-    const apply = async (pending: Promise<Result<AuthStatus>>) => {
-      const result = await pending
-      if (!result.ok) return result.error
-      setStatus(result.value)
-      return null
-    }
-    return {
-      signIn: (email: string, password: string) => apply(signIn(api, email, password)),
-      verifyCode: (code: string) => apply(verifyCode(api, code)),
-      startEnrollment: () => startEnrollment(api),
-      verifyEnrollment: (factorId: string, code: string) => apply(verifyEnrollment(api, factorId, code)),
-      signOut: () => apply(signOut(api)),
-    }
-  }, [api])
-
-  const value = useMemo(
-    () => ({ status, email: status === 'signed_in' ? email : null, ...actions }),
-    [status, email, actions],
+/** Shows the auth controller's state; the session itself persists through supabase-js (localStorage, auto refresh). */
+export function AuthProvider({ api, oauthReturn = null, children }: AuthProviderProps) {
+  // Built without side effects (StrictMode may build two); `start` does the work, once.
+  const [controller] = useState(() =>
+    createAuthController(api, {
+      oauthReturn,
+      redirectTo: oauthRedirectUrl(window.location.origin, import.meta.env.BASE_URL),
+    }),
   )
+  useEffect(() => controller.start(), [controller])
+
+  const state = useSyncExternalStore(controller.subscribe, controller.getState)
+  const value = useMemo(() => ({ ...state, ...controller.actions }), [state, controller])
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
