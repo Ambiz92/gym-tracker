@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "verify:rls": "tsx --env-file=.env scripts/verify-rls.ts",
+    "seed:catalog": "tsx scripts/generate-exercise-seed.ts",
     "check:secrets": "tsx scripts/check-secrets.ts",
     "check:secrets:dist": "tsx scripts/check-secrets.ts dist"
   },

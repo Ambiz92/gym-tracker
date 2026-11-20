@@ -182,3 +182,15 @@ npm run check:secrets:dist   # the built bundle (run after npm run build)
 ```
 
 Findings print as `file:line  kind  first 8 characters`, never the whole value. The CI workflow runs both. The new `sb_publishable_` key format is public and is never flagged.
+
+## generate-exercise-seed.ts
+
+Builds `supabase/seed/exercise-catalog.sql` from the curated `supabase/seed/exercise-catalog.json` (about 60 fundamental exercises with Italian names, synonyms, muscles and execution steps; adapted from [free-exercise-db](https://github.com/yuhonas/free-exercise-db), Unlicense). Nothing in it comes from a personal plan.
+
+```
+npm run seed:catalog
+```
+
+To add or fix an exercise, edit the JSON and run the command: it validates the file (unique slugs and names, equipment `barbell`, `dumbbell` or `other`, known muscles, lengths within the database checks) and refuses to write on any problem. Commit the JSON and the regenerated SQL together; a test fails if they drift apart.
+
+The SQL runs as `postgres` after migration `0005_exercise_catalog.sql` and is safe to run again: it upserts the catalog by slug, links existing user exercises to it by normalized name (lowercase, no accents, trimmed) and never merges or deletes anything. Exercises whose name matches several catalog entries, or whose owner already has the entry, stay unlinked. The last statement is a read-only list of those exercises, to decide by hand. Rehearse it on a copy of the data first, as for 0004.
