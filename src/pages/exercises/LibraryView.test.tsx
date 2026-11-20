@@ -75,3 +75,23 @@ test('on desktop each row says how many plans use the exercise', () => {
   expect(html).toContain('Bilanciere · in 2 schede')
   expect(html).toContain('Bilanciere · non usato')
 })
+
+test('tags the copies of a catalog entry and only them', () => {
+  const html = render({
+    status: 'ready',
+    data: { exercises: [exercise('a', { catalog_id: 'c1' }), exercise('b')], usage: null },
+    reload: () => {},
+  })
+  expect(html.match(/dal catalogo/g)).toHaveLength(1)
+  expect(html).toMatch(/Esercizio a<\/span>[\s\S]*dal catalogo[\s\S]*Esercizio b/)
+})
+
+test('keeps the catalog tag next to the archived one', () => {
+  const html = render({
+    status: 'ready',
+    data: { exercises: [exercise('a', { catalog_id: 'c1', archived: true })], usage: null },
+    reload: () => {},
+  })
+  expect(html).toContain('dal catalogo')
+  expect(html).toContain('Archiviato')
+})
