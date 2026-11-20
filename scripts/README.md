@@ -12,7 +12,9 @@ The npm script loads `.env`. The script also compares its table list with the `c
 
 Writes must fail with `42501` (permission denied). An empty result is not accepted there, because the probes filter on a nil id and would match nothing even with an open policy.
 
-Not covered, because it needs logged-in sessions: row ownership, and the second-factor rule of migration `0004_optional_mfa.sql`. See the next section.
+Optional signed-in checks of the exercise catalog (migration `0005_exercise_catalog.sql`) run when `RLS_TEST_EMAIL` and `RLS_TEST_PASSWORD` are set in `.env`. Use a throw-away user without a second factor, created in the dashboard. The script then checks that the catalog can be read, that insert, update and delete are refused with `42501`, and that adopting the same entry twice is refused with `23505`. The catalog must hold at least one entry, so run it after the seed. It inserts one exercise named `rls-check` for that user and deletes it again. Setting `RLS_TEST_MFA_EMAIL` and `RLS_TEST_MFA_PASSWORD` too, for a throw-away user with a verified TOTP factor, adds the second-factor check: its password-only session must get an empty catalog, not an error. These variables are not `VITE_*`, so they never reach the bundle.
+
+Not covered, because it needs logged-in sessions: row ownership, and the second-factor rule of migration `0004_optional_mfa.sql` on the other tables. See the next section.
 
 ## Manual check with two real users (Google sign-in)
 
@@ -148,6 +150,27 @@ select email, email_confirmed_at is not null as confirmed, coalesce(encrypted_pa
 ```
 
 Expected: a `google` identity with `email_verified` true, `confirmed` true, and `no_password` true (or a password nobody knows) for every friend.
+
+### Rehearsing migration 0005 (exercise catalog)
+
+Same method as above: the migration's statements between `begin;` and `rollback;` (without the file's own `begin;` and `commit;`), then one of the probes below, each as its own script. Replace `<user-uuid>` with a user's id and use `<user-with-factor-uuid>` for someone with a verified factor.
+
+```sql
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"<user-uuid>","role":"authenticated","aal":"aal1"}', true);
+select count(*) from public.exercise_catalog;
+rollback;
+```
+
+Insert a catalog row as `postgres` right after the migration statements so there is something to see. Expect the count to be 1 for a user without a factor at `aal1`, 0 for `<user-with-factor-uuid>` at `aal1`, and 1 for that user at `aal2`. As `authenticated`, an `insert`, `update` or `delete` on `public.exercise_catalog` must fail with `permission denied` whatever the `aal`; as `anon` even the `select` fails. For the duplicate rule, run as the user at `aal1`:
+
+```sql
+insert into public.exercise (name, equipment, catalog_id) select 'probe', 'other', id from public.exercise_catalog;
+insert into public.exercise (name, equipment, catalog_id) select 'probe 2', 'other', id from public.exercise_catalog;
+rollback;
+```
+
+The second insert must fail with `exercise_one_per_catalog_entry_per_owner`. Exercises with a null `catalog_id` are never limited. After applying the migration, run `npm run verify:rls` (with the signed-in variables if you can) and open the app once as the owner at `aal2` to check that the library still loads.
 
 ## check-secrets.ts
 
