@@ -1,0 +1,480 @@
+/* Plan builder on the phone: session keys, exercise rows edited in place, the footer bar and the add sheet. Reads only --ds-* tokens. */
+
+/* Session keys: the open one is pressed in and copper, like the choice keys of the exercise form. */
+.builder-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-space-2);
+  margin-top: var(--ds-space-4);
+  padding-bottom: var(--ds-space-1);
+}
+
+.builder-chip {
+  min-width: var(--ds-size-touch);
+  min-height: var(--ds-size-touch);
+  max-width: 12rem;
+  padding: 0 var(--ds-space-4);
+  overflow: hidden;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-color-surface);
+  box-shadow: var(--ds-shadow-press);
+  font-weight: var(--ds-weight-black);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: transform var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.builder-chip:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: var(--ds-shadow-pressed);
+}
+
+.builder-chip[aria-pressed="true"] {
+  transform: translateY(3px);
+  background: var(--ds-color-accent);
+  color: var(--ds-color-on-accent);
+  box-shadow: var(--ds-shadow-pressed);
+}
+
+.builder-chip--add {
+  color: var(--ds-color-accent-text);
+  font-size: var(--ds-text-lg);
+}
+
+.builder-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Exercise rows: one plate per exercise, the three numbers always open. */
+.builder-list {
+  display: grid;
+  gap: var(--ds-space-3);
+  margin-top: var(--ds-space-4);
+  list-style: none;
+}
+
+.builder-row {
+  padding: var(--ds-space-3);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-color-surface);
+}
+
+.builder-row--failed {
+  outline: var(--ds-rule) solid var(--ds-color-danger);
+}
+
+.builder-row__head {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--ds-size-touch);
+  align-items: center;
+}
+
+.builder-row__name {
+  min-width: 0;
+  padding: var(--ds-space-1) 0;
+}
+
+.builder-row__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--ds-space-2);
+  margin-top: var(--ds-space-1);
+  color: var(--ds-color-text-muted);
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-black);
+  letter-spacing: var(--ds-tracking-caps);
+  text-transform: uppercase;
+}
+
+.builder-row__saved {
+  min-width: 6rem;
+  color: var(--ds-color-success);
+  text-align: right;
+}
+
+.builder-fields {
+  display: grid;
+  grid-template-columns: 0.8fr 1.3fr 1.1fr;
+  gap: var(--ds-space-2);
+  margin-top: var(--ds-space-2);
+}
+
+.builder-field--max {
+  grid-column: 3;
+}
+
+.builder-field__label {
+  display: block;
+  margin-bottom: var(--ds-space-1);
+  color: var(--ds-color-text-muted);
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-black);
+  letter-spacing: var(--ds-tracking-caps);
+  text-transform: uppercase;
+}
+
+.builder-field__input {
+  display: block;
+  width: 100%;
+  min-height: var(--ds-size-touch);
+  padding: 0 var(--ds-space-2);
+  border: var(--ds-rule) solid var(--ds-color-border-strong);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-color-bg);
+  font-family: var(--ds-font-figures);
+  font-size: var(--ds-text-xl);
+  font-weight: var(--ds-weight-display);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.builder-field__input::placeholder {
+  color: var(--ds-color-text-muted);
+}
+
+.builder-field__input[aria-invalid="true"] {
+  border-color: var(--ds-color-danger);
+}
+
+/* The unit key sits inside the reps box, at its end. */
+.builder-field__unit {
+  position: relative;
+}
+
+.builder-field__unit .builder-field__input {
+  padding-inline-end: var(--ds-size-touch);
+}
+
+.builder-field__unit-key {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: var(--ds-size-touch);
+  border-radius: var(--ds-radius-md);
+  color: var(--ds-color-accent-text);
+  font-size: var(--ds-text-lg);
+  font-weight: var(--ds-weight-black);
+}
+
+.builder-field__unit-key:active {
+  background: var(--ds-color-surface-sunken);
+}
+
+.builder-row__failure {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-3);
+}
+
+.builder-row__failure .field__message {
+  margin-top: 0;
+}
+
+/* Secondary key under the list: smaller than the primary button, same rubber. */
+.builder-ghost {
+  display: block;
+  width: 100%;
+  min-height: var(--ds-size-touch);
+  margin-top: var(--ds-space-3);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-color-surface);
+  box-shadow: var(--ds-shadow-press);
+  font-weight: var(--ds-weight-black);
+  transition: transform var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.builder-ghost:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: var(--ds-shadow-pressed);
+}
+
+.builder-ghost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Disclosure for the rarely used parts: session details, plan management. */
+.builder-details {
+  margin-top: var(--ds-space-6);
+  border-top: var(--ds-hairline) solid var(--ds-color-border);
+}
+
+/* Air between the last block and the footer bar that follows it. */
+.builder-details + .session-dock {
+  margin-top: var(--ds-space-6);
+}
+
+.builder-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--ds-size-touch);
+  font-weight: var(--ds-weight-black);
+  cursor: pointer;
+}
+
+/* A plain summary loses its marker once it is a flex box: draw one that turns when open. */
+.builder-details > summary::after {
+  content: "▾";
+  color: var(--ds-color-text-muted);
+  transition: transform var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.builder-details[open] > summary::after {
+  transform: rotate(180deg);
+}
+
+.builder-position {
+  display: flex;
+  gap: var(--ds-space-2);
+  margin-top: var(--ds-space-2);
+}
+
+.builder-position .plan-row__button {
+  width: var(--ds-size-touch);
+  background: var(--ds-color-surface);
+}
+
+/* Footer bar: pinned by SessionDock; what the plan holds, where it stands, the one button. */
+.plan-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-3);
+}
+
+.plan-footer__text {
+  display: grid;
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.plan-footer__text strong {
+  font-weight: var(--ds-weight-black);
+}
+
+.plan-footer__text span {
+  color: var(--ds-color-text-muted);
+  font-size: var(--ds-text-sm);
+}
+
+.plan-footer__choices {
+  display: flex;
+  gap: var(--ds-space-2);
+}
+
+.plan-footer__button {
+  min-height: var(--ds-size-button);
+  padding: 0 var(--ds-space-4);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-color-accent);
+  color: var(--ds-color-on-accent);
+  box-shadow: var(--ds-shadow-press);
+  font-size: var(--ds-text-md);
+  font-weight: var(--ds-weight-black);
+  white-space: nowrap;
+  transition: transform var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.plan-footer__button:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: var(--ds-shadow-pressed);
+}
+
+/* Active: the key stays pressed in, outlined with the success color and a check in its label. */
+.plan-footer__button[aria-pressed="true"] {
+  background: transparent;
+  color: var(--ds-color-success);
+  box-shadow: inset 0 0 0 var(--ds-rule) var(--ds-color-success);
+}
+
+.plan-footer__button--quiet {
+  background: var(--ds-color-surface);
+  color: var(--ds-color-text);
+}
+
+.plan-footer__button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.plan-footer__button[aria-busy="true"] {
+  cursor: progress;
+}
+
+/* Add sheet: the how-to sheet frame, taller, with a list that scrolls under a fixed top. */
+.how-to.add-sheet[open] {
+  display: flex;
+  flex-direction: column;
+  height: 85dvh;
+  overflow: hidden;
+}
+
+.add-sheet__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: var(--ds-space-3) var(--ds-gutter) calc(var(--ds-space-4) + env(safe-area-inset-bottom, 0px));
+}
+
+.add-sheet__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-3);
+}
+
+.add-sheet__title {
+  font-size: var(--ds-text-xl);
+}
+
+.add-sheet__meta {
+  color: var(--ds-color-text-muted);
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-black);
+  letter-spacing: var(--ds-tracking-caps);
+  text-transform: uppercase;
+}
+
+.add-sheet__done {
+  min-width: var(--ds-size-touch);
+  min-height: var(--ds-size-touch);
+  padding: 0 var(--ds-space-4);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-color-text);
+  color: var(--ds-color-bg);
+  font-weight: var(--ds-weight-black);
+}
+
+.add-sheet__body .exercise-search {
+  margin-top: var(--ds-space-2);
+}
+
+.add-sheet__new {
+  width: 100%;
+  min-height: var(--ds-size-field);
+  margin-top: var(--ds-space-3);
+  border: var(--ds-rule) dashed var(--ds-color-accent-text);
+  border-radius: var(--ds-radius-md);
+  color: var(--ds-color-accent-text);
+  font-weight: var(--ds-weight-black);
+}
+
+.add-sheet__new[aria-expanded="true"] {
+  background: var(--ds-color-surface);
+}
+
+.add-sheet__status span:last-child {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.add-sheet__status {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--ds-space-3);
+  margin-top: var(--ds-space-2);
+  color: var(--ds-color-text-muted);
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-bold);
+}
+
+.add-sheet__results {
+  flex: 1;
+  min-height: 0;
+  margin-top: var(--ds-space-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.add-sheet__list {
+  display: grid;
+  gap: var(--ds-space-2);
+  list-style: none;
+}
+
+.add-sheet__pick {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-3);
+  width: 100%;
+  min-height: 3.25rem;
+  padding: var(--ds-space-2) var(--ds-space-3);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-color-surface);
+  box-shadow: var(--ds-shadow-press);
+  text-align: left;
+  transition: transform var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.add-sheet__pick:active {
+  transform: translateY(3px);
+  box-shadow: var(--ds-shadow-pressed);
+}
+
+/* Added: the row stays pressed in, ringed in the success color, and says so in words. */
+.add-sheet__pick[aria-pressed="true"] {
+  background: var(--ds-color-bg);
+  box-shadow: inset 0 0 0 var(--ds-rule) var(--ds-color-success);
+}
+
+.add-sheet__state {
+  color: var(--ds-color-text-muted);
+  font-size: var(--ds-text-lg);
+  font-weight: var(--ds-weight-black);
+  white-space: nowrap;
+}
+
+.add-sheet__pick[aria-pressed="true"] .add-sheet__state {
+  color: var(--ds-color-success);
+  font-size: var(--ds-text-base);
+}
+
+.add-sheet__quick {
+  display: grid;
+  gap: var(--ds-space-2);
+  margin-bottom: var(--ds-space-3);
+  padding: var(--ds-space-3);
+  border: var(--ds-rule) dashed var(--ds-color-accent-text);
+  border-radius: var(--ds-radius-md);
+}
+
+.add-sheet__quick-title {
+  font-weight: var(--ds-weight-black);
+  overflow-wrap: anywhere;
+}
+
+.add-sheet__quick .how-to__options,
+.add-sheet__form .how-to__options {
+  margin-top: 0;
+}
+
+.add-sheet__quick .field__message {
+  margin-top: 0;
+}
+
+.add-sheet__form {
+  display: grid;
+  gap: var(--ds-space-3);
+}
+
+.add-sheet__form .field {
+  margin-top: 0;
+}
+
+.add-sheet__form .plans-actions {
+  margin-top: var(--ds-space-2);
+}
+
+.add-sheet__empty {
+  margin-top: var(--ds-space-4);
+  color: var(--ds-color-text-muted);
+  font-weight: var(--ds-weight-bold);
+}

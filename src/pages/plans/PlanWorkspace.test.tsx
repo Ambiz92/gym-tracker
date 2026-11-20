@@ -38,21 +38,35 @@ function renderAt(path: string) {
   )
 }
 
-test('at the plan the workspace shows the plan screen', () => {
+test('on the phone the plan opens as one screen: the session keys, its exercises and the footer bar', () => {
   const html = renderAt('/plans/p1')
   expect(html).toContain('Forza base')
-  expect(html).toContain('href="/plans/p1/sessions/s1"')
-  expect(html).not.toContain('Rimuovi la sessione')
+  expect(html).toMatch(/<button[^>]*aria-pressed="true"[^>]*>Upper body<\/button>/)
+  expect(html).toContain('aria-label="Aggiungi sessione"')
+  expect(html).toContain('+ Aggiungi esercizi')
+  expect(html).toContain('1 sessione · 0 esercizi')
+  expect(html).toContain('Attiva · compare in Oggi')
+  expect(html).not.toContain('href="/plans/p1/sessions/s1"')
 })
 
-test('at a session it shows the session editor of the plan it holds', () => {
-  const html = renderAt('/plans/p1/sessions/s1')
-  expect(html).toContain('Upper body')
-  expect(html).toContain('‹ Forza base')
-  expect(html).toContain('Rimuovi la sessione')
+test('on the phone a session in the address opens first, and an unknown one falls back to the first session', () => {
+  const two = { ...plan, sessions: [session('s1', 'Upper body'), session('s2', 'Lower body')] }
+  const at = (path: string) =>
+    renderToStaticMarkup(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/plans/:id" element={<PlanWorkspace initial={two} />}>
+            <Route path="sessions/:sessionId" element={<PlanSessionEdit />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+  expect(at('/plans/p1/sessions/s2')).toMatch(/aria-pressed="true"[^>]*>Lower body</)
+  expect(at('/plans/p1/sessions/gone')).toMatch(/aria-pressed="true"[^>]*>Upper body</)
 })
 
-test('a session that is not in the plan says so and leads back to the plan', () => {
+test('on desktop a session that is not in the plan says so and leads back to the plan', () => {
+  desktop = true
   const html = renderAt('/plans/p1/sessions/gone')
   expect(html).toContain('Sessione non trovata.')
   expect(html).toContain('href="/plans/p1"')

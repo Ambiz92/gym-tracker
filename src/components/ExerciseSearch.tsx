@@ -1,13 +1,15 @@
-import { useId } from 'react'
+import { useId, type Ref } from 'react'
 import '../styles/exercises.css'
 
 interface ExerciseSearchProps {
   value: string
   onChange: (value: string) => void
+  /** Lets the caller focus the box, e.g. when a sheet opens. */
+  inputRef?: Ref<HTMLInputElement>
 }
 
 /** Name search box shared by the library and the picker. */
-export function ExerciseSearch({ value, onChange }: ExerciseSearchProps) {
+export function ExerciseSearch({ value, onChange, inputRef }: ExerciseSearchProps) {
   const id = useId()
   return (
     <div className="field exercise-search" role="search">
@@ -16,6 +18,7 @@ export function ExerciseSearch({ value, onChange }: ExerciseSearchProps) {
       </label>
       <input
         id={id}
+        ref={inputRef}
         className="field__input"
         type="search"
         enterKeyHint="search"

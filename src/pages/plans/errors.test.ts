@@ -12,6 +12,11 @@ it('warns that a failed duplication left a partial copy behind', () => {
   expect(describePlanError(new DataError('p', 'partial_copy'), 'x')).toContain('copia parziale')
 })
 
+it('warns that a failed creation or session copy left something behind', () => {
+  expect(describePlanError(new DataError('p', 'partial_create'), 'x')).toContain('scheda vuota')
+  expect(describePlanError(new DataError('p', 'partial_session'), 'x')).toContain('sessione copiata a metà')
+})
+
 it('explains an archived plan that cannot be activated and a missing row', () => {
   expect(describePlanError(new DataError('a', 'archived'), 'x')).toContain('ripristinala')
   expect(describePlanError(new DataError('n', 'not_found'), 'x')).toContain('non trovato')

@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader'
-import { createPlan, listPlanSummaries } from '../data/plans'
+import { createPlanWithSession, listPlanSummaries } from '../data/plans'
 import { useAction } from '../hooks/useAction'
 import { useAsync } from '../hooks/useAsync'
 import { LoadState } from './history/LoadState'
@@ -19,18 +19,19 @@ interface PlansProps {
   onActivated?: () => void
 }
 
-/** Plan list: create a plan (it appears in the list), open one to edit it, reach the exercise library. */
+/** Plan list: create a plan (it opens straight away, ready for its first exercise), open one to edit it, reach the exercise library. */
 export function Plans({ selectedId, refreshKey = 0, onActivated }: PlansProps) {
   const plans = useAsync(listPlanSummaries, [refreshKey])
   const create = useAction(describePlanError)
+  const navigate = useNavigate()
   const [creating, setCreating] = useState(false)
 
   // The name form is local state, not a history entry: staying on the list keeps Back clear of it.
   async function handleCreate(name: string) {
-    const created = await create.run(() => createPlan(name), 'Creazione non riuscita. Controlla la connessione e riprova.')
-    if (!created) return
-    setCreating(false)
-    plans.reload()
+    await create.run(async () => {
+      const plan = await createPlanWithSession(name)
+      navigate(`/plans/${plan.id}`)
+    }, 'Creazione non riuscita. Controlla la connessione e riprova.')
   }
 
   return (

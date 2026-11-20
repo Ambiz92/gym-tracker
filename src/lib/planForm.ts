@@ -15,6 +15,11 @@ export const UNIT_LABELS: Record<TargetUnit, string> = {
 }
 export const UNIT_ORDER: readonly TargetUnit[] = ['reps', 'seconds', 'meters']
 
+/** The unit after `unit` in the order reps, seconds, meters: one tap on the row's unit key cycles through them. */
+export function nextUnit(unit: TargetUnit): TargetUnit {
+  return UNIT_ORDER[(UNIT_ORDER.indexOf(unit) + 1) % UNIT_ORDER.length]
+}
+
 const DEFAULT_SETS = 3
 const DEFAULT_REPS = 8
 
@@ -76,6 +81,17 @@ export interface TargetFormValues {
 }
 export type TargetFormErrors = Partial<Record<'sets' | 'reps' | 'weight' | 'weightMax', string>>
 export type TargetFormResult = { ok: true; target: PlanTarget } | { ok: false; errors: TargetFormErrors }
+
+/** Just the target columns of a plan exercise row (the row also carries ids and the position). */
+export function targetOf(row: PlanTarget): PlanTarget {
+  return {
+    target_sets: row.target_sets,
+    target_reps: row.target_reps,
+    target_unit: row.target_unit,
+    suggested_weight_kg: row.suggested_weight_kg,
+    suggested_weight_max_kg: row.suggested_weight_max_kg,
+  }
+}
 
 function weightText(kg: number | null): string {
   return kg === null ? '' : formatNumber(kg)

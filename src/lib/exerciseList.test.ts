@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Exercise } from '../types/db'
-import { exerciseDetail, exerciseUsageDetail, filterExercises, sortExercises, usageLabel } from './exerciseList'
+import { exerciseDetail, exerciseUsageDetail, filterExercises, hasExactName, sortExercises, usageLabel } from './exerciseList'
 
 function exercise(name: string, overrides: Partial<Exercise> = {}): Exercise {
   return {
@@ -42,6 +42,20 @@ describe('filterExercises', () => {
 
   it('does not match on muscles or notes', () => {
     expect(filterExercises([exercise('Squat', { muscles: 'Panca', notes: 'panca' })], 'panca')).toEqual([])
+  })
+})
+
+describe('hasExactName', () => {
+  const library = [{ name: 'Stacco da terra' }, { name: 'Curl' }]
+
+  it('matches the whole name, ignoring case, accents and edge spaces', () => {
+    expect(hasExactName(library, ' stacco DA terra ')).toBe(true)
+    expect(hasExactName(library, 'Staccó da terra')).toBe(true)
+  })
+
+  it('does not match a part of a name or a longer one', () => {
+    expect(hasExactName(library, 'Stacco')).toBe(false)
+    expect(hasExactName(library, 'Curl a martello')).toBe(false)
   })
 })
 
