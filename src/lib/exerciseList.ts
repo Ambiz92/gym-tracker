@@ -39,6 +39,8 @@ export interface ExerciseFilters {
   equipment?: Equipment
   /** Primary muscle of a catalog entry; matched as text inside the muscles of a user exercise. */
   muscle?: string
+  /** Catalog ids already copied, for when `exercises` leaves archived copies out; adds to those of `exercises`. */
+  adoptedCatalogIds?: ReadonlySet<string>
 }
 
 export interface ExerciseSections<T> {
@@ -52,9 +54,9 @@ export interface ExerciseSections<T> {
 export function exerciseSections<T extends UserNames & Pick<Exercise, 'equipment' | 'muscles' | 'catalog_id'>>(
   exercises: readonly T[],
   catalog: readonly CatalogExercise[],
-  { query = '', equipment, muscle }: ExerciseFilters = {},
+  { query = '', equipment, muscle, adoptedCatalogIds = new Set() }: ExerciseFilters = {},
 ): ExerciseSections<T> {
-  const adopted = new Set(exercises.map((exercise) => exercise.catalog_id))
+  const adopted = new Set([...adoptedCatalogIds, ...exercises.map((exercise) => exercise.catalog_id)])
   const wantedMuscle = muscle === undefined ? null : normalize(muscle.trim())
   const matchesEquipment = (item: { equipment: Equipment }) => equipment === undefined || item.equipment === equipment
   return {

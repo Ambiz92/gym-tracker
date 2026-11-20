@@ -170,6 +170,13 @@ describe('exerciseSections', () => {
     expect(exerciseSections(archived, catalog).catalog).toEqual([bench, lateral])
   })
 
+  it('also hides the entries listed in adoptedCatalogIds, for when archived copies are not passed in', () => {
+    const active = [exercise('Panca piana', { catalog_id: 'bench' })]
+    const sections = exerciseSections(active, catalog, { adoptedCatalogIds: new Set(['deadlift']) })
+    expect(sections.mine).toEqual(active)
+    expect(sections.catalog).toEqual([lateral])
+  })
+
   it('keeps entries whose name matches a personal exercise that is not linked to them', () => {
     const unlinked = [exercise('Stacco da terra')]
     expect(exerciseSections(unlinked, catalog).catalog).toEqual(catalog)
