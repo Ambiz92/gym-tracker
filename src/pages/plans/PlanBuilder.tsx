@@ -1,10 +1,9 @@
 import { useState, type Dispatch, type SetStateAction } from 'react'
-import { UndoToast } from '../../components/UndoToast'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { SessionHeader } from '../../components/SessionHeader'
+import { UndoToast } from '../../components/UndoToast'
 import type { EditablePlan, SessionDetail } from '../../data/activePlan'
-import type { SessionRemoval } from '../../data/plans'
-import { getActivePlanHead } from '../../data/plans'
+import { getActivePlanHead, type SessionRemoval } from '../../data/plans'
 import { useAsync } from '../../hooks/useAsync'
 import { useUndoToast } from '../../hooks/useUndoToast'
 import { activationStep, nextSessionName, pickSession } from '../../lib/planBuilder'
@@ -41,9 +40,15 @@ export function PlanBuilder({ plan, onChange: setPlan, initialSessionId }: PlanB
   const { sessionCount, exerciseCount } = planCounts(plan)
   const otherActive = active.status === 'ready' && active.data !== null && active.data.id !== plan.id ? active.data.name : null
 
+  // An Undo belongs to the session it was shown in: it goes away when another one opens.
+  function openSession(id: string) {
+    undo.dismiss()
+    setSelectedId(id)
+  }
+
   async function handleAddSession() {
     const added = await actions.addNewSession(nextSessionName(plan.sessions.map((candidate) => candidate.name)))
-    if (added) setSelectedId(added.id)
+    if (added) openSession(added.id)
   }
 
   function patchSession(id: string, update: (session: SessionDetail) => SessionDetail) {
@@ -52,7 +57,7 @@ export function PlanBuilder({ plan, onChange: setPlan, initialSessionId }: PlanB
 
   function handleDuplicated(copy: SessionDetail) {
     setPlan((current) => ({ ...current, sessions: [...current.sessions, copy] }))
-    setSelectedId(copy.id)
+    openSession(copy.id)
   }
 
   function handleSessionRemoved(removed: SessionDetail, removal: SessionRemoval) {
@@ -92,7 +97,7 @@ export function PlanBuilder({ plan, onChange: setPlan, initialSessionId }: PlanB
         sessions={plan.sessions}
         selectedId={session?.id ?? null}
         busy={busy}
-        onSelect={setSelectedId}
+        onSelect={openSession}
         onAdd={() => void handleAddSession()}
       />
       {sessions.error && (
