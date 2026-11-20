@@ -40,6 +40,11 @@
 -- Rehearse it first in the SQL editor inside begin; ... rollback; (scripts/README.md has the
 -- probes), then apply it and check the app as the owner at aal2.
 --
+-- Prerequisite: `postgres` must be allowed to create a policy on auth.mfa_factors. Check that
+-- `show supautils.policy_grants;` lists auth.mfa_factors; on older Postgres images this file
+-- stops with 42501 (nothing is applied). Then upgrade the image, or get approval for the
+-- security definer fallback described in scripts/README.md.
+--
 -- Rollback, in one transaction. The 0001 policies come back first, so the tables are never
 -- left without a second-factor guard:
 --
