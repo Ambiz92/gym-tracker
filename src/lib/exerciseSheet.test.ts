@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Exercise, ExerciseInsert } from '../types/db'
-import { ExerciseSheet, type SheetRow } from './exerciseSheet'
+import { SheetController, type SheetRow } from './exerciseSheet'
 import type { PlanTarget } from './planForm'
 
 function exercise(id: string, overrides: Partial<Exercise> = {}): Exercise {
@@ -44,10 +44,10 @@ interface Calls {
   created: Exercise[]
 }
 
-function setup(initial: SheetRow[] = [], overrides: Partial<ConstructorParameters<typeof ExerciseSheet>[1]> = {}) {
+function setup(initial: SheetRow[] = [], overrides: Partial<ConstructorParameters<typeof SheetController>[1]> = {}) {
   const calls: Calls = { adds: [], removes: [], creates: [], created: [] }
   let rowCount = 0
-  const sheet = new ExerciseSheet(initial, {
+  const sheet = new SheetController(initial, {
     add: async (ex, target) => {
       calls.adds.push({ exerciseId: ex.id, target })
       return { rowId: `row-${++rowCount}` }

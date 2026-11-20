@@ -96,19 +96,6 @@
   text-align: right;
 }
 
-/* The "add" row ends in a rubber plus key */
-.exercise-row--add .exercise-row__glyph {
-  display: grid;
-  place-items: center;
-  height: var(--ds-size-touch);
-  border-radius: var(--ds-radius-md);
-  background: var(--ds-color-surface);
-  color: var(--ds-color-text);
-  box-shadow: var(--ds-shadow-press);
-  text-align: center;
-  font-weight: var(--ds-weight-black);
-}
-
 /* Form */
 .exercise-form__fieldset {
   min-inline-size: 0;

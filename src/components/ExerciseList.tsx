@@ -6,8 +6,6 @@ import '../styles/exercises.css'
 interface ExerciseListProps {
   exercises: readonly Exercise[]
   onSelect: (exercise: Exercise) => void
-  /** "open" rows lead to the exercise (arrow); "add" rows pick it (plus). */
-  variant?: 'open' | 'add'
   /** The exercise open next to the list (desktop); its row is highlighted. */
   selectedId?: string
   /** Plans using each exercise (missing: none); when given, replaces the muscles in the detail line. */
@@ -17,7 +15,7 @@ interface ExerciseListProps {
 }
 
 /** Tappable exercise rows: name, equipment and muscles (or plan usage); archived ones are tagged. Text only, never HTML. */
-export function ExerciseList({ exercises, onSelect, variant = 'open', selectedId, usage, empty }: ExerciseListProps) {
+export function ExerciseList({ exercises, onSelect, selectedId, usage, empty }: ExerciseListProps) {
   if (exercises.length === 0) return <div className="exercises__empty">{empty}</div>
 
   return (
@@ -26,9 +24,8 @@ export function ExerciseList({ exercises, onSelect, variant = 'open', selectedId
         <li key={exercise.id}>
           <button
             type="button"
-            className={variant === 'add' ? 'exercise-row exercise-row--add' : 'exercise-row'}
+            className="exercise-row"
             aria-current={exercise.id === selectedId ? 'true' : undefined}
-            aria-label={variant === 'add' ? `Aggiungi ${exercise.name}` : undefined}
             onClick={() => onSelect(exercise)}
           >
             <span>
@@ -41,7 +38,7 @@ export function ExerciseList({ exercises, onSelect, variant = 'open', selectedId
               <span className="exercise-row__tag">Archiviato</span>
             ) : (
               <span className="exercise-row__glyph" aria-hidden="true">
-                {variant === 'add' ? '+' : '→'}
+                →
               </span>
             )}
           </button>

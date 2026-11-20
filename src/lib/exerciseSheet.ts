@@ -39,7 +39,7 @@ export interface SheetSnapshot {
  * values the user had typed. Requests run one after another (rows get their position from the last one).
  * Plugs into React through `subscribe` / `getSnapshot` (useSyncExternalStore).
  */
-export class ExerciseSheet {
+export class SheetController {
   private snapshot: SheetSnapshot
   private readonly listeners = new Set<() => void>()
   private readonly rows = new Map<string, SheetRow>()

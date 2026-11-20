@@ -4,7 +4,6 @@ import { emptyForm } from '../lib/exerciseForm'
 import type { Exercise } from '../types/db'
 import { ExerciseForm } from './ExerciseForm'
 import { ExerciseList } from './ExerciseList'
-import { ExercisePicker } from './ExercisePicker'
 
 function exercise(id: string, overrides: Partial<Exercise> = {}): Exercise {
   return {
@@ -52,24 +51,6 @@ test('ExerciseList marks only the selected row as current', () => {
   )
   expect(html.match(/aria-current="true"/g)).toHaveLength(1)
   expect(html).toMatch(/aria-current="true"[^>]*><span><span class="exercise-row__name">Squat/)
-})
-
-test('ExercisePicker hides excluded exercises and labels the add buttons', () => {
-  const html = renderToStaticMarkup(
-    <ExercisePicker exercises={[exercise('a'), exercise('b')]} excludeIds={['a']} onPick={() => {}} />,
-  )
-  expect(html).toContain('aria-label="Aggiungi Esercizio b"')
-  expect(html).not.toContain('Esercizio a')
-})
-
-test('ExercisePicker explains an empty library and a fully used one', () => {
-  const none = renderToStaticMarkup(<ExercisePicker exercises={[]} excludeIds={[]} onPick={() => {}} />)
-  expect(none).toContain('La libreria è vuota')
-
-  const all = renderToStaticMarkup(
-    <ExercisePicker exercises={[exercise('a')]} excludeIds={['a']} onPick={() => {}} />,
-  )
-  expect(all).toContain('Hai già aggiunto tutti gli esercizi')
 })
 
 test('ExerciseForm labels its fields, marks the name required and shows a submit failure as an alert', () => {

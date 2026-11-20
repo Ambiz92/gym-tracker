@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   defaultTarget,
   nextUnit,
+  targetOf,
   sessionFormFrom,
   targetFormFrom,
   validateName,
@@ -147,5 +148,12 @@ describe('nextUnit', () => {
     expect(nextUnit('reps')).toBe('seconds')
     expect(nextUnit('seconds')).toBe('meters')
     expect(nextUnit('meters')).toBe('reps')
+  })
+})
+
+describe('targetOf', () => {
+  it('keeps the five target columns and drops the rest of the row', () => {
+    const row = { id: 'x1', session_id: 's1', position: 2, target_sets: 3, target_reps: 8, target_unit: 'reps' as const, suggested_weight_kg: 20, suggested_weight_max_kg: null }
+    expect(targetOf(row)).toEqual({ target_sets: 3, target_reps: 8, target_unit: 'reps', suggested_weight_kg: 20, suggested_weight_max_kg: null })
   })
 })

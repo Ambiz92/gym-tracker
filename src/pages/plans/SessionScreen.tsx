@@ -3,28 +3,16 @@ import { useNavigate } from 'react-router-dom'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { SessionHeader } from '../../components/SessionHeader'
 import type { SessionDetail } from '../../data/activePlan'
-import { createExercise } from '../../data/exercises'
-import {
-  addPlanExercise,
-  removePlanExercise,
-  removeSession,
-  reorderPlanExercises,
-  type SessionRemoval,
-  updatePlanExercise,
-  updateSession,
-} from '../../data/plans'
+import { type SessionRemoval, updatePlanExercise } from '../../data/plans'
 import { useAction } from '../../hooks/useAction'
-import { useIsDesktop } from '../../hooks/useIsDesktop'
 import { countLabel } from '../../lib/planList'
-import { defaultTarget, sessionFormFrom, type PlanTarget } from '../../lib/planForm'
-import { moveItem, moveTo } from '../../lib/reorder'
-import type { Exercise, ExerciseInsert, PlanSessionUpdate } from '../../types/db'
-import { AddExercise } from './AddExercise'
+import { sessionFormFrom, type PlanTarget } from '../../lib/planForm'
+import { AddExercises } from './AddExercises'
 import { describePlanError } from './errors'
 import { ExerciseGrid } from './ExerciseGrid'
-import { ExerciseRows } from './ExerciseRows'
 import { SessionFields } from './SessionFields'
 import { SessionRemove } from './SessionRemove'
+import { useSessionEdits } from './useSessionEdits'
 import '../../styles/plans.css'
 
 interface SessionScreenProps {
@@ -37,42 +25,14 @@ interface SessionScreenProps {
   onRemoved: (removal: SessionRemoval) => void
 }
 
-/** One session of a plan: its name and bonus flag, and its exercises with sets, reps, unit and weight. */
+/** Desktop: one session of a plan, its name and bonus flag, and its exercises with sets, reps, unit and weight edited in place. */
 export function SessionScreen({ planId, planName, session, onChange: setSession, onRemoved }: SessionScreenProps) {
   const navigate = useNavigate()
-  const isDesktop = useIsDesktop()
   const [adding, setAdding] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
-  const details = useAction(describePlanError)
-  const list = useAction(describePlanError)
   const target = useAction(describePlanError)
-  const removal = useAction(describePlanError)
-  const busy = details.busy || list.busy || target.busy || removal.busy
-
-  async function handleDetails(fields: PlanSessionUpdate) {
-    const saved = await details.run(() => updateSession(session.id, fields), 'Salvataggio non riuscito. Riprova.')
-    if (saved) setSession((current) => ({ ...current, ...fields }))
-  }
-
-  async function appendExercise(exercise: Exercise) {
-    const row = await addPlanExercise(session.id, { exercise_id: exercise.id, ...defaultTarget(exercise) })
-    setSession((current) => ({ ...current, exercises: [...current.exercises, { ...row, exercise }] }))
-    setNotice(`«${exercise.name}» aggiunto.`)
-  }
-
-  async function handlePick(exercise: Exercise) {
-    setNotice(null)
-    await list.run(() => appendExercise(exercise), 'Aggiunta non riuscita. Controlla la connessione e riprova.')
-  }
-
-  async function handleCreate(values: ExerciseInsert) {
-    const created = await list.run(
-      async () => appendExercise(await createExercise(values)),
-      'Salvataggio non riuscito. Controlla la connessione e riprova: i dati nel modulo sono ancora qui.',
-    )
-    if (created) setAdding(false)
-  }
+  const edits = useSessionEdits(session, setSession)
+  const { details, list, removal } = edits
+  const busy = edits.busy || target.busy
 
   async function handleSaveTarget(id: string, changes: PlanTarget): Promise<boolean> {
     const saved = await target.run(() => updatePlanExercise(id, changes), 'Salvataggio non riuscito. Riprova.')
@@ -81,51 +41,17 @@ export function SessionScreen({ planId, planName, session, onChange: setSession,
       ...current,
       exercises: current.exercises.map((row) => (row.id === id ? { ...row, ...changes } : row)),
     }))
-    setEditingId(null)
     return true
   }
 
-  async function applyOrder(reordered: SessionDetail['exercises']) {
-    const done = await list.run(() => reorderPlanExercises(reordered), 'Riordino non riuscito. Riprova.')
-    if (done) setSession((current) => ({ ...current, exercises: reordered }))
-  }
-
-  const handleMove = (index: number, offset: -1 | 1) => applyOrder(moveItem(session.exercises, index, offset))
-  const handleReorder = (from: number, to: number) => applyOrder(moveTo(session.exercises, from, to))
-
-  async function handleRemoveExercise(id: string) {
-    const done = await list.run(() => removePlanExercise(id), 'Rimozione non riuscita. Riprova.')
-    if (!done) return
-    setSession((current) => ({ ...current, exercises: current.exercises.filter((row) => row.id !== id) }))
-    setEditingId((current) => (current === id ? null : current))
-  }
-
   async function handleRemoveSession() {
-    let removed: SessionRemoval = 'deleted'
-    const done = await removal.run(async () => {
-      removed = await removeSession(session.id)
-    }, 'Rimozione non riuscita. Riprova.')
-    if (!done) return
+    const removed = await edits.removeThisSession()
+    if (!removed) return
     // One transition: the session route is left in the same render that drops the session from the plan.
     startTransition(() => {
       navigate(`/plans/${planId}`)
       onRemoved(removed)
     })
-  }
-
-  if (adding) {
-    return (
-      <AddExercise
-        sessionName={session.name}
-        excludeIds={session.exercises.map((row) => row.exercise_id)}
-        busy={list.busy}
-        error={list.error}
-        notice={notice}
-        onPick={handlePick}
-        onCreate={handleCreate}
-        onClose={() => setAdding(false)}
-      />
-    )
   }
 
   return (
@@ -138,7 +64,7 @@ export function SessionScreen({ planId, planName, session, onChange: setSession,
         title={session.name}
         subtitle={session.is_optional ? 'Bonus' : undefined}
       />
-      <SessionFields initial={sessionFormFrom(session)} busy={details.busy} error={details.error} onSubmit={handleDetails} />
+      <SessionFields initial={sessionFormFrom(session)} busy={details.busy} error={details.error} onSubmit={edits.saveDetails} />
 
       <h2 className="plans-label">Esercizi</h2>
       {list.error && (
@@ -146,42 +72,29 @@ export function SessionScreen({ planId, planName, session, onChange: setSession,
           {list.error}
         </p>
       )}
-      {isDesktop ? (
-        <ExerciseGrid
-          exercises={session.exercises}
-          busy={busy}
-          error={target.error}
-          onSave={handleSaveTarget}
-          onMove={handleMove}
-          onRemove={handleRemoveExercise}
-        />
-      ) : (
-        <ExerciseRows
-          exercises={session.exercises}
-          editingId={editingId}
-          busy={busy}
-          error={target.error}
-          onEdit={setEditingId}
-          onSave={handleSaveTarget}
-          onMove={handleMove}
-          onReorder={handleReorder}
-          onRemove={handleRemoveExercise}
-        />
-      )}
+      <ExerciseGrid
+        exercises={session.exercises}
+        busy={busy}
+        error={target.error}
+        onSave={handleSaveTarget}
+        onMove={edits.move}
+        onRemove={(id) => void edits.removeExercise(id)}
+      />
       <div className="plans-actions">
-        <PrimaryButton
-          variant="outline"
-          disabled={busy}
-          onClick={() => {
-            setNotice(null)
-            setAdding(true)
-          }}
-        >
-          Aggiungi esercizio
+        <PrimaryButton variant="outline" disabled={busy} onClick={() => setAdding(true)}>
+          Aggiungi esercizi
         </PrimaryButton>
       </div>
+      {adding && (
+        <AddExercises
+          session={session}
+          onAdded={(row) => setSession((current) => ({ ...current, exercises: [...current.exercises, row] }))}
+          onRemoved={(rowId) => setSession((current) => ({ ...current, exercises: current.exercises.filter((row) => row.id !== rowId) }))}
+          onClose={() => setAdding(false)}
+        />
+      )}
 
-      <SessionRemove name={session.name} busy={busy} error={removal.error} onRemove={handleRemoveSession} />
+      <SessionRemove name={session.name} busy={busy} error={removal.error} onRemove={() => void handleRemoveSession()} />
     </>
   )
 }

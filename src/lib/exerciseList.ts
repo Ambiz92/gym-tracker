@@ -18,6 +18,12 @@ export function filterExercises<T extends Pick<Exercise, 'name'>>(exercises: rea
   })
 }
 
+/** True when an exercise is called exactly `name` (ignoring case, accents and spaces around it): the quick create is offered only when not. */
+export function hasExactName(exercises: readonly Pick<Exercise, 'name'>[], name: string): boolean {
+  const wanted = normalize(name.trim())
+  return exercises.some((exercise) => normalize(exercise.name.trim()) === wanted)
+}
+
 /** Active exercises first, then archived ones, each group by name. */
 export function sortExercises(exercises: readonly Exercise[]): Exercise[] {
   return [...exercises].sort(

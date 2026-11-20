@@ -3,6 +3,7 @@ import { Outlet, useParams } from 'react-router-dom'
 import type { EditablePlan } from '../../data/activePlan'
 import { useIsDesktop } from '../../hooks/useIsDesktop'
 import { planListSignature } from '../../lib/planList'
+import { PlanBuilder } from './PlanBuilder'
 import { PlanScreen } from './PlanScreen'
 import type { PlanOutletContext } from './planContext'
 
@@ -13,9 +14,9 @@ interface PlanWorkspaceProps {
 }
 
 /**
- * Holds the plan being edited, so the plan screen and the session screen (the child route) read and
- * patch the same copy after each saved edit. On the phone each is its own page; on desktop the
- * sessions and the session editor sit side by side.
+ * Holds the plan being edited. On the phone the builder shows the whole plan on one screen; on
+ * desktop the plan screen and the session screen (the child route) read and patch the same copy
+ * after each saved edit, side by side.
  */
 export function PlanWorkspace({ initial, onListStale }: PlanWorkspaceProps) {
   const { sessionId } = useParams()
@@ -30,9 +31,10 @@ export function PlanWorkspace({ initial, onListStale }: PlanWorkspaceProps) {
     onListStale?.()
   }, [signature, onListStale])
 
+  if (!isDesktop) return <PlanBuilder plan={plan} onChange={setPlan} initialSessionId={sessionId} />
+
   const screen = <PlanScreen plan={plan} onChange={setPlan} />
   const sessionEditor = <Outlet context={{ plan, setPlan } satisfies PlanOutletContext} />
-  if (!isDesktop) return sessionId ? sessionEditor : screen
   return (
     <div className="plan-panes">
       <div className="plan-panes__sessions">{screen}</div>
