@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   defaultTarget,
+  nextUnit,
   sessionFormFrom,
   targetFormFrom,
   validateName,
@@ -138,5 +139,13 @@ describe('targets from the stored row and for a new exercise', () => {
   it('a stored target survives the form unchanged', () => {
     const target = defaultTarget({ starting_weight_kg: 22.5 })
     expect(validateTargetForm(targetFormFrom(target))).toEqual({ ok: true, target })
+  })
+})
+
+describe('nextUnit', () => {
+  it('cycles reps, seconds, meters and back', () => {
+    expect(nextUnit('reps')).toBe('seconds')
+    expect(nextUnit('seconds')).toBe('meters')
+    expect(nextUnit('meters')).toBe('reps')
   })
 })

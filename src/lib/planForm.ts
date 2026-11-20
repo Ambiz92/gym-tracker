@@ -15,6 +15,11 @@ export const UNIT_LABELS: Record<TargetUnit, string> = {
 }
 export const UNIT_ORDER: readonly TargetUnit[] = ['reps', 'seconds', 'meters']
 
+/** The unit after `unit` in the order reps, seconds, meters: one tap on the row's unit key cycles through them. */
+export function nextUnit(unit: TargetUnit): TargetUnit {
+  return UNIT_ORDER[(UNIT_ORDER.indexOf(unit) + 1) % UNIT_ORDER.length]
+}
+
 const DEFAULT_SETS = 3
 const DEFAULT_REPS = 8
 

@@ -18,12 +18,13 @@ import {
   restorePlan,
   restoreSession,
   reorderPlanExercises,
+  restorePlanExercise,
   reorderSessions,
   setActivePlan,
   updatePlanExercise,
   updateSession,
 } from './plans'
-import type { SessionDetail } from './activePlan'
+import type { PlanExerciseDetail, SessionDetail } from './activePlan'
 import type { PlanExercise, PlanSession } from '../types/db'
 
 vi.mock('../lib/supabase', async () => ({ supabase: (await import('./fakeSupabase')).fakeSupabase }))
@@ -578,5 +579,56 @@ describe('duplicateSession', () => {
   test('says so when even the cleanup fails', async () => {
     scenario('plan_exercise', failure)
     await expect(duplicateSession(source, 'B')).rejects.toMatchObject({ code: 'partial_session' })
+  })
+})
+
+describe('restorePlanExercise', () => {
+  const detail = (id: string, position: number): PlanExerciseDetail =>
+    ({
+      id,
+      session_id: 's1',
+      exercise_id: `e-${id}`,
+      position,
+      target_sets: 4,
+      target_reps: 10,
+      target_unit: 'reps',
+      suggested_weight_kg: 12.5,
+      suggested_weight_max_kg: null,
+      exercise: { id: `e-${id}`, name: `Esercizio ${id}` },
+    }) as PlanExerciseDetail
+
+  /** The session has positions up to 1; the insert answers with the new row. */
+  const scenario = () =>
+    fakeSupabase.reset((call) => {
+      if (call.op === 'select') return { data: [{ position: 1 }] }
+      if (call.op === 'insert') return { data: { id: 'new', ...(call.payload as object) } }
+      return undefined
+    })
+
+  test('puts the exercise back in its old place with the same target', async () => {
+    scenario()
+    const ordered = await restorePlanExercise(detail('b', 1), 1, [detail('a', 0), detail('c', 2)])
+
+    expect(fakeSupabase.calls.map(summary)).toEqual(['plan_exercise.select', 'plan_exercise.insert', 'plan_exercise.upsert'])
+    expect(fakeSupabase.calls[1].payload).toEqual({
+      exercise_id: 'e-b',
+      target_sets: 4,
+      target_reps: 10,
+      target_unit: 'reps',
+      suggested_weight_kg: 12.5,
+      suggested_weight_max_kg: null,
+      session_id: 's1',
+      position: 2,
+    })
+    expect(ordered.map((row) => row.exercise.name)).toEqual(['Esercizio a', 'Esercizio b', 'Esercizio c'])
+    const upserted = fakeSupabase.calls[2].payload as { id: string; position: number }[]
+    expect(upserted.map((row) => [row.id, row.position])).toEqual([['a', 0], ['new', 1], ['c', 2]])
+  })
+
+  test('an exercise that was the last needs no reorder', async () => {
+    scenario()
+    const ordered = await restorePlanExercise(detail('c', 2), 2, [detail('a', 0), detail('b', 1)])
+    expect(fakeSupabase.calls.map(summary)).toEqual(['plan_exercise.select', 'plan_exercise.insert'])
+    expect(ordered.map((row) => row.id)).toEqual(['a', 'b', 'new'])
   })
 })

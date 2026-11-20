@@ -10,6 +10,7 @@ import type {
 } from '../types/db'
 import { MAX_NAME_LENGTH } from '../lib/exerciseForm'
 import { nextSessionName } from '../lib/planBuilder'
+import { moveTo } from '../lib/reorder'
 import { newUuid } from '../lib/uuid'
 import { getPlanById, type EditablePlan, type PlanExerciseDetail, type SessionDetail } from './activePlan'
 import { DataError, ensureAffected, ensureOk, inUseError, isReferenced, supabase, unwrap, unwrapOrNull } from './client'
@@ -229,6 +230,29 @@ export async function reorderPlanExercises(exercises: PlanExercise[]): Promise<v
     }),
   )
   ensureOk(await supabase.from('plan_exercise').upsert(rows, { onConflict: 'id' }))
+}
+
+/**
+ * Puts a removed exercise back at `index` (its old place) with the same target. It goes in as the last
+ * one, then the session is reordered unless it was the last. Returns the session's exercises in order.
+ */
+export async function restorePlanExercise(
+  removed: PlanExerciseDetail,
+  index: number,
+  remaining: PlanExerciseDetail[],
+): Promise<PlanExerciseDetail[]> {
+  const { exercise, session_id, exercise_id, target_sets, target_reps, target_unit, suggested_weight_kg, suggested_weight_max_kg } = removed
+  const row = await addPlanExercise(session_id, {
+    exercise_id,
+    target_sets,
+    target_reps,
+    target_unit,
+    suggested_weight_kg,
+    suggested_weight_max_kg,
+  })
+  const ordered = moveTo([...remaining, { ...row, exercise }], remaining.length, index)
+  if (index < remaining.length) await reorderPlanExercises(ordered)
+  return ordered
 }
 
 const COPY_SUFFIX = ' (copia)'
