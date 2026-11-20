@@ -57,3 +57,11 @@ export async function deleteExercise(id: string): Promise<void> {
     throw error
   }
 }
+
+/** Catalog entries the user has a copy of, archived copies included (a second copy would be refused). */
+export async function listAdoptedCatalogIds(): Promise<Set<string>> {
+  const rows = await readAllRows<Pick<Exercise, 'catalog_id'>>((from, to) =>
+    supabase.from('exercise').select('catalog_id').order('id').range(from, to),
+  )
+  return new Set(rows.flatMap(({ catalog_id }) => (catalog_id === null ? [] : [catalog_id])))
+}
