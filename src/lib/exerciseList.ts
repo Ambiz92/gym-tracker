@@ -13,7 +13,9 @@ type CatalogNames = Pick<CatalogExercise, 'name_it' | 'name_en' | 'synonyms'>
 
 /** Every name an entry answers to: a user exercise has one, a catalog entry has Italian name, English name and synonyms. */
 function searchTerms(item: UserNames | CatalogNames): string[] {
-  return 'name' in item ? [item.name] : [item.name_it, item.name_en, ...item.synonyms]
+  return 'name' in item
+    ? [item.name]
+    : [item.name_it, ...(item.name_en ? [item.name_en] : []), ...item.synonyms]
 }
 
 /** Keeps the entries with a name or synonym containing every word of the query; an empty query keeps all. */

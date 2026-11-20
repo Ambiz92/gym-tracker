@@ -41,7 +41,7 @@ export interface CatalogExercise {
   id: string
   slug: string
   name_it: string
-  name_en: string
+  name_en: string | null
   synonyms: string[]
   equipment: Equipment
   primary_muscle: string
