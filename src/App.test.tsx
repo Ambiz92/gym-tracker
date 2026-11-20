@@ -12,7 +12,7 @@ function renderAt(path: string, status: AuthStatus = 'signed_in') {
   const unused = () => Promise.reject(new Error('not used when rendering'))
   return renderToStaticMarkup(
     <AuthContext.Provider
-      value={{ status, email: null, oauthError: null, signIn: unused, signInWithGoogle: unused, verifyCode: unused, startEnrollment: unused, verifyEnrollment: unused, signOut: unused }}
+      value={{ status, email: null, oauthError: null, clearOauthError: () => undefined, signIn: unused, signInWithGoogle: unused, verifyCode: unused, startEnrollment: unused, verifyEnrollment: unused, signOut: unused }}
     >
       <MemoryRouter initialEntries={[path]}>
         <AppRoutes />

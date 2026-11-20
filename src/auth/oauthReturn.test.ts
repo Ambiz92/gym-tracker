@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { oauthRedirectUrl, parseOAuthReturn, withoutOAuthReturn } from './oauthReturn'
+import { oauthRedirectUrl, parseOAuthReturn, takeOAuthReturn, withoutOAuthReturn } from './oauthReturn'
 
 const APP = 'https://user.github.io/gym-tracker/'
 
@@ -36,6 +36,35 @@ test('an error without a description falls back to its name', () => {
 
 test('an error wins over a code', () => {
   expect(parseOAuthReturn(`${APP}?code=x&error=access_denied`)).toMatchObject({ error: { message: 'access_denied' } })
+})
+
+function fakeWindow(href: string) {
+  const replaced: string[] = []
+  return {
+    replaced,
+    win: { location: { href }, history: { replaceState: (_data: null, _unused: string, url: string) => void replaced.push(url) } },
+  }
+}
+
+test('taking a return reads it and cleans the address bar, once', () => {
+  const { win, replaced } = fakeWindow(`${APP}?code=the-code`)
+
+  expect(takeOAuthReturn(win)).toEqual({ code: 'the-code', flowId: undefined })
+  expect(replaced).toEqual([APP])
+})
+
+test('taking a refusal that came in the hash cleans the hash as well', () => {
+  const { win, replaced } = fakeWindow(`${APP}?error=access_denied#error=access_denied&error_code=signup_disabled`)
+
+  expect(takeOAuthReturn(win)).toMatchObject({ error: { message: 'access_denied', code: 'signup_disabled' } })
+  expect(replaced).toEqual([APP])
+})
+
+test('a normal page load is left untouched', () => {
+  const { win, replaced } = fakeWindow(`${APP}#/plans`)
+
+  expect(takeOAuthReturn(win)).toBeNull()
+  expect(replaced).toEqual([])
 })
 
 test('the return parameters are stripped and the route and other parameters are kept', () => {

@@ -1,12 +1,14 @@
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
-import { expect, test } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import * as PrimaryButtonModule from '../components/PrimaryButton'
 import { Login } from '../pages/Login'
 import { MfaChallenge } from '../pages/MfaChallenge'
 import { MfaEnroll } from '../pages/MfaEnroll'
 import { More } from '../pages/More'
 import { AuthContext, type AuthContextValue } from './AuthProvider'
+import { CodeForm } from './CodeForm'
 import { classifyError } from './errors'
 
 function render(ui: ReactElement, overrides: Partial<AuthContextValue> = {}) {
@@ -17,6 +19,7 @@ function render(ui: ReactElement, overrides: Partial<AuthContextValue> = {}) {
         status: 'signed_out',
         email: null,
         oauthError: null,
+        clearOauthError: () => undefined,
         signIn: unused,
         signInWithGoogle: unused,
         verifyCode: unused,
@@ -65,6 +68,39 @@ test('the code step asks for a numeric one-time code and offers a way back', () 
   expect(html).toContain('inputMode="numeric"')
   expect(html).toContain('Conferma')
   expect(html).toContain('Indietro')
+})
+
+describe('the back button of the code form', () => {
+  const buttons: Record<string, (() => void) | undefined> = {}
+
+  beforeEach(() => {
+    for (const key of Object.keys(buttons)) delete buttons[key]
+    vi.spyOn(PrimaryButtonModule, 'PrimaryButton').mockImplementation(({ children, onClick }) => {
+      buttons[String(children)] = onClick
+      return <></>
+    })
+  })
+  afterEach(() => vi.restoreAllMocks())
+
+  test('signs out by default: it leaves the half-open session of the login', () => {
+    const signOut = vi.fn(() => Promise.resolve(null))
+    render(<CodeForm onSubmit={() => Promise.resolve(null)} />, { signOut })
+
+    buttons.Indietro?.()
+
+    expect(signOut).toHaveBeenCalledTimes(1)
+  })
+
+  test('uses the given action instead, so a signed-in user is not signed out', () => {
+    const signOut = vi.fn(() => Promise.resolve(null))
+    const onBack = vi.fn()
+    render(<CodeForm onSubmit={() => Promise.resolve(null)} onBack={onBack} />, { signOut })
+
+    buttons.Indietro?.()
+
+    expect(onBack).toHaveBeenCalledTimes(1)
+    expect(signOut).not.toHaveBeenCalled()
+  })
 })
 
 test('the enrollment starts with a button, creating nothing until it is tapped, and is optional', () => {

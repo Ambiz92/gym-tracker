@@ -3,7 +3,8 @@ import type { AuthErrorLike } from './errors'
 /** What the identity provider left in the URL when it sent the browser back. */
 export type OAuthReturn = { code: string; flowId?: string } | { error: AuthErrorLike }
 
-// Parameters of the PKCE return; sb_flow_id is the one supabase-js adds to redirectTo.
+// Parameters of the PKCE return. sb_flow_id only appears when supabase-js runs with
+// experimental.appendPkceFlowIdToRedirects; it is handled in case that is ever turned on.
 const RETURN_PARAMS = ['code', 'sb_flow_id', 'error', 'error_code', 'error_description']
 
 /** A route hash starts with `#/`; anything else (`#error=...`) is auth data, not a route. */
@@ -39,4 +40,17 @@ export function withoutOAuthReturn(href: string): string {
   for (const key of RETURN_PARAMS) url.searchParams.delete(key)
   if (!isRouteHash(url)) url.hash = ''
   return url.toString()
+}
+
+/** The slice of `window` used by `takeOAuthReturn`. */
+interface ReturnWindow {
+  location: { href: string }
+  history: { replaceState(data: null, unused: string, url: string): void }
+}
+
+/** Reads the return and removes it from the address bar, so a reload or a shared URL does not replay it. */
+export function takeOAuthReturn(win: ReturnWindow): OAuthReturn | null {
+  const returned = parseOAuthReturn(win.location.href)
+  if (returned) win.history.replaceState(null, '', withoutOAuthReturn(win.location.href))
+  return returned
 }

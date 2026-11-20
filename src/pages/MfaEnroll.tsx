@@ -8,7 +8,11 @@ import { useFormAction } from '../auth/useFormAction'
 import { PageHeader } from '../components/PageHeader'
 import { PrimaryButton } from '../components/PrimaryButton'
 
-/** Optional setup of an authenticator app; once verified, every later login asks for its code. */
+/**
+ * Optional setup of an authenticator app; once verified, every later login asks for its code.
+ * A user who already has a verified factor may open it too: only unverified factors are dropped,
+ * and Supabase asks for aal2 before adding another.
+ */
 export function MfaEnroll() {
   const { startEnrollment, verifyEnrollment } = useAuth()
   const navigate = useNavigate()
@@ -54,7 +58,7 @@ export function MfaEnroll() {
           <p className="field__message">
             Non riesci a inquadrarlo? Inserisci questa chiave a mano: <code style={{ wordBreak: 'break-all' }}>{enrollment.secret}</code>
           </p>
-          <CodeForm onSubmit={(code) => confirm(enrollment.factorId, code)} />
+          <CodeForm onSubmit={(code) => confirm(enrollment.factorId, code)} onBack={goHome} />
         </>
       ) : (
         <>

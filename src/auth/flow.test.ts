@@ -284,6 +284,17 @@ describe('enrollment', () => {
     expect(fake.state.factors).toEqual([{ id: 'f2', status: 'unverified' }])
   })
 
+  test('a verified factor is never dropped by starting another enrollment', async () => {
+    const fake = createFakeAuth({ enrolled: true })
+    fake.state.session = { aal: 'aal2' }
+    await startEnrollment(fake.api)
+
+    expect(fake.state.factors).toEqual([
+      { id: 'f0', status: 'verified' },
+      { id: 'f1', status: 'unverified' },
+    ])
+  })
+
   test('an incomplete first code is refused without a request', async () => {
     const fake = createFakeAuth()
     await signIn(fake.api, EMAIL, PASSWORD)

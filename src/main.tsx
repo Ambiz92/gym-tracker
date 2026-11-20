@@ -4,7 +4,7 @@ import './styles/tokens.css'
 import './styles/global.css'
 import './styles/components.css'
 import { App } from './App'
-import { parseOAuthReturn, withoutOAuthReturn } from './auth/oauthReturn'
+import { takeOAuthReturn } from './auth/oauthReturn'
 // After App, whose screens import their own sheets: the desktop rules must override them all.
 import './styles/desktop.css'
 
@@ -18,8 +18,7 @@ if (window.top !== window.self) {
 }
 
 // Read before the router starts: a refusal puts its error in the hash, which HashRouter would take for a route.
-const oauthReturn = parseOAuthReturn(window.location.href)
-if (oauthReturn) window.history.replaceState(null, '', withoutOAuthReturn(window.location.href))
+const oauthReturn = takeOAuthReturn(window)
 
 createRoot(root).render(
   <StrictMode>
