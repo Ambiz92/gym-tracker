@@ -16,44 +16,119 @@ Not covered, because it needs logged-in sessions: row ownership, and the second-
 
 ## Manual check with two real users (Google sign-in)
 
-Run it after applying `0004_optional_mfa.sql` and after any Supabase upgrade. Apply the migration before deploying the front end: the app now treats an aal1 session without a factor as signed in, and until the migration is applied RLS still refuses it.
+The anon-only script cannot see the second-factor rule of `0004_optional_mfa.sql`, or row ownership: both need logged-in sessions. Run this section once before inviting anyone, and again after any Supabase upgrade.
 
-### Setup
+### Supabase and Google setup
 
-- Auth > Providers: Google enabled with your own OAuth client. In Google Cloud the authorized redirect URI is the Supabase callback, `https://<project-ref>.supabase.co/auth/v1/callback`, not an app URL.
-- Auth > Sign In / Providers: sign-ups stay disabled. Create each friend in Auth > Users with their Google email, confirmed and without a password. Google sign-in then attaches to that user by email.
-- Auth > URL Configuration, redirect URLs. Supabase falls back to the Site URL when `redirectTo` is not on the list, which looks like a successful login that lands on the wrong page.
-  - `https://<github-user>.github.io/gym-tracker/` and `https://<github-user>.github.io/gym-tracker/**`
-  - `http://localhost:*/gym-tracker/` and `http://localhost:*/gym-tracker/**`
-  - for the dev server opened on the LAN, `http://192.168.*.*:*/gym-tracker/` and its `/**` twin (adjust to your network). Remove these two entries when you do not need them: a wildcard on a private range is the loosest line of the list.
-- Policies: `select tablename, policyname from pg_policies where policyname like '%\_mfa\_if\_enrolled' order by 1;` returns seven rows, and no policy name ends in `_aal2`.
+Redirect URLs (Auth > URL Configuration). Use exact entries and nothing else:
 
-For the REST checks, get a user's access token with the password grant (a throw-away test user, or the owner for check c) and keep the key and token in shell variables, never in a file:
+- Site URL and redirect: `https://<github-user>.github.io/gym-tracker/`
+- Redirect: `http://localhost:5173/gym-tracker/`
+
+No wildcards. A pattern such as `http://localhost:*` is matched against the URL text, and a URL like `http://localhost:@evil.example/` (the part before the `@` is user info, the host is `evil.example`) is the classic way to get past loose patterns; with Google sign-in the code would be delivered to the attacker's page. Supabase also refuses non-loopback IP literals as redirect targets, so Google sign-in cannot be tested from a phone through the Mac's LAN address. Test it on `localhost` from the Mac, or on the deployed URL. Password login works on the LAN as before. If `redirectTo` is not on the list, Supabase falls back to the Site URL, which looks like a successful login that lands on the wrong page.
+
+Dashboard settings:
+
+- Auth > Providers > Google: enabled, with your own OAuth client. In Google Cloud the authorized redirect URI is the Supabase callback, `https://<project-ref>.supabase.co/auth/v1/callback`, not an app URL.
+- Google consent screen in Testing mode, with the friends added as test users. This is a second allowlist next to Supabase's: an account that is not a test user never reaches Supabase.
+- Sign-ups disabled. Anonymous sign-ins off. Manual linking off.
+- "Confirm email" on. Users created in the dashboard with Auto Confirm are not affected, and sign-ups stay off.
+- Friends: create each one in Auth > Users as confirmed (Auto Confirm), with their Google address, and either without a password or with a random password of 32 or more characters that nobody keeps. A password the friend knows would give them a password-only (aal1) way in next to Google. Prefer `@gmail.com` addresses: Supabase links a Google sign-in to the existing user by verified email, and for other domains the verified flag depends on the account type.
+- Do not use "Send invitation". Its link puts the tokens in the URL hash, which this app does not read.
+- Turn on MFA for your own Supabase and GitHub accounts. The dashboard (or the admin API) is the only way to remove the owner's second factor, and without that factor the owner's account is password-only (see the header of the migration).
+
+### Order of the rollout
+
+1. Rehearse the migration in the SQL editor, inside a transaction that you roll back (next section).
+2. Apply `0004_optional_mfa.sql`. In the real app, signed in as the owner with the code (aal2), check that your data is still there.
+3. Deploy the front end. It must come after the migration: until then an aal1 user without a factor is signed in but refused by RLS.
+4. Enable the Google provider, create the friends, run the checks below.
+
+### Rehearsing the migration
+
+The policies read `auth.mfa_factors`, a table owned by Supabase's auth service. The migration grants `select (user_id, status)` on it and adds a policy there; whether the SQL editor's role may do that is only known by trying. Paste the migration's statements between `begin;` and `rollback;` (leave out the file's own `begin;` and `commit;`, or the rehearsal would commit). Stop at the first error, for example `must be owner of table mfa_factors`.
+
+Then, still in the transaction:
+
+```sql
+select has_column_privilege('authenticated', 'auth.mfa_factors', 'user_id', 'select') as reads_user_id,
+       has_column_privilege('authenticated', 'auth.mfa_factors', 'secret', 'select') as reads_secret,
+       relrowsecurity
+from pg_class where oid = 'auth.mfa_factors'::regclass;
+-- expect: true, false, true
+
+select * from pg_policies where schemaname = 'auth' and tablename = 'mfa_factors';
+-- expect: one row, mfa_factors_select_own
+```
+
+Each probe below runs in its own `begin; ... rollback;` (an error aborts the transaction in the editor), after the migration statements. Put the owner's id, a friend's id and the aal in the claims:
+
+```sql
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"<owner-uuid>","role":"authenticated","aal":"aal1"}', true);
+
+select count(*) from auth.mfa_factors where status = 'verified';   -- 1: the owner's own factor
+select (select count(*) from public.exercise)      as exercise,
+       (select count(*) from public.plan)          as plan,
+       (select count(*) from public.plan_session)  as plan_session,
+       (select count(*) from public.plan_exercise) as plan_exercise,
+       (select count(*) from public.warmup_item)   as warmup_item,
+       (select count(*) from public.workout)       as workout,
+       (select count(*) from public.set_log)       as set_log;      -- all 0 at aal1
+insert into public.exercise (name, equipment) values ('probe', 'other');
+-- expect: new row violates row-level security policy "exercise_mfa_if_enrolled"
+-- and NOT: permission denied for table mfa_factors (that would mean the grant is missing)
+```
+
+Repeat with:
+
+- the owner at `"aal":"aal2"`: the counts are the real row counts and the insert works;
+- a friend without a factor at `aal1`: only the friend's own rows, and the insert works;
+- the owner with no `aal` key at all: 0 rows and the insert is refused.
+
+### Checks with real sessions
+
+For REST checks, get an access token with the password grant for a throw-away test user, typing the password without echo and keeping it out of the command line and the shell history. `$URL` and `$ANON` are the project URL and the public anon key.
 
 ```
-TOKEN=$(curl -s "$URL/auth/v1/token?grant_type=password" -H "apikey: $ANON" -H 'Content-Type: application/json' \
-  -d '{"email":"...","password":"..."}' | jq -r .access_token)
-curl -s "$URL/rest/v1/exercise?select=id,name" -H "apikey: $ANON" -H "Authorization: Bearer $TOKEN"
+read -rs PW
+TOKEN=$(jq -n --arg e "$EMAIL" --arg p "$PW" '{email: $e, password: $p}' \
+  | curl -s "$URL/auth/v1/token?grant_type=password" -H "apikey: $ANON" -H 'Content-Type: application/json' -d @- \
+  | jq -r .access_token)
+unset PW
+curl -s -w '\n%{http_code}\n' "$URL/rest/v1/exercise?select=id,name" -H "apikey: $ANON" -H "Authorization: Bearer $TOKEN"
 ```
 
-The token of a Google user can be read from the browser (local storage, key `sb-<project-ref>-auth-token`) for the length of the test.
+A Google user's token can be read from local storage (`sb-<project-ref>-auth-token`) for the length of the test. The SQL-editor role simulation above is the safer way to test the owner.
 
-### Checks
+a. **A user without TOTP signs in with Google and sees only their rows.** "Continua con Google" lands on Oggi without asking for a code. Create an exercise. In the SQL editor, `select owner_id, name from public.exercise` shows it under that user's id, and the app shows none of the owner's rows (a new user starts with an empty library).
 
-a. **A user without TOTP signs in with Google and sees only their rows.** In the app: "Continua con Google" lands on Oggi without asking for a code. Create an exercise. In the SQL editor, `select owner_id, name from public.exercise` shows it under that user's id, and the app shows none of the owner's rows (a new user starts with an empty library).
-
-b. **A second user cannot touch the first user's rows.** With the access tokens of users A and B and a row id `X` owned by A, using B's token:
+b. **A second user cannot touch the first user's rows.** With the tokens of users A and B and a row id `X` owned by A, using B's token:
    - select: `GET /rest/v1/exercise?id=eq.X` returns `[]`;
-   - insert: `POST` a row with `owner_id` set to A is refused (`42501`);
-   - update: `PATCH ...?id=eq.X` changes nothing (confirm in the SQL editor that the row is as before);
-   - delete: `DELETE ...?id=eq.X` removes nothing (confirm the row is still there).
-   Repeat on one child table such as `set_log`, since each table has its own policies.
+   - insert: a `POST` with `owner_id` set to A is refused (`42501`);
+   - update: `PATCH ...?id=eq.X` changes nothing (confirm in the SQL editor); B patching one of its own rows to set `owner_id` to A is refused;
+   - delete: `DELETE ...?id=eq.X` removes nothing (confirm the row is still there);
+   - B inserting a `set_log` that points at A's `workout_id` is refused with `23503` (the composite keys of `0002_owner_fks.sql`).
+   Repeat the first four on one child table such as `set_log`, since each table has its own policies.
 
-c. **The owner with only a password session (aal1) is still refused.** Take a token from the password grant above for the owner, who has a verified factor. `select` on every table must return `[]` even though rows exist, and insert, update and delete must fail or change nothing. Then check the same request with an aal2 token (after the TOTP step) returns the rows. If the aal1 request returns data, the factor lookup in the policy is failing open: drop `*_mfa_if_enrolled` and restore the aal2 policies from `0001_schema.sql` until it is understood.
+c. **The owner with only a password session (aal1) is refused, and the refusal is the policy, not a missing grant.** Best done with the role simulation above. With a real token: at aal1, `GET /rest/v1/exercise` must answer HTTP 200 with `[]` although rows exist; at aal2 (after the TOTP step) the same request returns the rows. A `42501` permission error does not count as a pass: it means the policies cannot read the factors and the app is broken for everybody. If the aal1 request returns data, the factor lookup is failing open: restore the aal2 policies with the rollback block in the migration header until it is understood.
 
-d. **A Google user who was not pre-created is refused.** Sign in with a Google account that is not in Auth > Users. The app returns to the login with "Questo account Google non è stato invitato.", and Auth > Users has no new row. If the message is the generic one ("Accesso con Google non riuscito"), note the `error_code` and `error_description` Supabase put in the URL and add them to `isSignupRefused` in `src/auth/errors.ts`.
+d. **A Google user who was not pre-created is refused, and nobody can sign up.** Sign in with a Google account that is not in Auth > Users. The app returns to the login with "Questo account Google non è stato invitato.", and Auth > Users has no new row. If the generic message appears instead ("Accesso con Google non riuscito"), note the `error_code` and `error_description` in the URL and add them to `isSignupRefused` in `src/auth/errors.ts`. Also: `curl -s -X POST "$URL/auth/v1/signup" -H "apikey: $ANON" -H 'Content-Type: application/json' -d '{}'` (an anonymous sign-in) must return an error and no `access_token`.
 
-e. **A verified factor cannot be removed or replaced with an aal1 session.** Do this on a throw-away user that has a verified TOTP factor, not on the owner. With its password-only token: `DELETE $URL/auth/v1/factors/<factor-id>` must be refused, and enrolling a second factor (`POST $URL/auth/v1/factors` with `factor_type=totp`) must be refused as well. Afterwards list the factors and confirm the original is still verified. If either call succeeds, a stolen password is enough to strip the second factor, and the optional-MFA design needs to be rethought before friends are invited. Do not assume this: it depends on the Supabase version.
+e. **A verified factor cannot be removed or replaced, and the account cannot be taken over, with an aal1 session.** On a throw-away user with a verified TOTP factor, using its password-only token:
+   - `DELETE $URL/auth/v1/factors/<factor-id>` must be refused;
+   - enrolling a second factor (`POST $URL/auth/v1/factors` with `factor_type` `totp`) must be refused;
+   - `PUT $URL/auth/v1/user` changing the email or the password must fail with `insufficient_aal`.
+   Afterwards list the factors and confirm the original is still verified. If any of them succeeds, a stolen password is enough to strip the second factor, and the optional-MFA design needs another look before friends are invited. Do not assume this: it depends on the Supabase version and settings.
+
+f. **After each friend's first login, check how the account was linked.**
+
+```sql
+select provider, identity_data ->> 'email_verified' as email_verified from auth.identities where user_id = '<friend-uuid>';
+select email, email_confirmed_at is not null as confirmed, coalesce(encrypted_password, '') = '' as no_password from auth.users;
+```
+
+Expected: a `google` identity with `email_verified` true, `confirmed` true, and `no_password` true (or a password nobody knows) for every friend.
 
 ## check-secrets.ts
 

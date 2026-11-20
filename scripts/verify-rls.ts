@@ -6,8 +6,8 @@
  *
  * What this does NOT prove (follow-up manual tests, they need a logged-in session):
  *  - an authenticated user sees and changes only their own rows (auth.uid() = owner_id);
- *  - a session at aal1 (no TOTP challenge) is refused by the restrictive aal2 policies;
- *  - a session at aal2 can use the app normally.
+ *  - the restrictive *_mfa_if_enrolled policies: an aal1 session is refused when the user has a
+ *    verified factor and accepted when they have none, and aal2 works normally (scripts/README.md);
  * Update and delete probes filter on a nil id, so they only prove the operation is denied,
  * not that existing rows are unreachable.
  */
