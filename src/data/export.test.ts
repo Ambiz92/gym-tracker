@@ -39,3 +39,12 @@ test('a failing table rejects the whole export instead of producing a partial ba
   fakeSupabase.reset((call) => (call.table === 'workout' ? { error: { message: 'boom', code: 'XX000' } } : { data: [] }))
   await expect(fetchAllTables()).rejects.toBeInstanceOf(DataError)
 })
+
+test('exercises are read with every column, catalog_id included, and the catalog table is not exported', async () => {
+  fakeSupabase.reset(() => ({ data: [] }))
+  await fetchAllTables()
+
+  const exerciseCall = fakeSupabase.calls.find((call) => call.table === 'exercise')
+  expect(exerciseCall?.columns).toBe('*')
+  expect(fakeSupabase.calls.map((call) => call.table)).not.toContain('exercise_catalog')
+})
