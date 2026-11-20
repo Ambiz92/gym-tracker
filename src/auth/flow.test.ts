@@ -157,6 +157,14 @@ describe('signInWithGoogle', () => {
     expect(fake.state.calls).toEqual([`signInWithOAuth:google:${REDIRECT}`])
   })
 
+  test('asks Google to show the account chooser', async () => {
+    const fake = createFakeAuth()
+
+    await signInWithGoogle(fake.api, REDIRECT)
+
+    expect(fake.state.oauthOptions).toEqual({ redirectTo: REDIRECT, queryParams: { prompt: 'select_account' } })
+  })
+
   test('a failing request is reported, not swallowed', async () => {
     const fake = createFakeAuth()
     fake.state.fail.signInWithOAuth = { message: 'x', name: 'AuthRetryableFetchError', status: 0 }

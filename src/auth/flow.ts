@@ -18,7 +18,7 @@ type Reply<T> = Promise<{ data: T | null; error: AuthErrorLike | null }>
 /** The slice of supabase-js `auth` this app uses; tests implement it with a fake. */
 export interface AuthApi {
   signInWithPassword(credentials: { email: string; password: string }): Promise<{ error: AuthErrorLike | null }>
-  signInWithOAuth(credentials: { provider: 'google'; options: { redirectTo: string } }): Promise<{ error: AuthErrorLike | null }>
+  signInWithOAuth(credentials: { provider: 'google'; options: { redirectTo: string; queryParams?: Record<string, string> } }): Promise<{ error: AuthErrorLike | null }>
   exchangeCodeForSession(authCode: string, options?: { flowId?: string }): Promise<{ error: AuthErrorLike | null }>
   signOut(options: { scope: 'local' }): Promise<{ error: AuthErrorLike | null }>
   getSession(): Promise<{ data: { session: { user: { email?: string } } | null }; error: AuthErrorLike | null }>
@@ -113,10 +113,14 @@ export function signIn(api: AuthApi, email: string, password: string): Promise<R
   })
 }
 
-/** Sends the browser to Google; supabase-js navigates away, so success means the page is about to unload. */
+/**
+ * Sends the browser to Google; supabase-js navigates away, so success means the page is about to unload.
+ * `select_account` makes Google show the account chooser even when one account is signed in, so a
+ * logout from the app does not silently sign the next person in with the previous Google account.
+ */
 export function signInWithGoogle(api: AuthApi, redirectTo: string): Promise<Result<null>> {
   return guarded(async () => {
-    const { error } = await api.signInWithOAuth({ provider: 'google', options: { redirectTo } })
+    const { error } = await api.signInWithOAuth({ provider: 'google', options: { redirectTo, queryParams: { prompt: 'select_account' } } })
     if (error) return fail(error, 'oauth')
     return { ok: true, value: null }
   })

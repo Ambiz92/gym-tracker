@@ -23,6 +23,8 @@ export function createFakeAuth({ enrolled = false }: { enrolled?: boolean } = {}
     session: null as { aal: 'aal1' | 'aal2' } | null,
     factors: (enrolled ? [{ id: 'f0', status: 'verified' }] : []) as Factor[],
     calls: [] as string[],
+    /** The options of the last Google sign-in request. */
+    oauthOptions: null as { redirectTo: string; queryParams?: Record<string, string> } | null,
     fail: {} as Partial<Record<Method, AuthErrorLike>>,
     crash: new Set<Method>(),
     listener: null as ((event: string) => void) | null,
@@ -56,6 +58,7 @@ export function createFakeAuth({ enrolled = false }: { enrolled?: boolean } = {}
       return { error: null }
     },
     async signInWithOAuth({ provider, options }) {
+      state.oauthOptions = options
       return { error: enter('signInWithOAuth', `${provider}:${options.redirectTo}`) }
     },
     async exchangeCodeForSession(authCode, options) {
