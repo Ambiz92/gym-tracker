@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { PlanExerciseDetail, SessionDetail } from '../../data/activePlan'
+import { adoptCatalogExercise } from '../../data/catalog'
 import { createExercise, listExercises } from '../../data/exercises'
 import { addPlanExercise, removePlanExercise } from '../../data/plans'
 import { useAsync } from '../../hooks/useAsync'
@@ -14,6 +15,7 @@ const FAILURES: Record<SheetAction, string> = {
   add: 'Aggiunta non riuscita. Controlla la connessione e riprova.',
   remove: 'Rimozione non riuscita. Riprova.',
   create: 'Creazione non riuscita. Controlla la connessione e riprova: i dati nel modulo sono ancora qui.',
+  adopt: 'Non sono riuscito a copiare l’esercizio dal catalogo. Controlla la connessione e riprova.',
 }
 
 interface AddExercisesProps {
@@ -47,6 +49,7 @@ export function AddExercises({ session, onAdded, onRemoved, onClose }: AddExerci
             latest.current.onRemoved(rowId)
           },
           create: createExercise,
+          adopt: adoptCatalogExercise,
           onCreated: (exercise) => setCreated((current) => [...current, exercise]),
           describeFailure: (cause, action) => describePlanError(cause, FAILURES[action]),
         },

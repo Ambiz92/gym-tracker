@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Exercise, ExerciseInsert } from '../types/db'
+import type { CatalogExercise, Exercise, ExerciseInsert } from '../types/db'
 import { SheetController, type SheetRow } from './exerciseSheet'
 import type { PlanTarget } from './planForm'
 
@@ -42,11 +42,12 @@ interface Calls {
   adds: { exerciseId: string; target: PlanTarget }[]
   removes: string[]
   creates: ExerciseInsert[]
+  adopts: string[]
   created: Exercise[]
 }
 
 function setup(initial: SheetRow[] = [], overrides: Partial<ConstructorParameters<typeof SheetController>[1]> = {}) {
-  const calls: Calls = { adds: [], removes: [], creates: [], created: [] }
+  const calls: Calls = { adds: [], removes: [], creates: [], adopts: [], created: [] }
   let rowCount = 0
   const sheet = new SheetController(initial, {
     add: async (ex, target) => {
@@ -57,6 +58,10 @@ function setup(initial: SheetRow[] = [], overrides: Partial<ConstructorParameter
     create: async (values) => {
       calls.creates.push(values)
       return exercise(`new-${calls.creates.length}`, { name: values.name, equipment: values.equipment, starting_weight_kg: values.starting_weight_kg ?? null })
+    },
+    adopt: async (entry) => {
+      calls.adopts.push(entry.id)
+      return exercise(`copy-${entry.id}`, { name: entry.name_it, equipment: entry.equipment, catalog_id: entry.id })
     },
     onCreated: (ex) => calls.created.push(ex),
     describeFailure: (_cause, action) => `fallito: ${action}`,
@@ -310,6 +315,68 @@ describe('creating an exercise and adding it', () => {
     hold.resolve(exercise('new-1'))
     await first
     expect(creates).toHaveLength(1)
+  })
+})
+
+describe('adopting a catalog entry and adding it', () => {
+  const entry: CatalogExercise = {
+    id: 'c1',
+    slug: 'curl-a-martello',
+    name_it: 'Curl a martello',
+    name_en: 'Hammer curl',
+    synonyms: [],
+    equipment: 'dumbbell',
+    primary_muscle: 'Bicipiti',
+    secondary_muscles: [],
+    execution_steps: null,
+    source: 'test',
+    source_id: '1',
+  }
+
+  it('copies the entry into the library and adds the copy to the session in one action', async () => {
+    const { sheet, calls, state } = setup()
+    expect(await sheet.adoptAndAdd(entry)).toBe(true)
+
+    expect(calls.adopts).toEqual(['c1'])
+    expect(calls.created.map((ex) => ex.id)).toEqual(['copy-c1'])
+    expect(calls.adds.map((add) => add.exerciseId)).toEqual(['copy-c1'])
+    expect(state()).toMatchObject({ creating: false, failure: null, addedCount: 1 })
+    expect(state().added.has('copy-c1')).toBe(true)
+  })
+
+  it('does not copy twice when the add failed and the user taps the entry again', async () => {
+    let failAdd = true
+    const { sheet, calls, state } = setup([], { add: async (ex) => (failAdd ? failing() : { rowId: `row-${ex.id}` }) })
+    expect(await sheet.adoptAndAdd(entry)).toBe(false)
+    expect(state().failure).toBe('fallito: add')
+
+    failAdd = false
+    expect(await sheet.adoptAndAdd(entry)).toBe(true)
+    expect(calls.adopts).toHaveLength(1)
+  })
+
+  it('adds nothing and reports an adopt failure when the copy fails', async () => {
+    const { sheet, calls, state } = setup([], { adopt: () => failing() })
+    expect(await sheet.adoptAndAdd(entry)).toBe(false)
+    expect(state().failure).toBe('fallito: adopt')
+    expect(calls.adds).toEqual([])
+    expect(state().creating).toBe(false)
+  })
+
+  it('ignores a second tap while the first one is in flight', async () => {
+    const hold = deferred<Exercise>()
+    const adopts: string[] = []
+    const { sheet } = setup([], {
+      adopt: (e) => {
+        adopts.push(e.id)
+        return hold.promise
+      },
+    })
+    const first = sheet.adoptAndAdd(entry)
+    expect(await sheet.adoptAndAdd({ ...entry, id: 'c2' })).toBe(false)
+    hold.resolve(exercise('copy-c1'))
+    await first
+    expect(adopts).toEqual(['c1'])
   })
 })
 
