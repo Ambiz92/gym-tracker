@@ -6,10 +6,12 @@ import type {
   PlanSession,
   PlanSessionInsert,
   PlanSessionUpdate,
+  WarmupItem,
 } from '../types/db'
 import { MAX_NAME_LENGTH } from '../lib/exerciseForm'
+import { nextSessionName } from '../lib/planBuilder'
 import { newUuid } from '../lib/uuid'
-import { getPlanById, type EditablePlan } from './activePlan'
+import { getPlanById, type EditablePlan, type PlanExerciseDetail, type SessionDetail } from './activePlan'
 import { DataError, ensureAffected, ensureOk, inUseError, isReferenced, supabase, unwrap, unwrapOrNull } from './client'
 
 export type NewSession = Omit<PlanSessionInsert, 'id' | 'plan_id' | 'position'>
@@ -39,12 +41,44 @@ export async function listPlanSummaries(): Promise<PlanSummary[]> {
   })
 }
 
-export async function createPlan(name: string): Promise<Plan> {
-  return unwrap<Plan>(await supabase.from('plan').insert({ name }).select().single())
+/** The plan shown in Oggi, if any; the builder asks before replacing it. */
+export async function getActivePlanHead(): Promise<Pick<Plan, 'id' | 'name'> | null> {
+  return unwrapOrNull<Pick<Plan, 'id' | 'name'>>(
+    await supabase.from('plan').select('id, name').eq('is_active', true).maybeSingle(),
+  )
+}
+
+/**
+ * Creates a plan with its first session, so the builder opens ready for the first exercise. The
+ * very first plan of the account (archived ones count) starts active, later ones are drafts. If the
+ * session cannot be added the empty plan is removed again, so a retry never leaves two.
+ */
+export async function createPlanWithSession(name: string): Promise<Plan> {
+  const existing = unwrap<{ id: string }[]>(await supabase.from('plan').select('id').limit(1))
+  const plan = unwrap<Plan>(
+    await supabase.from('plan').insert({ name, is_active: existing.length === 0 }).select().single(),
+  )
+  try {
+    await addSession(plan.id, { name: nextSessionName([]) })
+    return plan
+  } catch (failure) {
+    const cleanup = await supabase.from('plan').delete().eq('id', plan.id)
+    if (cleanup.error) {
+      throw new DataError(`The session could not be added and the empty plan "${name}" could not be removed`, 'partial_create', {
+        cause: failure,
+      })
+    }
+    throw failure
+  }
 }
 
 export async function renamePlan(id: string, name: string): Promise<void> {
   ensureAffected(await supabase.from('plan').update({ name }).eq('id', id).select('id'))
+}
+
+/** Takes a plan out of Oggi without choosing another; having no active plan is a state the app handles. */
+export async function deactivatePlan(id: string): Promise<void> {
+  ensureAffected(await supabase.from('plan').update({ is_active: false }).eq('id', id).select('id'))
 }
 
 /** Archived plans cannot be active (check constraint), so both flags change together. */
@@ -203,6 +237,28 @@ async function insertRows(table: 'plan_session' | 'plan_exercise' | 'warmup_item
   if (rows.length > 0) ensureOk(await supabase.from(table).insert(rows))
 }
 
+const copyExerciseRow = (
+  sessionId: string,
+  { exercise_id, position, target_sets, target_reps, target_unit, suggested_weight_kg, suggested_weight_max_kg }: PlanExercise,
+) => ({
+  session_id: sessionId,
+  exercise_id,
+  position,
+  target_sets,
+  target_reps,
+  target_unit,
+  suggested_weight_kg,
+  suggested_weight_max_kg,
+})
+
+const copyWarmupRow = (sessionId: string, { position, name, reps_text, note }: WarmupItem) => ({
+  session_id: sessionId,
+  position,
+  name,
+  reps_text,
+  note,
+})
+
 /** Copies the live sessions of `source` with their exercises and warm-ups under `planId`, with fresh ids. */
 async function copyContents(source: EditablePlan, planId: string): Promise<void> {
   const sessions = source.sessions.map((session, position) => ({ from: session, id: newUuid(), position }))
@@ -218,27 +274,8 @@ async function copyContents(source: EditablePlan, planId: string): Promise<void>
       is_optional: from.is_optional,
     })),
   )
-  await insertRows(
-    'plan_exercise',
-    sessions.flatMap(({ from, id }) =>
-      from.exercises.map(({ exercise_id, position, target_sets, target_reps, target_unit, suggested_weight_kg, suggested_weight_max_kg }) => ({
-        session_id: id,
-        exercise_id,
-        position,
-        target_sets,
-        target_reps,
-        target_unit,
-        suggested_weight_kg,
-        suggested_weight_max_kg,
-      })),
-    ),
-  )
-  await insertRows(
-    'warmup_item',
-    sessions.flatMap(({ from, id }) =>
-      from.warmup.map(({ position, name, reps_text, note }) => ({ session_id: id, position, name, reps_text, note })),
-    ),
-  )
+  await insertRows('plan_exercise', sessions.flatMap(({ from, id }) => from.exercises.map((row) => copyExerciseRow(id, row))))
+  await insertRows('warmup_item', sessions.flatMap(({ from, id }) => from.warmup.map((item) => copyWarmupRow(id, item))))
 }
 
 /**
@@ -260,6 +297,48 @@ export async function duplicatePlan(sourceId: string): Promise<Plan> {
     const cleanup = await supabase.from('plan').delete().eq('id', copy.id)
     if (cleanup.error) {
       throw new DataError(`Duplication failed and the partial copy "${name}" could not be removed`, 'partial_copy', {
+        cause: failure,
+      })
+    }
+    throw failure
+  }
+}
+
+/** Inserts `rows` and returns them as stored, in position order; nothing to insert is not a request. */
+async function insertAndRead<T extends { position: number }>(table: 'plan_exercise' | 'warmup_item', rows: object[]): Promise<T[]> {
+  if (rows.length === 0) return []
+  const stored = unwrap<T[]>(await supabase.from(table).insert(rows).select())
+  return [...stored].sort((a, b) => a.position - b.position)
+}
+
+/**
+ * Copies a session as the last one of its plan, named `name`, with its exercises (targets and order)
+ * and warm-ups. Returns the copy as the builder holds it. The tables are filled one after the other,
+ * so a failure deletes the half-built session; if even that fails, a `partial_session` DataError says so.
+ */
+export async function duplicateSession(source: SessionDetail, name: string): Promise<SessionDetail> {
+  const position = await nextPosition('plan_session', 'plan_id', source.plan_id)
+  const copy = unwrap<PlanSession>(
+    await supabase
+      .from('plan_session')
+      .insert({ plan_id: source.plan_id, name, subtitle: source.subtitle, is_optional: source.is_optional, position })
+      .select()
+      .single(),
+  )
+  try {
+    const rows = await insertAndRead<PlanExercise>('plan_exercise', source.exercises.map((row) => copyExerciseRow(copy.id, row)))
+    const warmup = await insertAndRead<WarmupItem>('warmup_item', source.warmup.map((item) => copyWarmupRow(copy.id, item)))
+    const exercises: PlanExerciseDetail[] = rows.map((row) => {
+      const exercise = source.exercises.find((candidate) => candidate.exercise_id === row.exercise_id)?.exercise
+      if (!exercise) throw new DataError('The copy holds an exercise the source does not have')
+      return { ...row, exercise }
+    })
+    return { ...copy, exercises, warmup }
+  } catch (failure) {
+    // its exercises and warm-ups go with it (on delete cascade).
+    const cleanup = await supabase.from('plan_session').delete().eq('id', copy.id)
+    if (cleanup.error) {
+      throw new DataError(`Duplication failed and the partial session "${name}" could not be removed`, 'partial_session', {
         cause: failure,
       })
     }

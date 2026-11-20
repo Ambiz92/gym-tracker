@@ -6,7 +6,11 @@ import {
   addPlanExercise,
   addSession,
   archivePlan,
+  createPlanWithSession,
+  deactivatePlan,
   deletePlan,
+  duplicateSession,
+  getActivePlanHead,
   listPlanSummaries,
   duplicatePlan,
   removeSession,
@@ -19,6 +23,7 @@ import {
   updatePlanExercise,
   updateSession,
 } from './plans'
+import type { SessionDetail } from './activePlan'
 import type { PlanExercise, PlanSession } from '../types/db'
 
 vi.mock('../lib/supabase', async () => ({ supabase: (await import('./fakeSupabase')).fakeSupabase }))
@@ -446,5 +451,132 @@ describe('duplicatePlan', () => {
     fakeSupabase.reset((call) => (call.op === 'select' ? { data: source } : failure))
     await expect(duplicatePlan('p1')).rejects.toMatchObject({ code: '23514' })
     expect(fakeSupabase.calls.map(summary)).toEqual(['plan.select', 'plan.insert'])
+  })
+})
+
+describe('createPlanWithSession', () => {
+  /** `existing` plans on the first read, the new plan on the plan insert, `failOn` a failure on that table's insert. */
+  const scenario = (existing: object[], failOn?: string, cleanup?: FakeResult) =>
+    fakeSupabase.reset((call) => {
+      if (call.table === 'plan' && call.op === 'select') return { data: existing }
+      if (call.table === 'plan' && call.op === 'insert') return { data: { id: 'new', name: 'Forza', ...(call.payload as object) } }
+      if (call.op === 'delete') return cleanup
+      if (call.table === 'plan_session' && call.op === 'select') return { data: [] }
+      if (call.table === failOn) return failure
+      return { data: { id: 's1' } }
+    })
+
+  test('the very first plan starts active, with a first session called A', async () => {
+    scenario([])
+    const plan = await createPlanWithSession('Forza')
+
+    expect(plan.is_active).toBe(true)
+    expect(fakeSupabase.calls.map(summary)).toEqual(['plan.select', 'plan.insert', 'plan_session.select', 'plan_session.insert'])
+    expect(fakeSupabase.calls[1].payload).toEqual({ name: 'Forza', is_active: true })
+    expect(fakeSupabase.calls[3].payload).toEqual({ name: 'A', plan_id: 'new', position: 0 })
+  })
+
+  test('a later plan is a draft that does not touch the active one', async () => {
+    scenario([{ id: 'old' }])
+    const plan = await createPlanWithSession('Forza')
+
+    expect(plan.is_active).toBe(false)
+    expect(fakeSupabase.calls[1].payload).toEqual({ name: 'Forza', is_active: false })
+    expect(fakeSupabase.calls.some((call) => call.op === 'update')).toBe(false)
+  })
+
+  test('removes the empty plan when the first session cannot be added, so a retry does not duplicate it', async () => {
+    scenario([], 'plan_session')
+    await expect(createPlanWithSession('Forza')).rejects.toBeInstanceOf(DataError)
+    expect(fakeSupabase.calls.at(-1)).toMatchObject({ table: 'plan', op: 'delete', filters: [['eq', 'id', 'new']] })
+  })
+
+  test('says so when even the cleanup fails', async () => {
+    scenario([], 'plan_session', failure)
+    await expect(createPlanWithSession('Forza')).rejects.toMatchObject({ code: 'partial_create' })
+  })
+})
+
+test('getActivePlanHead reads the active plan, or nothing', async () => {
+  fakeSupabase.reset(() => ({ data: { id: 'p1', name: 'Forza' } }))
+  expect(await getActivePlanHead()).toEqual({ id: 'p1', name: 'Forza' })
+  expect(fakeSupabase.calls[0]).toMatchObject({ table: 'plan', filters: [['eq', 'is_active', true]], mode: 'maybeSingle' })
+
+  fakeSupabase.reset(() => ({ data: null }))
+  expect(await getActivePlanHead()).toBeNull()
+})
+
+test('deactivatePlan clears only that plan, and fails when it matches no row', async () => {
+  fakeSupabase.reset(() => ({ data: [{ id: 'p1' }] }))
+  await deactivatePlan('p1')
+  expect(fakeSupabase.calls[0]).toMatchObject({ op: 'update', payload: { is_active: false }, filters: [['eq', 'id', 'p1']] })
+
+  fakeSupabase.reset(() => ({ data: [] }))
+  await expect(deactivatePlan('ghost')).rejects.toMatchObject({ code: 'not_found' })
+})
+
+describe('duplicateSession', () => {
+  const bench = { id: 'e1', name: 'Panca' }
+  const source = {
+    id: 's1',
+    plan_id: 'p1',
+    name: 'A',
+    subtitle: 'Petto',
+    is_optional: true,
+    position: 0,
+    archived: false,
+    exercises: [
+      { id: 'x2', session_id: 's1', exercise_id: 'e2', position: 1, target_sets: 4, target_reps: 30, target_unit: 'seconds', suggested_weight_kg: null, suggested_weight_max_kg: null, exercise: { id: 'e2', name: 'Plank' } },
+      { id: 'x1', session_id: 's1', exercise_id: 'e1', position: 0, target_sets: 3, target_reps: 8, target_unit: 'reps', suggested_weight_kg: 20, suggested_weight_max_kg: 25, exercise: bench },
+    ],
+    warmup: [{ id: 'w1', session_id: 's1', position: 0, name: 'Cerchi', reps_text: '10', note: null }],
+  } as unknown as SessionDetail
+
+  /** The copy on the session insert, the inserted rows echoed back with ids; `failOn` fails that table's insert. */
+  const scenario = (failOn?: string, cleanup?: FakeResult) =>
+    fakeSupabase.reset((call) => {
+      if (call.op === 'select') return { data: [{ position: 1 }] }
+      if (call.op === 'delete') return cleanup
+      if (call.table === failOn) return failure
+      if (call.table === 'plan_session') return { data: { id: 's9', plan_id: 'p1', ...(call.payload as object) } }
+      return { data: (call.payload as object[]).map((row, index) => ({ id: `n${index}`, ...row })) }
+    })
+
+  test('copies the session after the last one with its exercises and warm-ups, targets and order intact', async () => {
+    scenario()
+    const copy = await duplicateSession(source, 'B')
+
+    expect(fakeSupabase.calls.map(summary)).toEqual(['plan_session.select', 'plan_session.insert', 'plan_exercise.insert', 'warmup_item.insert'])
+    expect(fakeSupabase.calls[1].payload).toEqual({ plan_id: 'p1', name: 'B', subtitle: 'Petto', is_optional: true, position: 2 })
+    expect(fakeSupabase.calls[2].payload).toEqual([
+      { session_id: 's9', exercise_id: 'e2', position: 1, target_sets: 4, target_reps: 30, target_unit: 'seconds', suggested_weight_kg: null, suggested_weight_max_kg: null },
+      { session_id: 's9', exercise_id: 'e1', position: 0, target_sets: 3, target_reps: 8, target_unit: 'reps', suggested_weight_kg: 20, suggested_weight_max_kg: 25 },
+    ])
+    expect(fakeSupabase.calls[3].payload).toEqual([{ session_id: 's9', position: 0, name: 'Cerchi', reps_text: '10', note: null }])
+
+    expect(copy).toMatchObject({ id: 's9', name: 'B', position: 2 })
+    expect(copy.exercises.map((row) => [row.exercise_id, row.exercise.name, row.position])).toEqual([
+      ['e1', 'Panca', 0],
+      ['e2', 'Plank', 1],
+    ])
+    expect(copy.warmup.map((item) => item.name)).toEqual(['Cerchi'])
+  })
+
+  test('an empty session is copied without touching the exercise or warm-up tables', async () => {
+    scenario()
+    const copy = await duplicateSession({ ...source, exercises: [], warmup: [] }, 'B')
+    expect(fakeSupabase.calls.map(summary)).toEqual(['plan_session.select', 'plan_session.insert'])
+    expect(copy.exercises).toEqual([])
+  })
+
+  test('deletes the half-built session when a table fails', async () => {
+    scenario('warmup_item')
+    await expect(duplicateSession(source, 'B')).rejects.toBeInstanceOf(DataError)
+    expect(fakeSupabase.calls.at(-1)).toMatchObject({ table: 'plan_session', op: 'delete', filters: [['eq', 'id', 's9']] })
+  })
+
+  test('says so when even the cleanup fails', async () => {
+    scenario('plan_exercise', failure)
+    await expect(duplicateSession(source, 'B')).rejects.toMatchObject({ code: 'partial_session' })
   })
 })

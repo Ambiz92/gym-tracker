@@ -8,6 +8,12 @@ export function describePlanError(cause: unknown, fallback: string): string {
     if (cause.code === 'partial_copy') {
       return "Duplicazione non riuscita e la copia parziale non è stata rimossa: eliminala dall'elenco delle schede."
     }
+    if (cause.code === 'partial_create') {
+      return "Creazione non riuscita e la scheda vuota non è stata rimossa: eliminala dall'elenco delle schede."
+    }
+    if (cause.code === 'partial_session') {
+      return 'Duplicazione non riuscita e la sessione copiata a metà non è stata rimossa: aprila dalla scheda e rimuovila.'
+    }
     if (cause.code === 'not_found') return 'Elemento non trovato: torna indietro e riprova.'
   }
   return fallback
