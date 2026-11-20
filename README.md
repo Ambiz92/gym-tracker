@@ -8,7 +8,7 @@ It is a personal project, not a multi-user product.
 
 - Pick a session of the active plan and log sets. Reps and weight are prefilled from the last workout of that exercise.
 - Session view with ordered exercise cards (muscles, execution steps), a warm-up block, a checkbox per exercise and a progress bar.
-- Plan editor: create, rename, duplicate and archive plans, choose the active one, add, reorder (drag or arrows), archive and restore sessions and exercises, mark a session as a bonus. On a wide screen the editor has three panes with inline editing of sets, reps, unit and weight.
+- Plan editor: create, rename, duplicate and archive plans, choose the active one, add, reorder (drag or arrows), duplicate, archive and restore sessions and exercises, mark a session as a bonus. On a phone a plan is one screen: sessions as keys, every exercise with sets, reps (or seconds, or meters) and weight editable in place and saved as you type, a sheet that adds several exercises in a row (or creates a new one without leaving it), and a bar at the bottom that activates the plan. The first plan you create is active, later ones start as drafts and stay out of Oggi until you activate them. On a wide screen the editor has three panes with inline editing of sets, reps, unit and weight.
 - Exercise library: your own exercises, reused across plans.
 - History per exercise: a table and a chart of weight over the weeks, with the change from the first logged week.
 - Progression hint when every set of the last workout was completed.
