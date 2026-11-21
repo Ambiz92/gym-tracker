@@ -9,6 +9,7 @@ interface Tab {
 
 const TABS: readonly Tab[] = [
   { to: '/', label: 'Oggi' },
+  { to: '/calendar', label: 'Calendario' },
   // The exercise library is reached from the plan editor.
   { to: '/plans', label: 'Schede', also: ['/exercises'] },
   { to: '/history', label: 'Storico' },

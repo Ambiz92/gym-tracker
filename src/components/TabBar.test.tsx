@@ -11,13 +11,19 @@ function renderAt(path: string) {
   )
 }
 
-test('links the four tabs and marks only the current one', () => {
+test('links the five tabs and marks only the current one', () => {
   const html = renderAt('/plans')
-  for (const href of ['href="/"', 'href="/plans"', 'href="/history"', 'href="/more"']) {
+  for (const href of ['href="/"', 'href="/calendar"', 'href="/plans"', 'href="/history"', 'href="/more"']) {
     expect(html).toContain(href)
   }
   expect(html.match(/aria-current="page"/g)).toHaveLength(1)
   expect(html).toMatch(/aria-current="page"[^>]*>Schede</)
+})
+
+test('Calendario is current on its route only', () => {
+  expect(renderAt('/calendar')).toMatch(/aria-current="page"[^>]*>Calendario</)
+  expect(renderAt('/calendar').match(/aria-current="page"/g)).toHaveLength(1)
+  expect(renderAt('/')).not.toMatch(/aria-current="page"[^>]*>Calendario</)
 })
 
 test('Oggi is current only on the home route', () => {
