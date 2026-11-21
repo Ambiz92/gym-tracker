@@ -31,12 +31,14 @@ interface SchedulePickerProps {
 export function SchedulePicker({ sessions, date: initialDate, today, sessionId, onSaved, onClose }: SchedulePickerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const ids = { title: useId(), session: useId(), date: useId(), weeks: useId(), weeksHint: useId(), dateError: useId() }
-  const [chosenId, setChosenId] = useState(sessionId ?? sessions[0]?.id ?? '')
+  const [chosenId, setChosenId] = useState(sessionId)
   const [date, setDate] = useState(initialDate)
   const [weeks, setWeeks] = useState(1)
   const [showProblem, setShowProblem] = useState(false)
   const { busy, error, run } = useAction(describeScheduleError)
   const problem = showProblem ? dateProblem(date, today) : null
+  // What the select shows is what gets planned: an unknown or gone id falls back to the first session.
+  const chosen = sessions.find((candidate) => candidate.id === chosenId) ?? sessions[0]
 
   // A native modal dialog traps focus, closes on Escape and gives focus back to the opener.
   useEffect(() => {
@@ -46,12 +48,11 @@ export function SchedulePicker({ sessions, date: initialDate, today, sessionId, 
 
   async function submit(event: FormEvent) {
     event.preventDefault()
-    const session = sessions.find((candidate) => candidate.id === chosenId)
-    if (!session || dateProblem(date, today)) {
+    if (!chosen || dateProblem(date, today)) {
       setShowProblem(true)
       return
     }
-    const saved = await run(() => saveSchedule(session, date, weeks), 'Non riesco a pianificare: controlla la connessione e riprova.')
+    const saved = await run(() => saveSchedule(chosen, date, weeks), 'Non riesco a pianificare: controlla la connessione e riprova.')
     if (!saved) return
     onSaved()
     dialogRef.current?.close()
@@ -85,7 +86,7 @@ export function SchedulePicker({ sessions, date: initialDate, today, sessionId, 
               <label className="field__label" htmlFor={ids.session}>
                 Sessione
               </label>
-              <select id={ids.session} className="field__input" value={chosenId} onChange={(event) => setChosenId(event.target.value)}>
+              <select id={ids.session} className="field__input" value={chosen?.id} onChange={(event) => setChosenId(event.target.value)}>
                 {sessions.map((session) => (
                   <option key={session.id} value={session.id}>
                     {session.name}

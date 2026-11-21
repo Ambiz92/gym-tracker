@@ -27,6 +27,12 @@ test('offers exactly the sessions it is given, the first one chosen', () => {
   expect(html).toContain('<option value="s2">Lower body</option>')
 })
 
+test('a preselected session that is not among the sessions falls back to the first, so what shows is what is planned', () => {
+  const html = render({ sessionId: 'gone' })
+  expect(html).toContain('<option value="s1" selected="">Upper body</option>')
+  expect(html).not.toContain('selected="">Lower body')
+})
+
 test('a preselected session wins over the first', () => {
   expect(render({ sessionId: 's2' })).toContain('<option value="s2" selected="">Lower body</option>')
 })
