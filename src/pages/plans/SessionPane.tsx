@@ -104,11 +104,14 @@ export function SessionPane({ session, sessionNames, plannable, position, planBu
           Pianifica sessione
         </button>
       )}
-      {planned && (
-        <p role="status" className="plans-note">
-          Sessione pianificata. <Link to="/calendar">Apri il calendario</Link>
-        </p>
-      )}
+      {/* Mounted from the start: a live region added together with its text is not reliably announced. */}
+      <div role="status">
+        {planned && (
+          <p className="plans-note">
+            Sessione pianificata. <Link to="/calendar">Apri il calendario</Link>
+          </p>
+        )}
+      </div>
 
       <details className="builder-details">
         <summary>Dettagli sessione</summary>

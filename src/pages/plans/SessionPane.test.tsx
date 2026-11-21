@@ -45,6 +45,10 @@ test('the session of the active plan offers "Pianifica", with no picker or confi
   expect(html).not.toContain('Sessione pianificata')
 })
 
+test('the confirmation lives in a status region that is already mounted, empty, so saving gets it announced', () => {
+  expect(render([{ id: 's1', name: 'Full body' }])).toContain('<div role="status"></div>')
+})
+
 test('a plan that is not the active one cannot be scheduled from', () => {
   expect(render(null)).not.toContain('Pianifica')
 })
