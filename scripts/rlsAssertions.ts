@@ -98,6 +98,31 @@ export function judgeVisibleRows({ data, error }: Outcome, ownerId: string, expe
   return { pass: data.length === expectedRows, detail: `${data.length} rows, expected ${expectedRows}` }
 }
 
+/** Rows may belong only to the listed owners (a coach sees the coach and the linked athletes, nobody else). */
+export function judgeOnlyOwners({ data, error }: Outcome, owners: string[]): Verdict {
+  if (error) return { pass: false, detail: describeError(error) }
+  if (!Array.isArray(data)) return { pass: false, detail: `unexpected response: ${JSON.stringify(data)}` }
+  const foreign = data.filter((row) => !owners.includes((row as { owner_id?: string }).owner_id ?? ''))
+  return { pass: foreign.length === 0, detail: foreign.length === 0 ? `${data.length} rows, all expected owners` : `${foreign.length} rows of other owners: ${JSON.stringify(foreign)}` }
+}
+
+/** The rows returned must be exactly the ones with the expected ids (rows without an owner column, such as links). */
+export function judgeRowIds({ data, error }: Outcome, expectedIds: string[]): Verdict {
+  if (error) return { pass: false, detail: describeError(error) }
+  if (!Array.isArray(data)) return { pass: false, detail: `unexpected response: ${JSON.stringify(data)}` }
+  const ids = data.map((row) => (row as { id?: string }).id).sort()
+  const expected = [...expectedIds].sort()
+  const same = ids.length === expected.length && ids.every((id, index) => id === expected[index])
+  return { pass: same, detail: `${ids.length} rows, expected ${expected.length}` }
+}
+
+/** A write that must succeed (the legitimate path) and return exactly `rows` rows. */
+export function judgeAccepted({ data, error }: Outcome, rows = 1): Verdict {
+  if (error) return { pass: false, detail: describeError(error) }
+  const count = Array.isArray(data) ? data.length : 0
+  return { pass: count === rows, detail: `${count} rows written, expected ${rows}` }
+}
+
 /** The row read back by its owner after a refused write must equal the row read before it. */
 export function judgeRowUnchanged(before: unknown, after: unknown): Verdict {
   const same = JSON.stringify(before) === JSON.stringify(after)

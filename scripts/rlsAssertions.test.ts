@@ -5,11 +5,14 @@ import {
   judgeDuplicate,
   judgeForeignKey,
   judgeHiddenByPolicy,
+  judgeAccepted,
   judgeNoRowsWritten,
+  judgeOnlyOwners,
   judgeOtp,
   judgePermissionDenied,
   judgeRefusedTransition,
   judgeRlsRefusal,
+  judgeRowIds,
   judgeRowUnchanged,
   judgeSelect,
   judgeSignUp,
@@ -171,6 +174,52 @@ describe('judgeVisibleRows', () => {
   it('fails on an error or a non-array', () => {
     expect(judgeVisibleRows(denied, 'athlete', 0).pass).toBe(false)
     expect(judgeVisibleRows({ data: null, error: null }, 'athlete', 0).pass).toBe(false)
+  })
+})
+
+describe('judgeOnlyOwners', () => {
+  it('passes when every row belongs to a listed owner, and on no rows', () => {
+    expect(judgeOnlyOwners({ data: [{ owner_id: 'c' }, { owner_id: 'a' }], error: null }, ['c', 'a']).pass).toBe(true)
+    expect(judgeOnlyOwners({ data: [], error: null }, ['c']).pass).toBe(true)
+  })
+
+  it('fails on a row of anyone else, or a row without an owner', () => {
+    expect(judgeOnlyOwners({ data: [{ owner_id: 's' }], error: null }, ['c', 'a']).pass).toBe(false)
+    expect(judgeOnlyOwners({ data: [{ id: 1 }], error: null }, ['c']).pass).toBe(false)
+  })
+
+  it('fails on an error', () => {
+    expect(judgeOnlyOwners(denied, ['c']).pass).toBe(false)
+  })
+})
+
+describe('judgeRowIds', () => {
+  it('passes on exactly the expected ids, in any order', () => {
+    expect(judgeRowIds({ data: [{ id: 'b' }, { id: 'a' }], error: null }, ['a', 'b']).pass).toBe(true)
+    expect(judgeRowIds({ data: [], error: null }, []).pass).toBe(true)
+  })
+
+  it('fails on a missing, extra or different id', () => {
+    expect(judgeRowIds({ data: [{ id: 'a' }], error: null }, ['a', 'b']).pass).toBe(false)
+    expect(judgeRowIds({ data: [{ id: 'a' }, { id: 'c' }], error: null }, ['a']).pass).toBe(false)
+    expect(judgeRowIds({ data: [{ id: 'c' }], error: null }, ['a']).pass).toBe(false)
+  })
+
+  it('fails on an error', () => {
+    expect(judgeRowIds(denied, []).pass).toBe(false)
+  })
+})
+
+describe('judgeAccepted', () => {
+  it('passes when the expected number of rows was written', () => {
+    expect(judgeAccepted({ data: [{ id: 1 }], error: null }).pass).toBe(true)
+    expect(judgeAccepted({ data: [{ id: 1 }, { id: 2 }], error: null }, 2).pass).toBe(true)
+  })
+
+  it('fails on an error, an empty write or a different count', () => {
+    expect(judgeAccepted(byPolicy).pass).toBe(false)
+    expect(judgeAccepted({ data: [], error: null }).pass).toBe(false)
+    expect(judgeAccepted({ data: [{ id: 1 }, { id: 2 }], error: null }).pass).toBe(false)
   })
 })
 
