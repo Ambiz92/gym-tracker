@@ -6,6 +6,7 @@ import {
   activeSets,
   addSet,
   dropSet,
+  isLinkableSlot,
   loadDraft,
   newDraft,
   nextOperation,
@@ -131,6 +132,22 @@ describe('persistence', () => {
     expect(loadDraft(memoryStorage(entries))).toBeNull()
   })
 
+  it('round-trips the slot the session was started from', () => {
+    const storage = memoryStorage()
+    saveDraft(storage, { ...draft0, scheduledId: 'slot-1' })
+    expect(loadDraft(storage)?.scheduledId).toBe('slot-1')
+  })
+
+  it('loads a draft saved before slots existed', () => {
+    const { workoutId, workoutSynced, date, sessionId, sessionName, startedAt, currentExerciseId, sets } = draft0
+    const old = { workoutId, workoutSynced, date, sessionId, sessionName, startedAt, currentExerciseId, sets }
+    expect(loadDraft(memoryStorage({ [DRAFT_STORAGE_KEY]: JSON.stringify(old) }))).toEqual(draft0)
+  })
+
+  it('refuses a draft whose slot id is not a string', () => {
+    expect(loadDraft(memoryStorage({ [DRAFT_STORAGE_KEY]: JSON.stringify({ ...draft0, scheduledId: 7 }) }))).toBeNull()
+  })
+
   it('works without storage', () => {
     expect(() => saveDraft(null, draft0)).not.toThrow()
     expect(loadDraft(null)).toBeNull()
@@ -151,5 +168,20 @@ describe('persistence', () => {
     expect(() => saveDraft(broken, draft0)).not.toThrow()
     expect(() => saveDraft(broken, null)).not.toThrow()
     expect(loadDraft(broken)).toBeNull()
+  })
+})
+
+describe('isLinkableSlot', () => {
+  it('accepts a planned slot of the session', () => {
+    expect(isLinkableSlot({ status: 'planned', plan_session_id: 's1' }, 's1')).toBe(true)
+  })
+
+  it.each([
+    ['of another session', { status: 'planned', plan_session_id: 's2' }],
+    ['of a deleted session', { status: 'planned', plan_session_id: null }],
+    ['done', { status: 'done', plan_session_id: 's1' }],
+    ['skipped', { status: 'skipped', plan_session_id: 's1' }],
+  ] as const)('refuses a slot %s', (_label, slot) => {
+    expect(isLinkableSlot(slot, 's1')).toBe(false)
   })
 })

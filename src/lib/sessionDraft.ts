@@ -1,4 +1,4 @@
-import type { Equipment } from '../types/db'
+import type { Equipment, ScheduledSession } from '../types/db'
 
 /** `pending`: not acknowledged by the server yet. `removed`: undone, the server row (if any) still has to go. */
 export type SetSync = 'pending' | 'synced' | 'removed'
@@ -23,6 +23,8 @@ export interface Draft {
   startedAt: number
   currentExerciseId: string | null
   sets: DraftSet[]
+  /** Calendar slot this session was started from; absent in drafts saved before the calendar existed. */
+  scheduledId?: string
 }
 
 export type Operation = { kind: 'workout' } | { kind: 'log'; set: DraftSet } | { kind: 'delete'; set: DraftSet }
@@ -31,11 +33,15 @@ export const DRAFT_STORAGE_KEY = 'gym-tracker.session-draft'
 
 export type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
-export type NewDraft = Pick<Draft, 'workoutId' | 'date' | 'sessionId' | 'sessionName' | 'startedAt'>
+export type NewDraft = Pick<Draft, 'workoutId' | 'date' | 'sessionId' | 'sessionName' | 'startedAt' | 'scheduledId'>
 
 export function newDraft(init: NewDraft): Draft {
   return { ...init, workoutSynced: false, currentExerciseId: null, sets: [] }
 }
+
+/** A slot can be linked to the session being started only while it is still planned and is that session's. */
+export const isLinkableSlot = (slot: Pick<ScheduledSession, 'status' | 'plan_session_id'>, sessionId: string): boolean =>
+  slot.status === 'planned' && slot.plan_session_id === sessionId
 
 export const activeSets = (draft: Draft): DraftSet[] => draft.sets.filter((set) => set.sync !== 'removed')
 
@@ -126,6 +132,7 @@ function isDraft(value: unknown): value is Draft {
     typeof value.sessionName === 'string' &&
     typeof value.startedAt === 'number' &&
     (value.currentExerciseId === null || typeof value.currentExerciseId === 'string') &&
+    (value.scheduledId === undefined || typeof value.scheduledId === 'string') &&
     Array.isArray(value.sets) &&
     value.sets.every(isDraftSet)
   )

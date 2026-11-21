@@ -26,6 +26,8 @@ export interface SessionApi {
   deleteSet(setId: string): Promise<void>
   saveNotes(workoutId: string, notes: string): Promise<void>
   deleteWorkout(workoutId: string): Promise<void>
+  /** Marks the calendar slot done once its workout exists; may reject, the store never waits for it. */
+  linkSlot(slotId: string, workoutId: string): Promise<unknown>
 }
 
 export interface StoreEnv {
@@ -35,6 +37,8 @@ export interface StoreEnv {
   /** Local calendar date YYYY-MM-DD. */
   today(): string
   now(): number
+  /** A failed slot link: reading reconciles it (same session and date), so this is only for diagnostics. */
+  onLinkError(error: unknown): void
 }
 
 export interface StoreState {
@@ -76,9 +80,9 @@ export class SessionStore {
 
   /**
    * Records a confirmed set, opening the draft (and its workout id) on the first one, and starts
-   * sending it. Throws when another session is already open: the UI never offers that.
+   * sending it; `scheduledId` (the slot it was started from) is kept only when the draft opens. Throws when another session is already open: the UI never offers that.
    */
-  confirmSet(session: { id: string; name: string }, input: SetInput): DraftSet {
+  confirmSet(session: { id: string; name: string; scheduledId?: string }, input: SetInput): DraftSet {
     let draft = this.state.draft
     if (draft && draft.sessionId !== session.id) throw new Error('Another session is already open')
     draft ??= newDraft({
@@ -87,6 +91,7 @@ export class SessionStore {
       sessionId: session.id,
       sessionName: session.name,
       startedAt: this.env.now(),
+      scheduledId: session.scheduledId,
     })
 
     const set = {
@@ -192,6 +197,7 @@ export class SessionStore {
         sessionName: draft.sessionName,
       })
       this.apply(workoutId, ackWorkout)
+      if (draft.scheduledId) this.linkSlot(draft.scheduledId, workoutId)
     } else if (operation.kind === 'log') {
       const { set } = operation
       await api.logSet({
@@ -208,6 +214,13 @@ export class SessionStore {
       await api.deleteSet(operation.set.id)
       this.apply(workoutId, (current) => dropSet(current, operation.set.id))
     }
+  }
+
+  /** Fire and forget: saving sets never waits for, or fails because of, the calendar. */
+  private linkSlot(slotId: string, workoutId: string): void {
+    Promise.resolve()
+      .then(() => this.env.api.linkSlot(slotId, workoutId))
+      .catch((error: unknown) => this.env.onLinkError(error))
   }
 
   /** Applies an acknowledgement to the draft it belongs to; a draft closed meanwhile is left alone. */
