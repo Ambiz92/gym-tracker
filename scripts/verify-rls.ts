@@ -26,7 +26,7 @@
  *  - the restrictive *_mfa_if_enrolled policies on the other tables: an aal1 session is refused
  *    when the user has a verified factor and accepted when they have none, and aal2 works
  *    normally (scripts/README.md);
- *  - a coach WITHOUT a factor at aal1 (it can never accept a link through the API): rehearsal-0008, file 3b;
+ *  - the coach policies with the trigger of 0007 switched off (the policy layer alone): rehearsal-0007, files 3a and 3b;
  * Update and delete probes filter on a nil id, so they only prove the operation is denied,
  * not that existing rows are unreachable.
  */
@@ -48,7 +48,7 @@ import {
   judgeWrite,
   publicTablesFrom,
 } from './rlsAssertions'
-import { totp } from './totp'
+import { verifyTotp } from './mfa'
 
 const NIL_UUID = '00000000-0000-0000-0000-000000000000'
 
@@ -170,15 +170,8 @@ async function signInAal2(user: FactorUser & { totpSecret: string }): Promise<Su
   const { data: factors, error: listError } = await client.auth.mfa.listFactors()
   const factor = factors?.totp[0]
   if (listError || !factor) throw new Error(`${user.email} has no verified TOTP factor: ${listError?.message ?? 'none listed'}`)
-  // The codes of the neighbouring 30 s steps cover a few seconds of clock drift.
-  for (const drift of [0, -30_000, 30_000]) {
-    const challenge = await client.auth.mfa.challenge({ factorId: factor.id })
-    if (challenge.error) throw new Error(`TOTP challenge failed for ${user.email}: ${challenge.error.message}`)
-    const code = totp(user.totpSecret, Date.now() + drift)
-    const verified = await client.auth.mfa.verify({ factorId: factor.id, challengeId: challenge.data.id, code })
-    if (!verified.error) return client
-  }
-  throw new Error(`The TOTP code for ${user.email} was refused: check the secret and the clock`)
+  await verifyTotp(client, factor.id, user.totpSecret, user.email)
+  return client
 }
 
 async function factorSession(user: FactorUser): Promise<FactorSession> {
@@ -205,6 +198,7 @@ async function coachAthleteSection(): Promise<Check[]> {
     coach: await factorSession(coach),
     athlete: { id: await userId(athleteClient), client: athleteClient },
     stranger: { id: await userId(strangerClient), client: strangerClient },
+    signInStranger: () => signIn(stranger),
     both: bothSession?.aal2 ? { ...bothSession, aal2: bothSession.aal2 } : null,
   }
   return coachAthleteChecks(accounts)

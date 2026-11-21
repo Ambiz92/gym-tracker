@@ -8,6 +8,7 @@
  * start until they are removed as postgres: the error message prints a statement limited to the rows it created.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { verifyTotp } from './mfa'
 import {
   type Check,
   judgeAccepted,
@@ -45,6 +46,8 @@ export interface Accounts {
   coach: FactorSession
   athlete: Session
   stranger: Session
+  /** A fresh password session (aal1) of the stranger. */
+  signInStranger: () => Promise<SupabaseClient>
   /** Both roles at once; it accepts requests as a coach, so it needs a coach with `aal2` too. */
   both: (FactorSession & { aal2: SupabaseClient }) | null
 }
@@ -158,7 +161,7 @@ async function assertNoLeftovers(readers: SupabaseClient[], userIds: string[]): 
 }
 
 export async function coachAthleteChecks(accounts: Accounts): Promise<Check[]> {
-  const { coach, athlete, stranger, both } = accounts
+  const { coach, athlete, stranger, signInStranger, both } = accounts
   const checks: Check[] = []
   const add = (target: string, operation: string, verdict: Verdict) => {
     checks.push({ target, operation, ...verdict })
@@ -203,8 +206,9 @@ export async function coachAthleteChecks(accounts: Accounts): Promise<Check[]> {
     await accept(link)
     await coachReadsAndWrites(ids, link)
     await athleteRevokes(link)
-    await coachWithoutFactor()
+    const strangerLink = await coachWithoutFactor()
     if (both && coach.aal2) await bothRoles(both)
+    await coachWithoutFactorActiveLink(strangerLink)
   }
 
   /** T-03: the athlete asks the coach; extra columns and a second open request are refused. */
@@ -334,14 +338,42 @@ export async function coachAthleteChecks(accounts: Accounts): Promise<Check[]> {
   }
 
   /**
-   * S-A1-03: a coach with no second factor must neither accept nor read at aal1. The stranger has no factor,
-   * so the athlete (free again after the revoke) asks the stranger.
+   * S-A1-03: a coach with no second factor cannot accept at aal1. The stranger has no factor, so the athlete (free
+   * again after the revoke) asks the stranger. The link stays pending, so the empty read below proves nothing about
+   * the aal2 term of the read policies: that is `coachWithoutFactorActiveLink`.
    */
-  async function coachWithoutFactor(): Promise<void> {
+  async function coachWithoutFactor(): Promise<LinkRow> {
     const link = await requestFrom(athlete.client, athlete.id, stranger.id, 'athlete (again) to a coach without a factor')
     const accepted = await stranger.client.from('coach_athlete').update({ status: 'active' }).eq('id', link.id).select()
     add('coach_athlete', 'S-A1-03 coach without a factor accepts at aal1', judgeRefusedTransition(accepted, 'pending', await statusOf(link.id)))
-    checks.push(await onEveryTable('S-A1-03 coach without a factor reads the athlete at aal1', hidden(stranger.client, athlete.id)))
+    checks.push(await onEveryTable('S-A1-03 coach without a factor reads the athlete through a pending link', hidden(stranger.client, athlete.id)))
+    return link
+  }
+
+  /**
+   * S-A2-04: the aal2 term of the read policies on its own. A coach reaches an active link only at aal2, so the
+   * stranger enrols a throw-away factor, accepts at aal2 and removes the factor again. Without a factor the
+   * *_mfa_if_enrolled policy hides nothing at aal1, so only the aal2 term keeps the athlete's rows out.
+   */
+  async function coachWithoutFactorActiveLink(link: LinkRow): Promise<void> {
+    const enrolled = await stranger.client.auth.mfa.enroll({ factorType: 'totp' })
+    if (enrolled.error) throw new Error(`The stranger could not enrol a throw-away factor: ${enrolled.error.message}`)
+    const factorId = enrolled.data.id
+    try {
+      await verifyTotp(stranger.client, factorId, enrolled.data.totp.secret, 'the stranger')
+      const accepted = await stranger.client.from('coach_athlete').update({ status: 'active' }).eq('id', link.id).select()
+      add('coach_athlete', 'S-A2-04 coach accepts at aal2 with a throw-away factor', judgeAccepted(accepted))
+      // Without a working active link an empty read at aal1 would prove nothing.
+      if ((await statusOf(link.id)) !== 'active') throw new Error('The link is not active: the aal1 read cannot be judged')
+      checks.push(await onEveryTable('S-A2-04 coach (aal2) reads the athlete through the active link', visible(stranger.client, athlete.id, 1)))
+    } finally {
+      const removed = await stranger.client.auth.mfa.unenroll({ factorId })
+      if (removed.error) {
+        add('cleanup', 'remove the stranger factor', { pass: false, detail: `${removed.error.message}: remove the factor in the dashboard, the stranger must have none` })
+      }
+    }
+    const aal1 = await signInStranger()
+    checks.push(await onEveryTable('S-A2-04 coach without a factor reads the athlete at aal1 through an active link', hidden(aal1, athlete.id)))
   }
 
   /**

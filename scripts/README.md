@@ -19,7 +19,7 @@ Optional signed-in checks of the exercise catalog (migration `0005_exercise_cata
 Three-user checks of the coach/athlete tables (migrations `0007_coach_athlete.sql` and `0008_coach_read_policies.sql`) run when `RLS_TEST_COACH_*`, `RLS_TEST_ATHLETE_*` and `RLS_TEST_STRANGER_*` are set. The fixtures are three throw-away users created in the dashboard, with a password each (variables `RLS_TEST_<ROLE>_EMAIL` and `RLS_TEST_<ROLE>_PASSWORD`, never `VITE_*`):
 
 - the coach has a verified TOTP factor, and its base32 secret goes in `RLS_TEST_COACH_TOTP_SECRET`. The script computes the codes itself (RFC 6238, `scripts/totp.ts`), so it reaches aal2 without an app. Without the secret only the checks that need no aal2 run (the request and the refused accept at aal1);
-- the athlete and the stranger have no second factor;
+- the athlete and the stranger have no second factor (the stranger enrols a throw-away one during the run and removes it again);
 - optional: `RLS_TEST_BOTH_*` plus `RLS_TEST_BOTH_TOTP_SECRET`, a user with a factor who is the coach's athlete and the stranger's coach. It adds the both-roles, transitivity and mutual-link checks (T-06, T-11, T-12) and the coach-side revoke. It needs `RLS_TEST_COACH_TOTP_SECRET` too.
 
 The script seeds one row in each of the eight data tables for the athlete (and for the other users when `RLS_TEST_BOTH_*` is set), runs the checks of `workspace/security/S-A1.md` (T-02 to T-16 and the S-A1-01, -02 and -03 reproductions) and deletes the seeded rows. Every refusal is judged by its layer: a policy (`row-level security`) or a missing grant (`permission denied`), and every refused write is confirmed by reading the row again as its owner.
@@ -32,7 +32,9 @@ delete from public.coach_athlete where athlete_id in ('<user ids>') and coach_id
 
 It deletes only the rows the script creates: both ends are fixture users and the label is `rls-check`. If a fixture user has a link that is not a test row (for example a fixture variable points at a real account), the script stops with a different error and prints no delete statement: use accounts that only this script touches.
 
-Two cases cannot be reached through the API and live in the SQL rehearsals instead (`workspace/security/rehearsal-0008`, file `3b`): a coach with no factor reading at aal1 with an active link (such a coach can never accept one), and the policy layer alone with the trigger switched off.
+The aal2 term of the read policies is checked on its own with the stranger, who has no factor: it enrols a throw-away TOTP factor through the API, accepts a pending request at aal2, reads the athlete (it must see the rows), removes the factor again and reads at aal1 with a fresh password session (it must get nothing, with no factor left to hide the rows through `*_mfa_if_enrolled`). If the removal fails, the check prints it: delete the stranger's factor in the dashboard before the next run. The check "coach without a factor reads the athlete through a pending link" is only the S-A1-03 accept refusal and does not exercise that term.
+
+One case cannot be reached through the API and lives in the SQL rehearsals (`workspace/security/rehearsal-0007`, files `3a` and `3b`): the policy layer alone with the trigger switched off.
 
 Not covered, because it needs real sessions of the app: the second-factor rule of migration `0004_optional_mfa.sql` on the other tables. See the next section.
 
