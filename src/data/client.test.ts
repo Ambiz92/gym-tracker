@@ -1,6 +1,6 @@
 import type { PostgrestError } from '@supabase/supabase-js'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { DataError, ensureAffected, ensureOk, inUseError, isReferenced, own, unwrap, unwrapOrNull } from './client'
+import { athleteReader, DataError, ensureAffected, ensureOk, inUseError, isReferenced, linkTable, own, unwrap, unwrapOrNull } from './client'
 import { FAKE_USER_ID, fakeSupabase } from './fakeSupabase'
 
 vi.mock('../lib/supabase', async () => ({ supabase: (await import('./fakeSupabase')).fakeSupabase }))
@@ -106,6 +106,78 @@ describe('own', () => {
   test('surfaces a session read failure as a DataError', async () => {
     fakeSupabase.sessionError = { message: 'storage unavailable', code: 'session_not_found' }
     await expect(own('plan')).rejects.toMatchObject({ name: 'DataError', code: 'session_not_found', message: 'storage unavailable' })
+  })
+})
+
+describe('linkTable', () => {
+  test('filters each read on the party and sends writes as they are', async () => {
+    const links = await linkTable()
+    expect(links.userId).toBe(FAKE_USER_ID)
+    await links.asAthlete('id')
+    await links.asCoach('id')
+    await links.insert({ coach_id: 'c1' })
+    await links.update({ status: 'revoked' }).eq('id', 'l1')
+    expect(fakeSupabase.calls).toMatchObject([
+      { table: 'coach_athlete', op: 'select', filters: [['eq', 'athlete_id', FAKE_USER_ID]] },
+      { table: 'coach_athlete', op: 'select', filters: [['eq', 'coach_id', FAKE_USER_ID]] },
+      { table: 'coach_athlete', op: 'insert', payload: { coach_id: 'c1' } },
+      { table: 'coach_athlete', op: 'update', payload: { status: 'revoked' }, filters: [['eq', 'id', 'l1']] },
+    ])
+  })
+
+  test('has no delete and no upsert', async () => {
+    expect(Object.keys(await linkTable()).sort()).toEqual(['asAthlete', 'asCoach', 'insert', 'update', 'userId'])
+  })
+
+  test('refuses without a session', async () => {
+    fakeSupabase.userId = null
+    await expect(linkTable()).rejects.toMatchObject({ code: 'not_signed_in' })
+  })
+})
+
+describe('athleteReader', () => {
+  const ATHLETE = '3f2b8c1e-5d4a-4e6f-9a7b-0c1d2e3f4a5b'
+
+  test('checks the active link first, then pins every read to the athlete', async () => {
+    fakeSupabase.reset((call) => (call.table === 'coach_athlete' ? { data: [{ id: 'l1' }] } : { data: [] }))
+    const reader = await athleteReader(ATHLETE)
+    await reader.table('workout').select('id').eq('id', 'w1')
+    expect(fakeSupabase.calls).toMatchObject([
+      {
+        table: 'coach_athlete',
+        op: 'select',
+        filters: [['eq', 'coach_id', FAKE_USER_ID], ['eq', 'athlete_id', ATHLETE], ['eq', 'status', 'active']],
+      },
+      { table: 'workout', op: 'select', ownerId: ATHLETE, filters: [['eq', 'id', 'w1']] },
+    ])
+  })
+
+  test('exposes select only: there is no way to write through it', async () => {
+    fakeSupabase.reset(() => ({ data: [{ id: 'l1' }] }))
+    const reader = await athleteReader(ATHLETE)
+    expect(Object.keys(reader)).toEqual(['table'])
+    expect(Object.keys(reader.table('set_log'))).toEqual(['select'])
+  })
+
+  test('refuses an id that is not a uuid before any request', async () => {
+    await expect(athleteReader("x' or owner_id.neq.y")).rejects.toMatchObject({ code: 'invalid_athlete' })
+    expect(fakeSupabase.calls).toHaveLength(0)
+  })
+
+  test('refuses an athlete without an active link as coach', async () => {
+    fakeSupabase.reset(() => ({ data: [] }))
+    await expect(athleteReader(ATHLETE)).rejects.toMatchObject({ code: 'not_linked' })
+    expect(fakeSupabase.calls).toHaveLength(1)
+  })
+
+  test('refuses without a session', async () => {
+    fakeSupabase.userId = null
+    await expect(athleteReader(ATHLETE)).rejects.toMatchObject({ code: 'not_signed_in' })
+  })
+
+  test('a failing link lookup is a DataError, never an open reader', async () => {
+    fakeSupabase.reset(() => ({ error: { message: 'boom', code: 'XX000' } }))
+    await expect(athleteReader(ATHLETE)).rejects.toMatchObject({ name: 'DataError', code: 'XX000' })
   })
 })
 

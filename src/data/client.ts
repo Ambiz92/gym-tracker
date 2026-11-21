@@ -1,4 +1,5 @@
 import type { PostgrestError } from '@supabase/supabase-js'
+import { isUuid } from '../lib/uuid'
 import { supabase } from '../lib/supabase'
 import type { TableName } from '../types/db'
 
@@ -85,6 +86,61 @@ export async function own(table: TableName): Promise<OwnTable> {
     delete: ((...args) => query().delete(...args).eq('owner_id', ownerId)) as Query['delete'],
     insert: (...args) => query().insert(...args),
     upsert: (...args) => query().upsert(...args),
+  }
+}
+
+/** The coach_athlete table, which has no owner_id: reads name the party, and there is no delete or upsert (no grant for them either). */
+export interface LinkTable {
+  /** Links where the caller is the athlete. */
+  asAthlete: Query['select']
+  /** Links where the caller is the coach. */
+  asCoach: Query['select']
+  insert: Query['insert']
+  update: Query['update']
+}
+
+/**
+ * The only door to coach_athlete. RLS already limits it to the two parties; reads still filter on the
+ * party so a row where the caller is the other one never lands in the wrong list. Throws `not_signed_in` without a session.
+ */
+export async function linkTable(): Promise<LinkTable & { userId: string }> {
+  const userId = await currentUserId()
+  const query = () => supabase.from('coach_athlete')
+  return {
+    userId,
+    asAthlete: ((...args) => query().select(...args).eq('athlete_id', userId)) as Query['select'],
+    asCoach: ((...args) => query().select(...args).eq('coach_id', userId)) as Query['select'],
+    insert: (...args) => query().insert(...args),
+    update: (...args) => query().update(...args),
+  }
+}
+
+/** Read-only view of one athlete's rows: every read is pinned to `owner_id = athlete`. Nothing here can write. */
+export interface AthleteReader {
+  table(name: TableName): { select: Query['select'] }
+}
+
+/**
+ * The only door to another account's rows (never extend own() with an owner override). The id must be a
+ * uuid and belong to an ACTIVE link of the caller as coach before any data query goes out; RLS checks the
+ * same on every read, this only turns a wrong id into a clear `not_linked` error. No client-side cache:
+ * a revoke has to take effect on the next call. Throws `invalid_athlete`, `not_linked` or `not_signed_in`.
+ */
+export async function athleteReader(athleteId: string): Promise<AthleteReader> {
+  if (!isUuid(athleteId)) throw new DataError('Not a valid athlete id', 'invalid_athlete')
+  const coachId = await currentUserId()
+  const links = unwrap<{ id: string }[]>(
+    await supabase
+      .from('coach_athlete')
+      .select('id')
+      .eq('coach_id', coachId)
+      .eq('athlete_id', athleteId)
+      .eq('status', 'active')
+      .limit(1),
+  )
+  if (links.length === 0) throw new DataError('No active link with this athlete', 'not_linked')
+  return {
+    table: (name) => ({ select: ((...args) => supabase.from(name).select(...args).eq('owner_id', athleteId)) as Query['select'] }),
   }
 }
 
