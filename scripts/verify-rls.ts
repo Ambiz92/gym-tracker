@@ -11,6 +11,11 @@
  * factor, add the aal2 check: its password-only session must see an empty catalog. The checks
  * insert and delete one 'rls-check' exercise for the first user.
  *
+ * RLS_TEST_OTHER_EMAIL and RLS_TEST_OTHER_PASSWORD, a second throw-away user WITHOUT a second
+ * factor, add the cross-owner check of the session calendar (migration 0006): a scheduled_session
+ * of the second user pointing at the first user's plan_session must be refused by the composite
+ * key. It creates and deletes one 'rls-check' plan with a session for the first user.
+ *
  * What this does NOT prove (follow-up manual tests, they need a logged-in session):
  *  - an authenticated user sees and changes only their own rows (auth.uid() = owner_id);
  *  - the restrictive *_mfa_if_enrolled policies on the other tables: an aal1 session is refused
@@ -27,6 +32,7 @@ import {
   formatTable,
   isPrivilegedKey,
   judgeDuplicate,
+  judgeForeignKey,
   judgeHiddenByPolicy,
   judgeOtp,
   judgeSelect,
@@ -47,6 +53,7 @@ const PROBE_ROWS: Record<string, Record<string, unknown>> = {
   plan_exercise: { session_id: NIL_UUID, exercise_id: NIL_UUID, position: 0, target_sets: 1, target_reps: 1 },
   warmup_item: { session_id: NIL_UUID, position: 0, name: 'rls-check' },
   workout: { session_name: 'rls-check' },
+  scheduled_session: { session_name: 'rls-check', date: '2000-01-01' },
   set_log: {
     workout_id: NIL_UUID,
     exercise_id: NIL_UUID,
@@ -145,6 +152,37 @@ async function duplicateCheck(client: SupabaseClient, catalogId: string | undefi
   return { ...check, ...verdict }
 }
 
+/** A calendar slot of `other` pointing at a plan session of `owner`: the composite key must refuse it. */
+async function crossOwnerCheck(owner: SupabaseClient, other: SupabaseClient): Promise<Check> {
+  const check = { target: 'scheduled_session', operation: "insert with another owner's plan_session_id" }
+  const plan = await owner.from('plan').insert({ name: 'rls-check' }).select('id').single()
+  if (plan.error) return { ...check, pass: false, detail: `plan insert failed, ${plan.error.message}` }
+  const session = await owner
+    .from('plan_session')
+    .insert({ plan_id: plan.data.id, name: 'rls-check', position: 0 })
+    .select('id')
+    .single()
+
+  let verdict: Pick<Check, 'pass' | 'detail'> = { pass: false, detail: `plan_session insert failed, ${session.error?.message}` }
+  if (session.data) {
+    const slot = { plan_session_id: session.data.id, session_name: 'rls-check', date: '2000-01-01' }
+    // The same row is accepted for its owner, so the refusal below comes from the key, not from the row.
+    const own = await owner.from('scheduled_session').insert(slot)
+    verdict = own.error
+      ? { pass: false, detail: `insert for the owner failed, ${own.error.message}` }
+      : judgeForeignKey(await other.from('scheduled_session').insert(slot).select())
+  }
+
+  // Slots go first: deleting the plan would only null their plan_session_id.
+  for (const client of [owner, other]) {
+    const slots = await client.from('scheduled_session').delete().eq('session_name', 'rls-check')
+    if (slots.error) return { ...check, pass: false, detail: `cleanup failed, ${slots.error.message}` }
+  }
+  const cleanup = await owner.from('plan').delete().eq('id', plan.data.id)
+  if (cleanup.error) return { ...check, pass: false, detail: `cleanup failed, ${cleanup.error.message}` }
+  return { ...check, ...verdict }
+}
+
 /** Catalog checks for a signed-in user whose session the policies accept. */
 async function signedInCatalogChecks(client: SupabaseClient): Promise<{ checks: Check[]; seeded: boolean }> {
   const row = PROBE_ROWS.exercise_catalog
@@ -166,17 +204,22 @@ async function signedInCatalogChecks(client: SupabaseClient): Promise<{ checks: 
 async function signedInChecks(): Promise<Check[]> {
   const user = testUser('RLS_TEST')
   const mfaUser = testUser('RLS_TEST_MFA')
+  const otherUser = testUser('RLS_TEST_OTHER')
   if (!user) {
-    if (mfaUser) throw new Error('RLS_TEST_MFA_* needs RLS_TEST_* too: it is compared with a user who can read the catalog')
-    console.log('Signed-in catalog checks skipped: set RLS_TEST_EMAIL and RLS_TEST_PASSWORD to run them.\n')
+    if (mfaUser || otherUser) throw new Error('RLS_TEST_MFA_* and RLS_TEST_OTHER_* need RLS_TEST_* too: they are compared with it')
+    console.log('Signed-in checks skipped: set RLS_TEST_EMAIL and RLS_TEST_PASSWORD to run them.\n')
     return []
   }
-  const { checks, seeded } = await signedInCatalogChecks(await signIn(user))
-  if (!mfaUser) return checks
-  const hidden = seeded
-    ? judgeHiddenByPolicy(await (await signIn(mfaUser)).from('exercise_catalog').select('id'))
-    : { pass: false, detail: 'the catalog is empty, so an empty result would prove nothing: seed it first' }
-  return [...checks, { target: 'exercise_catalog', operation: 'select (aal1, verified factor)', ...hidden }]
+  const client = await signIn(user)
+  const { checks, seeded } = await signedInCatalogChecks(client)
+  if (otherUser) checks.push(await crossOwnerCheck(client, await signIn(otherUser)))
+  if (mfaUser) {
+    const hidden = seeded
+      ? judgeHiddenByPolicy(await (await signIn(mfaUser)).from('exercise_catalog').select('id'))
+      : { pass: false, detail: 'the catalog is empty, so an empty result would prove nothing: seed it first' }
+    checks.push({ target: 'exercise_catalog', operation: 'select (aal1, verified factor)', ...hidden })
+  }
+  return checks
 }
 
 const tables = await Promise.all(Object.entries(PROBE_ROWS).map(([table, row]) => tableChecks(table, row)))

@@ -14,6 +14,8 @@ Writes must fail with `42501` (permission denied). An empty result is not accept
 
 Optional signed-in checks of the exercise catalog (migration `0005_exercise_catalog.sql`) run when `RLS_TEST_EMAIL` and `RLS_TEST_PASSWORD` are set in `.env`. Use a throw-away user without a second factor, created in the dashboard. The script then checks that the catalog can be read, that insert, update and delete are refused with `42501`, and that adopting the same entry twice is refused with `23505`. The catalog must hold at least one entry, so run it after the seed. It inserts one exercise named `rls-check` for that user and deletes it again. Setting `RLS_TEST_MFA_EMAIL` and `RLS_TEST_MFA_PASSWORD` too, for a throw-away user with a verified TOTP factor, adds the second-factor check: its password-only session must get an empty catalog, not an error. These variables are not `VITE_*`, so they never reach the bundle.
 
+`RLS_TEST_OTHER_EMAIL` and `RLS_TEST_OTHER_PASSWORD`, a second throw-away user without a second factor, add the cross-owner check of the session calendar (migration `0006_scheduled_session.sql`). The script creates a plan with one session for the first user, checks that the first user can schedule that session, and that the second user scheduling the same session is refused with `23503` (the composite keys), then deletes the plan and the slots. It needs `RLS_TEST_*` too.
+
 Not covered, because it needs logged-in sessions: row ownership, and the second-factor rule of migration `0004_optional_mfa.sql` on the other tables. See the next section.
 
 ## Manual check with two real users (Google sign-in)
@@ -131,6 +133,11 @@ b. **A second user cannot touch the first user's rows.** With the tokens of user
    - delete: `DELETE ...?id=eq.X` removes nothing (confirm the row is still there);
    - B inserting a `set_log` that points at A's `workout_id` is refused with `23503` (the composite keys of `0002_owner_fks.sql`).
    Repeat the first four on one child table such as `set_log`, since each table has its own policies.
+   For the session calendar (`scheduled_session`, migration `0006`), also with A's and B's tokens, `X` being a slot of A and `S` a `plan_session` of A:
+   - B's select of `scheduled_session` returns `[]` for `?id=eq.X`, and B's patch or delete of `X` changes nothing;
+   - B inserting a slot with `plan_session_id` set to `S` (and its own `owner_id`) is refused with `23503`, and with `owner_id` set to A with `42501`;
+   - B inserting a slot with `workout_id` set to one of A's workouts is refused with `23503`;
+   - past activity stays: as A, deleting a plan session that has slots leaves the slots (with `plan_session_id` null, same date, status and `session_name`), and deleting a workout leaves its slot with `workout_id` null.
 
 c. **The owner with only a password session (aal1) is refused, and the refusal is the policy, not a missing grant.** Best done with the role simulation above. With a real token: at aal1, `GET /rest/v1/exercise` must answer HTTP 200 with `[]` although rows exist; at aal2 (after the TOTP step) the same request returns the rows. A `42501` permission error does not count as a pass: it means the policies cannot read the factors and the app is broken for everybody. If the aal1 request returns data, the factor lookup is failing open: restore the aal2 policies with the rollback block in the migration header until it is understood.
 
@@ -171,6 +178,10 @@ rollback;
 ```
 
 The second insert must fail with `exercise_one_per_catalog_entry_per_owner`. Exercises with a null `catalog_id` are never limited. After applying the migration, run `npm run verify:rls` (with the signed-in variables if you can) and open the app once as the owner at `aal2` to check that the library still loads.
+
+### Rehearsing migration 0006 (session calendar)
+
+The probes for `0006_scheduled_session.sql` are not the `begin; ... rollback;` scripts above: the SQL editor can run each statement in its own transaction and does not keep temporary objects between statements, so every rehearsal is a single `do` block that embeds the migration, creates its own test rows, simulates the roles (`set local role`, `request.jwt.claims`) and ends with a deliberate `raise exception` whose text is a `check | result | expected` report. They are kept outside the repository next to the earlier rehearsal sets. They cover the same cases as the earlier sections: the owner with a verified factor at `aal1` sees 0 rows and cannot insert (refused by `scheduled_session_mfa_if_enrolled`, not by a missing grant), at `aal2` works normally, a user without a factor works at `aal1`, `anon` is denied, and a slot referencing another owner's `plan_session_id` or `workout_id` fails with `23503`. One more check proves that deleting a plan session or a workout never deletes slots. Apply, then run `npm run verify:rls` (with the signed-in variables if you can) and the calendar items of check (b) above.
 
 ## check-secrets.ts
 
