@@ -5,7 +5,7 @@
  *
  * coach_athlete rows cannot be deleted by any client (the row is the consent record), and a revoked pair
  * can never be requested again. A run therefore leaves link rows behind, and the next run refuses to
- * start until they are removed as postgres: the error message prints the statement.
+ * start until they are removed as postgres: the error message prints a statement limited to the rows it created.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
@@ -22,6 +22,9 @@ import {
   judgeRowIds,
   judgeRowUnchanged,
   judgeVisibleRows,
+  type LinkEnds,
+  isTestLink,
+  testLinkCleanupStatement,
 } from './rlsAssertions'
 
 type Verdict = Pick<Check, 'pass' | 'detail'>
@@ -130,16 +133,26 @@ const hidden = (client: SupabaseClient, ownerId: string) => async (table: DataTa
 const visible = (client: SupabaseClient, ownerId: string, rows: number) => async (table: DataTable) =>
   judgeVisibleRows(await readTable(client, table, ownerId), ownerId, rows)
 
-/** The leftovers of an earlier run would break the sequence (a revoked pair cannot be requested again): stop with the cleanup statement. */
+/**
+ * The leftovers of an earlier run would break the sequence (a revoked pair cannot be requested again): stop with a cleanup
+ * statement limited to the rows this script creates. A link that is not a test row is never offered for deletion.
+ */
 async function assertNoLeftovers(readers: SupabaseClient[], userIds: string[]): Promise<void> {
   for (const client of readers) {
-    const { data, error } = await client.from('coach_athlete').select('id')
+    const { data, error } = await client.from('coach_athlete').select('id, coach_id, athlete_id, athlete_label')
     if (error) throw new Error(`Reading coach_athlete failed: ${error.message}`)
-    if ((data ?? []).length === 0) continue
-    const list = userIds.map((id) => `'${id}'`).join(', ')
+    const rows = (data ?? []) as (LinkEnds & { id: string })[]
+    if (rows.length === 0) continue
+    const foreign = rows.filter((row) => !isTestLink(row, userIds, LABEL))
+    if (foreign.length > 0) {
+      throw new Error(
+        `A fixture user has coach_athlete rows that are not test rows (ids ${foreign.map((row) => row.id).join(', ')}). ` +
+          'They may belong to a real account: use fixture users that only this script touches.',
+      )
+    }
     throw new Error(
       `coach_athlete rows of an earlier run exist. As postgres, in the SQL editor, delete them (the clients cannot):\n` +
-        `  delete from public.coach_athlete where athlete_id in (${list}) or coach_id in (${list});`,
+        `  ${testLinkCleanupStatement(userIds, LABEL)}`,
     )
   }
 }

@@ -156,6 +156,23 @@ export function judgeOtp({ data, error }: Outcome): Verdict {
   return { pass: session === null, detail: reply }
 }
 
+export interface LinkEnds {
+  coach_id: string
+  athlete_id: string
+  athlete_label: string | null
+}
+
+/** A link the check script creates: both ends are fixture users and it carries the script's label. */
+export function isTestLink(row: LinkEnds, userIds: string[], label: string): boolean {
+  return userIds.includes(row.coach_id) && userIds.includes(row.athlete_id) && row.athlete_label === label
+}
+
+/** The statement for postgres that deletes only the rows `isTestLink` accepts. */
+export function testLinkCleanupStatement(userIds: string[], label: string): string {
+  const list = userIds.map((id) => `'${id}'`).join(', ')
+  return `delete from public.coach_athlete where athlete_id in (${list}) and coach_id in (${list}) and athlete_label = '${label}';`
+}
+
 /** True for keys that bypass RLS: running the check with one would prove nothing. */
 export function isPrivilegedKey(key: string): boolean {
   if (key.startsWith('sb_secret_')) return true

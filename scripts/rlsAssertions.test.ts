@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   formatTable,
   isPrivilegedKey,
+  isTestLink,
   judgeDuplicate,
   judgeForeignKey,
   judgeHiddenByPolicy,
@@ -20,6 +21,7 @@ import {
   judgeVisibleRows,
   judgeWrite,
   publicTablesFrom,
+  testLinkCleanupStatement,
 } from './rlsAssertions'
 
 const denied = { data: null, error: { code: '42501', message: 'permission denied for table plan' } }
@@ -318,5 +320,22 @@ describe('publicTablesFrom', () => {
 
   it('ignores tables outside the public schema', () => {
     expect(publicTablesFrom(['create table private.audit (id int);'])).toEqual([])
+  })
+})
+
+describe('test link cleanup', () => {
+  const users = ['u1', 'u2']
+
+  it('recognises only rows between fixture users that carry the label', () => {
+    expect(isTestLink({ coach_id: 'u1', athlete_id: 'u2', athlete_label: 'rls-check' }, users, 'rls-check')).toBe(true)
+    expect(isTestLink({ coach_id: 'u1', athlete_id: 'u2', athlete_label: 'Marco' }, users, 'rls-check')).toBe(false)
+    expect(isTestLink({ coach_id: 'u1', athlete_id: 'u2', athlete_label: null }, users, 'rls-check')).toBe(false)
+    expect(isTestLink({ coach_id: 'u1', athlete_id: 'real', athlete_label: 'rls-check' }, users, 'rls-check')).toBe(false)
+  })
+
+  it('limits the statement to both ends and the label', () => {
+    expect(testLinkCleanupStatement(users, 'rls-check')).toBe(
+      "delete from public.coach_athlete where athlete_id in ('u1', 'u2') and coach_id in ('u1', 'u2') and athlete_label = 'rls-check';",
+    )
   })
 })

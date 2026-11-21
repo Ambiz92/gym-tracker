@@ -27,8 +27,10 @@ The script seeds one row in each of the eight data tables for the athlete (and f
 No client can delete a `coach_athlete` row, and a revoked pair can never be requested again, so every run leaves link rows behind and the next run stops at the start. The error prints the statement to run as `postgres` in the SQL editor first:
 
 ```sql
-delete from public.coach_athlete where athlete_id in ('<user ids>') or coach_id in ('<user ids>');
+delete from public.coach_athlete where athlete_id in ('<user ids>') and coach_id in ('<user ids>') and athlete_label = 'rls-check';
 ```
+
+It deletes only the rows the script creates: both ends are fixture users and the label is `rls-check`. If a fixture user has a link that is not a test row (for example a fixture variable points at a real account), the script stops with a different error and prints no delete statement: use accounts that only this script touches.
 
 Two cases cannot be reached through the API and live in the SQL rehearsals instead (`workspace/security/rehearsal-0008`, file `3b`): a coach with no factor reading at aal1 with an active link (such a coach can never accept one), and the policy layer alone with the trigger switched off.
 
