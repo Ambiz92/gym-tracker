@@ -6,9 +6,15 @@ export type CoachLinksState = AsyncState<CoachLinks> & { reload: () => void }
 
 export const CoachLinksContext = createContext<CoachLinksState | null>(null)
 
-/** Loads the user's coach/athlete links once for the whole app: the tab bar and Altro read the same answer. */
+// One retry: a transient failure at start-up must not hide the Atleti tab until the user opens Altro.
+const loadWithRetry = () => loadCoachLinks().catch(() => loadCoachLinks())
+
+/**
+ * Loads the user's coach/athlete links once for the whole app: the tab bar and Altro read the same answer.
+ * A reload after a change keeps the links on screen, so nothing under it unmounts or refetches.
+ */
 export function CoachLinksProvider({ children }: { children: ReactNode }) {
-  const state = useAsync(loadCoachLinks, [])
+  const state = useAsync(loadWithRetry, [], { keepOnReload: true })
   return <CoachLinksContext.Provider value={state}>{children}</CoachLinksContext.Provider>
 }
 
