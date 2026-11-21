@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { HashRouter, Outlet, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
 import type { OAuthReturn } from './auth/oauthReturn'
@@ -27,12 +28,19 @@ import { Session } from './pages/Session'
 /** The app frame; the Atleti tab shows once the links have loaded and one of them is an active athlete. */
 function AppLayout() {
   const links = useCoachLinks()
-  const hasAthletes = links.status === 'ready' && activeAthletes(links.data.asCoach).length > 0
+  const hasAthletes = useLastKnown(links.status === 'ready' ? activeAthletes(links.data.asCoach).length > 0 : null)
   return (
     <Layout hasAthletes={hasAthletes}>
       <Outlet />
     </Layout>
   )
+}
+
+/** The latest non-null `value`: while the links reload or fail, the tab bar keeps what it last knew instead of dropping the tab. */
+function useLastKnown(value: boolean | null): boolean {
+  const [last, setLast] = useState(false)
+  if (value !== null && value !== last) setLast(value)
+  return value ?? last
 }
 
 export function AppRoutes() {
