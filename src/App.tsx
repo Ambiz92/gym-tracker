@@ -7,6 +7,7 @@ import { Layout } from './components/Layout'
 import { RouteAnnouncer } from './components/RouteAnnouncer'
 import { supabase } from './lib/supabase'
 import { Calendar } from './pages/Calendar'
+import { CoachLinksProvider } from './pages/coach/CoachLinksProvider'
 import { PlansSplit } from './pages/desktop/PlansSplit'
 import { Exercises } from './pages/Exercises'
 import { History } from './pages/History'
@@ -62,9 +63,11 @@ export function AppRoutes() {
           </Route>
           <Route
             element={
-              <Layout>
-                <Outlet />
-              </Layout>
+              <CoachLinksProvider>
+                <Layout>
+                  <Outlet />
+                </Layout>
+              </CoachLinksProvider>
             }
           >
             <Route path="/" element={<Home />} />

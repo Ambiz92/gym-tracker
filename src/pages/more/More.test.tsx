@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { AuthContext } from '../../auth/AuthProvider'
+import { LinksStub } from '../coach/fakeLinks'
 import { More } from '../More'
 
 let desktop = false
@@ -16,7 +17,9 @@ function renderMore(email: string | null = null) {
     <AuthContext.Provider
       value={{ status: 'signed_in', email, oauthError: null, clearOauthError: () => undefined, signIn: unused, signInWithGoogle: unused, verifyCode: unused, startEnrollment: unused, verifyEnrollment: unused, signOut: unused, isAal2: unused }}
     >
-      <More />
+      <LinksStub>
+        <More />
+      </LinksStub>
     </AuthContext.Provider>,
   )
 }

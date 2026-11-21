@@ -3,6 +3,7 @@ import { LogoutButton } from '../auth/LogoutButton'
 import { PageHeader } from '../components/PageHeader'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import '../styles/history.css'
+import { CoachSection } from './more/coach/CoachSection'
 import { ExportActions } from './more/ExportActions'
 import { ThemeSetting } from './more/ThemeSetting'
 import { applyStoredTheme } from './more/theme'
@@ -21,6 +22,10 @@ export function More() {
         <section>
           <h2 className="history-label">Dati</h2>
           <ExportActions />
+        </section>
+        <section>
+          <h2 className="history-label">Allenatore</h2>
+          <CoachSection />
         </section>
         <section>
           <h2 className="history-label">Aspetto</h2>

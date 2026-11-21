@@ -6,6 +6,7 @@ import {
   allowedActions,
   athleteName,
   coachNeedsSecondFactor,
+  linkDay,
   linkStatusLabel,
   needsSecondFactor,
   openCoachLink,
@@ -153,4 +154,9 @@ describe('parseAthleteLabel', () => {
 test('athleteName falls back when the label is missing', () => {
   expect(athleteName({ athlete_label: 'Marta' })).toBe('Marta')
   expect(athleteName({ athlete_label: null })).toBe('Atleta senza nome')
+})
+
+test('linkDay is the local calendar day of the timestamp', () => {
+  expect(linkDay(new Date(2026, 10, 21, 23, 30).toISOString())).toBe('21 nov')
+  expect(linkDay(new Date(2026, 0, 5, 0, 10).toISOString())).toBe('5 gen')
 })

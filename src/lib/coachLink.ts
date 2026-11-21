@@ -1,4 +1,6 @@
 import type { CoachLink, CoachLinkStatus } from '../types/db'
+import { dayMonthName } from './formatDate'
+import { localDateString } from './localDate'
 import { isUuid } from './uuid'
 
 /** Which side of a link the signed-in user is on. */
@@ -75,4 +77,9 @@ export function parseAthleteLabel(raw: string): Parsed<string> {
 /** What the coach sees for an athlete: the label the athlete chose, which may be missing on old rows. */
 export function athleteName(link: Pick<CoachLink, 'athlete_label'>): string {
   return link.athlete_label ?? 'Atleta senza nome'
+}
+
+/** "21 nov" for the local day a link timestamp falls on. */
+export function linkDay(timestamp: string): string {
+  return dayMonthName(localDateString(new Date(timestamp)))
 }
