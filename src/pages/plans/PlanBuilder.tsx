@@ -110,6 +110,7 @@ export function PlanBuilder({ plan, onChange: setPlan, initialSessionId }: PlanB
           key={session.id}
           session={session}
           sessionNames={plan.sessions.map((candidate) => candidate.name)}
+          plannable={plan.is_active ? plan.sessions : null}
           position={{ index: plan.sessions.indexOf(session), count: plan.sessions.length }}
           planBusy={busy}
           onChange={(update) => patchSession(session.id, update)}
