@@ -6,6 +6,7 @@ import { AuthLayout } from './components/AuthLayout'
 import { Layout } from './components/Layout'
 import { RouteAnnouncer } from './components/RouteAnnouncer'
 import { supabase } from './lib/supabase'
+import { Calendar } from './pages/Calendar'
 import { PlansSplit } from './pages/desktop/PlansSplit'
 import { Exercises } from './pages/Exercises'
 import { History } from './pages/History'
@@ -67,6 +68,7 @@ export function AppRoutes() {
             }
           >
             <Route path="/" element={<Home />} />
+            <Route path="/calendar" element={<Calendar />} />
             <Route path="/session/:id" element={<Session />} />
             <Route path="/plans" element={<PlansSplit />}>
               <Route path=":id" element={<PlanEdit />}>

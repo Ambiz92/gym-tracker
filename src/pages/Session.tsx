@@ -6,7 +6,8 @@ import { RowLink } from '../components/RowLink'
 import { UndoToast } from '../components/UndoToast'
 import { useAsync } from '../hooks/useAsync'
 import { useIsDesktop } from '../hooks/useIsDesktop'
-import type { Draft } from '../lib/sessionDraft'
+import { getSlot } from '../data/schedule'
+import { isLinkableSlot, type Draft } from '../lib/sessionDraft'
 import type { SetValues } from '../lib/setFlow'
 import { DesktopSession } from './session/DesktopSession'
 import { ExerciseLogger, type RestoredSet } from './session/ExerciseLogger'
@@ -85,6 +86,22 @@ function OpenSession({ loaded, draft }: { loaded: LoadedSession; draft: Draft | 
   const [toast, setToast] = useState<ToastState | null>(null)
   const [restored, setRestored] = useState<RestoredSet | null>(null)
   const lastConfirmAt = useRef(0)
+  const [scheduledId, setScheduledId] = useState<string | undefined>()
+  const slotParam = params.get('slot')
+
+  // Best effort: the route loses `?slot=` on the first in-session navigation, so the checked id is kept here.
+  useEffect(() => {
+    if (!slotParam) return
+    let cancelled = false
+    getSlot(slotParam)
+      .then((slot) => {
+        if (!cancelled && slot && isLinkableSlot(slot, session.id)) setScheduledId(slot.id)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [slotParam, session.id])
 
   useEffect(() => {
     if (!toast) return
@@ -100,7 +117,7 @@ function OpenSession({ loaded, draft }: { loaded: LoadedSession; draft: Draft | 
     const planExercise = session.exercises.find((candidate) => candidate.exercise_id === exerciseId)
     if (!planExercise) return
     const set = sessionStore.confirmSet(
-      { id: session.id, name: session.name },
+      { id: session.id, name: session.name, scheduledId },
       { exerciseId, reps: values.reps, weightKg: values.weight, equipment: values.equipment },
     )
     setRestored(null)

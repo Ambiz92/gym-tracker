@@ -70,6 +70,18 @@ class FakeBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
     return this.filter('in', column, value)
   }
 
+  gte(column: string, value: unknown) {
+    return this.filter('gte', column, value)
+  }
+
+  lte(column: string, value: unknown) {
+    return this.filter('lte', column, value)
+  }
+
+  is(column: string, value: unknown) {
+    return this.filter('is', column, value)
+  }
+
   order(column: string, options?: { ascending?: boolean }) {
     this.call.orders.push({ column, ascending: options?.ascending ?? true })
     return this

@@ -1,0 +1,242 @@
+/* Calendar tab and the schedule picker. Reads only --ds-* tokens; the sheet frame is .how-to (session.css). */
+
+/* Rubber key: period arrows, "Oggi" and the slot actions. Same plate as the choice keys, hard bottom edge. */
+.cal-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--ds-size-touch);
+  min-height: var(--ds-size-touch);
+  padding: 0 var(--ds-space-4);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-color-surface);
+  box-shadow: var(--ds-shadow-press);
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-black);
+  transition: transform var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.cal-key:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: var(--ds-shadow-pressed);
+}
+
+.cal-key:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cal-key--danger {
+  color: var(--ds-color-danger);
+}
+
+/* Toolbar */
+.cal-toolbar {
+  display: grid;
+  gap: var(--ds-space-3);
+  margin-top: var(--ds-space-4);
+  padding-bottom: var(--ds-space-1);
+}
+
+.cal-toolbar__period {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--ds-space-3);
+  align-items: center;
+}
+
+.cal-toolbar__label {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-text-xl);
+  font-weight: var(--ds-weight-display);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.cal-toolbar__views {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--ds-space-3);
+}
+
+.cal-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ds-space-2);
+}
+
+/* Grid: a button per day, the selected one pressed in, today underlined. */
+.cal-grid {
+  width: 100%;
+  margin-top: var(--ds-space-3);
+  border-collapse: separate;
+  border-spacing: var(--ds-space-1);
+  table-layout: fixed;
+}
+
+.cal-grid th {
+  padding-bottom: var(--ds-space-1);
+  color: var(--ds-color-text-muted);
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-black);
+  letter-spacing: var(--ds-tracking-caps);
+  text-transform: uppercase;
+}
+
+.cal-grid td {
+  padding: 0;
+}
+
+.cal-cell {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--ds-space-1);
+  width: 100%;
+  min-height: 3.25rem;
+  border-radius: var(--ds-radius-md);
+  font-weight: var(--ds-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-cell--outside {
+  color: var(--ds-color-text-muted);
+}
+
+.cal-cell[aria-current="date"] .cal-cell__number {
+  font-weight: var(--ds-weight-black);
+  text-decoration: underline;
+  text-decoration-color: var(--ds-color-accent-text);
+  text-decoration-thickness: var(--ds-rule);
+  text-underline-offset: 3px;
+}
+
+.cal-cell[aria-pressed="true"] {
+  background: var(--ds-color-accent);
+  color: var(--ds-color-on-accent);
+  box-shadow: var(--ds-shadow-pressed);
+}
+
+.cal-cell[aria-pressed="true"] .cal-cell__number {
+  text-decoration-color: currentColor;
+}
+
+.cal-cell__marker {
+  display: grid;
+  place-items: center;
+  height: 0.75rem;
+}
+
+/* Dot: full = done, ring = still to do, ring with a stroke = skipped. Shape, not colour, tells them apart. */
+.cal-dot {
+  position: relative;
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: var(--ds-rule) solid currentColor;
+  border-radius: var(--ds-radius-full);
+  vertical-align: middle;
+}
+
+.cal-dot--full {
+  background: currentColor;
+}
+
+.cal-dot--struck::after {
+  content: "";
+  position: absolute;
+  top: calc(50% - var(--ds-rule) / 2);
+  left: calc(-1 * var(--ds-space-1));
+  right: calc(-1 * var(--ds-space-1));
+  border-top: var(--ds-rule) solid currentColor;
+  transform: rotate(-45deg);
+}
+
+.cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-space-1) var(--ds-space-4);
+  margin-top: var(--ds-space-2);
+  color: var(--ds-color-text-muted);
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-bold);
+  list-style: none;
+}
+
+.cal-legend .cal-dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  margin-right: var(--ds-space-1);
+}
+
+/* Selected day */
+.cal-slots {
+  list-style: none;
+}
+
+.cal-slot {
+  padding: var(--ds-space-3) 0;
+  border-top: var(--ds-hairline) solid var(--ds-color-border);
+}
+
+.cal-slot--archived .cal-slot__name {
+  color: var(--ds-color-text-muted);
+}
+
+.cal-slot__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-space-2);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cal-slot__name {
+  font-size: var(--ds-text-md);
+  font-weight: var(--ds-weight-black);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.cal-slot__tags {
+  display: flex;
+  gap: var(--ds-space-1);
+}
+
+/* Badge geometry comes from components.css; the label that asks for action takes the accent. */
+.cal-tag {
+  color: var(--ds-color-text-muted);
+}
+
+.cal-tag--alert {
+  color: var(--ds-color-accent-text);
+}
+
+.cal-slot__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-space-2);
+  margin-top: var(--ds-space-3);
+}
+
+.cal-day__plan {
+  margin-top: var(--ds-space-4);
+}
+
+/* Schedule picker: native selects keep the field look, with a chevron since appearance is off. */
+select.field__input {
+  padding-right: calc(var(--ds-space-4) + 1.5rem);
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 1.4rem) 50%, calc(100% - 1.05rem) 50%;
+  background-size: 0.35rem 0.35rem;
+  background-repeat: no-repeat;
+}
+
+.schedule-picker__actions {
+  margin-top: var(--ds-space-6);
+}
+
+/* Oggi: spacing under the actions of a planned-session row. */
+.home-slot__actions {
+  margin-bottom: var(--ds-space-3);
+}

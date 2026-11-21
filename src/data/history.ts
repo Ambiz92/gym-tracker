@@ -56,3 +56,11 @@ export async function listRecentWorkouts(limit: number): Promise<RecentWorkout[]
       .limit(limit),
   )
 }
+
+/** What the calendar needs of a workout: which session was done on which day. */
+export type WorkoutDay = Pick<Workout, 'id' | 'session_id' | 'date'>
+
+/** Id, session and date of the workouts in [from, to] (both inclusive, YYYY-MM-DD): what the calendar reconciles slots against. */
+export async function listWorkoutDays(from: string, to: string): Promise<WorkoutDay[]> {
+  return unwrap<WorkoutDay[]>(await supabase.from('workout').select('id, session_id, date').gte('date', from).lte('date', to))
+}

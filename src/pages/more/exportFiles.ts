@@ -17,6 +17,7 @@ export const TABLE_NAMES: readonly TableName[] = [
   'warmup_item',
   'workout',
   'set_log',
+  'scheduled_session',
 ]
 
 type Columns = { [Table in TableName]: readonly (keyof TableRows[Table] & string)[] }
@@ -41,6 +42,7 @@ export const CSV_COLUMNS: Columns = {
   warmup_item: ['id', 'owner_id', 'session_id', 'position', 'name', 'reps_text', 'note'],
   workout: ['id', 'owner_id', 'date', 'created_at', 'session_id', 'session_name', 'notes'],
   set_log: ['id', 'owner_id', 'workout_id', 'exercise_id', 'set_number', 'reps', 'weight_kg', 'equipment_used', 'rpe'],
+  scheduled_session: ['id', 'owner_id', 'plan_session_id', 'session_name', 'date', 'status', 'workout_id', 'series_id', 'created_at'],
 }
 
 function csvFile<Table extends TableName>(table: Table, tables: ExportTables, now: Date): ExportFile {

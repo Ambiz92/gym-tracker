@@ -2,7 +2,7 @@ import type { PostgrestError } from '@supabase/supabase-js'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { DataError } from './client'
 import { fakeSupabase } from './fakeSupabase'
-import { getHistoryExercise, listHistoryExercises, listLoggedSets, listRecentWorkouts } from './history'
+import { getHistoryExercise, listHistoryExercises, listLoggedSets, listRecentWorkouts, listWorkoutDays } from './history'
 import { readAllRows } from './paging'
 
 vi.mock('../lib/supabase', async () => ({ supabase: (await import('./fakeSupabase')).fakeSupabase }))
@@ -71,5 +71,16 @@ test('listRecentWorkouts asks for the newest workouts first', async () => {
     table: 'workout',
     orders: [{ column: 'date', ascending: false }, { column: 'created_at', ascending: false }],
     limit: 10,
+  })
+})
+
+test('listWorkoutDays reads only id, session and date, bounded on both ends', async () => {
+  fakeSupabase.reset(() => ({ data: [{ id: 'w1', session_id: 's1', date: '2026-11-17' }] }))
+  expect(await listWorkoutDays('2026-11-01', '2026-11-30')).toEqual([{ id: 'w1', session_id: 's1', date: '2026-11-17' }])
+  expect(fakeSupabase.calls[0]).toMatchObject({
+    table: 'workout',
+    op: 'select',
+    columns: 'id, session_id, date',
+    filters: [['gte', 'date', '2026-11-01'], ['lte', 'date', '2026-11-30']],
   })
 })

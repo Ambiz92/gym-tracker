@@ -33,7 +33,7 @@
   outline: none;
 }
 
-/* Tab bar: the current tab is the text color plus a lit copper marker hanging from the top edge. */
+/* Tab bar: the current tab is the text color plus a lit copper marker hanging from the top edge. Five labels in sentence case: "Calendario" in caps does not fit a 360px phone. */
 .tab-bar {
   position: sticky;
   bottom: 0;
@@ -44,7 +44,7 @@
 
 .tab-bar__list {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   list-style: none;
 }
 
@@ -53,12 +53,11 @@
   display: grid;
   place-items: center;
   min-height: var(--ds-size-tab);
-  padding: 0 var(--ds-space-2);
+  padding: 0 var(--ds-space-1);
   color: var(--ds-color-text-muted);
   font-size: var(--ds-text-xs);
   font-weight: var(--ds-weight-black);
-  letter-spacing: var(--ds-tracking-caps);
-  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .tab-bar__link:focus-visible {
@@ -145,7 +144,8 @@
 .exercise-row__tag,
 .exercise-row__origin,
 .session-table__tag,
-.session-table__bonus {
+.session-table__bonus,
+.cal-tag {
   display: inline-block;
   padding: 0 var(--ds-space-2);
   border: var(--ds-hairline) solid currentColor;

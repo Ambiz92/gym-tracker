@@ -26,6 +26,10 @@ export interface SessionApi {
   deleteSet(setId: string): Promise<void>
   saveNotes(workoutId: string, notes: string): Promise<void>
   deleteWorkout(workoutId: string): Promise<void>
+  /** Marks the calendar slot done once its workout exists; may reject, the store never waits for it. */
+  linkSlot(slotId: string, workoutId: string): Promise<unknown>
+  /** Puts the slot back to planned when its workout is discarded; must run before the workout is deleted. May reject, the store tolerates it. */
+  unlinkSlot(slotId: string, workoutId: string): Promise<unknown>
 }
 
 export interface StoreEnv {
@@ -35,6 +39,8 @@ export interface StoreEnv {
   /** Local calendar date YYYY-MM-DD. */
   today(): string
   now(): number
+  /** A failed slot link or unlink: reading reconciles it (same session and date), so this is only for diagnostics. */
+  onLinkError(error: unknown): void
 }
 
 export interface StoreState {
@@ -76,9 +82,9 @@ export class SessionStore {
 
   /**
    * Records a confirmed set, opening the draft (and its workout id) on the first one, and starts
-   * sending it. Throws when another session is already open: the UI never offers that.
+   * sending it; `scheduledId` (the slot it was started from) is kept only when the draft opens. Throws when another session is already open: the UI never offers that.
    */
-  confirmSet(session: { id: string; name: string }, input: SetInput): DraftSet {
+  confirmSet(session: { id: string; name: string; scheduledId?: string }, input: SetInput): DraftSet {
     let draft = this.state.draft
     if (draft && draft.sessionId !== session.id) throw new Error('Another session is already open')
     draft ??= newDraft({
@@ -87,6 +93,7 @@ export class SessionStore {
       sessionId: session.id,
       sessionName: session.name,
       startedAt: this.env.now(),
+      scheduledId: session.scheduledId,
     })
 
     const set = {
@@ -142,7 +149,11 @@ export class SessionStore {
 
     try {
       if (activeSets(draft).length === 0) {
-        if (draft.workoutSynced) await this.env.api.deleteWorkout(draft.workoutId)
+        const { scheduledId, workoutId } = draft
+        if (draft.workoutSynced) {
+          if (scheduledId) await this.tolerate(() => this.env.api.unlinkSlot(scheduledId, workoutId))
+          await this.env.api.deleteWorkout(workoutId)
+        }
       } else if (notes.trim()) {
         await this.env.api.saveNotes(draft.workoutId, notes.trim())
       }
@@ -192,6 +203,7 @@ export class SessionStore {
         sessionName: draft.sessionName,
       })
       this.apply(workoutId, ackWorkout)
+      if (draft.scheduledId) this.linkSlot(draft.scheduledId, workoutId)
     } else if (operation.kind === 'log') {
       const { set } = operation
       await api.logSet({
@@ -207,6 +219,24 @@ export class SessionStore {
     } else {
       await api.deleteSet(operation.set.id)
       this.apply(workoutId, (current) => dropSet(current, operation.set.id))
+    }
+  }
+
+  /** Fire and forget: saving sets never waits for, or fails because of, the calendar. */
+  private linkSlot(slotId: string, workoutId: string): void {
+    void this.tolerate(() => this.env.api.linkSlot(slotId, workoutId))
+  }
+
+  /** Runs a calendar call whose failure must not matter: it is only reported, and a throwing handler is ignored too. */
+  private async tolerate(call: () => Promise<unknown>): Promise<void> {
+    try {
+      await call()
+    } catch (error) {
+      try {
+        this.env.onLinkError(error)
+      } catch {
+        // Diagnostics must never break saving.
+      }
     }
   }
 

@@ -1,11 +1,14 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { ReorderButtons } from '../../components/ReorderButtons'
 import type { SessionDetail } from '../../data/activePlan'
 import { duplicateSession, type SessionRemoval, updatePlanExercise } from '../../data/plans'
 import { useAction } from '../../hooks/useAction'
+import { localDateString } from '../../lib/localDate'
 import { duplicateSessionName } from '../../lib/planBuilder'
 import { sessionFormFrom, type PlanTarget } from '../../lib/planForm'
+import { SchedulePicker, type PickableSession } from '../calendar/SchedulePicker'
 import { AddExercises } from './AddExercises'
 import { describePlanError } from './errors'
 import { ExerciseEditRows } from './ExerciseEditRows'
@@ -21,6 +24,8 @@ interface SessionPaneProps {
   sessionNames: readonly string[]
   /** Place of the session among the plan's sessions, for the buttons that move it. */
   position: { index: number; count: number }
+  /** The live sessions the calendar can plan (the plan's own); null when the plan is not the active one, so the action is hidden. */
+  plannable: readonly PickableSession[] | null
   /** A plan request is in flight: the session move buttons wait. */
   planBusy: boolean
   /** Patches the session held by the parent; called once a request succeeded. */
@@ -34,10 +39,13 @@ interface SessionPaneProps {
 }
 
 /** The exercises of the open session, edited in place, with the ways to add more, copy the session and change its details. */
-export function SessionPane({ session, sessionNames, position, planBusy, onChange, onRemoved, onDuplicated, onMoveSession, onUndoable }: SessionPaneProps) {
+export function SessionPane({ session, sessionNames, plannable, position, planBusy, onChange, onRemoved, onDuplicated, onMoveSession, onUndoable }: SessionPaneProps) {
   const [adding, setAdding] = useState(false)
+  const [planning, setPlanning] = useState(false)
+  const [planned, setPlanned] = useState(false)
   const edits = useSessionEdits(session, onChange)
   const duplication = useAction(describePlanError)
+  const today = localDateString(new Date())
   const { details, list, removal, busy } = edits
 
   const save = (id: string, target: PlanTarget) => updatePlanExercise(id, target)
@@ -84,6 +92,26 @@ export function SessionPane({ session, sessionNames, position, planBusy, onChang
       <button type="button" className="builder-ghost" disabled={busy || duplication.busy} aria-busy={duplication.busy || undefined} onClick={() => void handleDuplicate()}>
         Duplica sessione
       </button>
+      {plannable && (
+        <button
+          type="button"
+          className="builder-ghost"
+          onClick={() => {
+            setPlanned(false)
+            setPlanning(true)
+          }}
+        >
+          Pianifica sessione
+        </button>
+      )}
+      {/* Mounted from the start: a live region added together with its text is not reliably announced. */}
+      <div role="status">
+        {planned && (
+          <p className="plans-note">
+            Sessione pianificata. <Link to="/calendar">Apri il calendario</Link>
+          </p>
+        )}
+      </div>
 
       <details className="builder-details">
         <summary>Dettagli sessione</summary>
@@ -96,6 +124,16 @@ export function SessionPane({ session, sessionNames, position, planBusy, onChang
         <SessionRemove name={session.name} busy={removal.busy} error={removal.error} onRemove={() => void handleRemoveSession()} />
       </details>
 
+      {planning && plannable && (
+        <SchedulePicker
+          sessions={plannable}
+          sessionId={session.id}
+          date={today}
+          today={today}
+          onSaved={() => setPlanned(true)}
+          onClose={() => setPlanning(false)}
+        />
+      )}
       {adding && (
         <AddExercises
           session={session}
