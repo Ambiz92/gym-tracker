@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import type { ScheduledSession } from '../types/db'
+import type { Call, FakeResult } from './fakeSupabase'
 import { fakeSupabase } from './fakeSupabase'
 import {
   deleteFuturePlannedSlots,
   deleteSlot,
   getSlot,
+  healReconciledSlots,
   linkWorkout,
   listSlots,
   moveSlot,
@@ -128,58 +131,123 @@ describe('scheduleRepeating', () => {
   })
 })
 
+/**
+ * Handler for the guarded actions: the slot read returns `row`, the workout lookup returns `workouts`,
+ * and any write returns `write`.
+ */
+function guarded({ row = slot, workouts = [], write = { data: [{ id: 'x1' }] } }: { row?: object | null; workouts?: object[]; write?: FakeResult } = {}) {
+  return (call: Call): FakeResult => {
+    if (call.table === 'workout') return { data: workouts }
+    if (call.op === 'select') return { data: row }
+    return write
+  }
+}
+
+const writes = (calls: Call[]) => calls.filter((call) => call.op !== 'select')
+
 describe('updates only touch planned slots', () => {
   const planned = [['eq', 'id', 'x1'], ['eq', 'status', 'planned']]
-  const updates: [string, () => Promise<void>, object][] = [
+  const guardedUpdates: [string, () => Promise<void>, object][] = [
     ['moveSlot', () => moveSlot('x1', '2026-12-01'), { date: '2026-12-01' }],
     ['moveSlotToToday', () => moveSlotToToday('x1'), { date: '2026-11-21' }],
     ['skipSlot', () => skipSlot('x1'), { status: 'skipped' }],
+  ]
+  const updates: [string, () => Promise<void>, object][] = [
+    ...guardedUpdates,
     ['linkWorkout', () => linkWorkout('x1', 'w1'), { workout_id: 'w1', status: 'done' }],
   ]
 
   test.each(updates)('%s is one update filtered on id and status planned', async (_name, run, payload) => {
-    fakeSupabase.reset(() => ({ data: [{ id: 'x1' }] }))
+    fakeSupabase.reset(guarded())
     await run()
-    expect(fakeSupabase.calls).toHaveLength(1)
-    expect(fakeSupabase.calls[0]).toMatchObject({ table: 'scheduled_session', op: 'update', payload, filters: planned, columns: 'id' })
+    expect(writes(fakeSupabase.calls)).toHaveLength(1)
+    expect(writes(fakeSupabase.calls)[0]).toMatchObject({ table: 'scheduled_session', op: 'update', payload, filters: planned, columns: 'id' })
   })
 
   test.each(updates)('%s refuses a slot that is not planned (done, skipped or unknown) with not_planned', async (_name, run) => {
-    fakeSupabase.reset(() => ({ data: [] }))
+    fakeSupabase.reset(guarded({ write: { data: [] } }))
     await expect(run()).rejects.toMatchObject({ name: 'DataError', code: 'not_planned' })
   })
 
   test('moveSlotToToday uses the local date, not the UTC one', async () => {
     vi.setSystemTime(new Date(2026, 10, 21, 0, 30))
-    fakeSupabase.reset(() => ({ data: [{ id: 'x1' }] }))
+    fakeSupabase.reset(guarded())
     await moveSlotToToday('x1')
-    expect(fakeSupabase.calls[0].payload).toEqual({ date: '2026-11-21' })
+    expect(writes(fakeSupabase.calls)[0].payload).toEqual({ date: '2026-11-21' })
   })
 
   test('moving onto a day that already has the session is already_scheduled', async () => {
-    fakeSupabase.reset(() => duplicate)
+    fakeSupabase.reset(guarded({ write: duplicate }))
     await expect(moveSlot('x1', '2026-12-01')).rejects.toMatchObject({ code: 'already_scheduled' })
   })
 
+  test('a past target date is refused before any request', async () => {
+    await expect(moveSlot('x1', '2026-11-20')).rejects.toMatchObject({ name: 'DataError', code: 'past_date' })
+    expect(fakeSupabase.calls).toHaveLength(0)
+  })
+
   test('a failed update is thrown with its own code', async () => {
-    fakeSupabase.reset(() => ({ error: { message: 'boom', code: 'XX000' } }))
+    fakeSupabase.reset(guarded({ write: { error: { message: 'boom', code: 'XX000' } } }))
     await expect(skipSlot('x1')).rejects.toMatchObject({ code: 'XX000' })
   })
 
-  test('no update ever sends owner_id or touches another table', async () => {
-    fakeSupabase.reset(() => ({ data: [{ id: 'x1' }] }))
+  test('no update ever sends owner_id or touches a table other than slots and the workout lookup', async () => {
+    fakeSupabase.reset(guarded())
     for (const [, run] of updates) await run()
-    expect(fakeSupabase.calls.every((call) => call.table === 'scheduled_session')).toBe(true)
-    for (const call of fakeSupabase.calls) expect(call.payload).not.toHaveProperty('owner_id')
+    expect(writes(fakeSupabase.calls).every((call) => call.table === 'scheduled_session')).toBe(true)
+    for (const call of writes(fakeSupabase.calls)) expect(call.payload).not.toHaveProperty('owner_id')
+  })
+})
+
+describe('a planned slot already completed by a workout is untouchable', () => {
+  const actions: [string, () => Promise<void>][] = [
+    ['moveSlot', () => moveSlot('x1', '2026-12-01')],
+    ['moveSlotToToday', () => moveSlotToToday('x1')],
+    ['skipSlot', () => skipSlot('x1')],
+    ['deleteSlot', () => deleteSlot('x1')],
+  ]
+  const today = { ...slot, date: '2026-11-21' }
+
+  test.each(actions)('%s throws already_done and writes nothing when the session has a workout that day', async (_name, run) => {
+    fakeSupabase.reset(guarded({ row: today, workouts: [{ id: 'w1' }] }))
+    await expect(run()).rejects.toMatchObject({ name: 'DataError', code: 'already_done' })
+    expect(writes(fakeSupabase.calls)).toEqual([])
+  })
+
+  test('the lookup is for the slot session and date', async () => {
+    fakeSupabase.reset(guarded({ row: today, workouts: [{ id: 'w1' }] }))
+    await expect(skipSlot('x1')).rejects.toThrow()
+    expect(fakeSupabase.calls.find((call) => call.table === 'workout')).toMatchObject({
+      op: 'select',
+      filters: [['eq', 'session_id', 's1'], ['eq', 'date', '2026-11-21']],
+    })
+  })
+
+  test.each(actions)('%s goes ahead when no workout matches', async (_name, run) => {
+    fakeSupabase.reset(guarded({ row: today }))
+    await run()
+    expect(writes(fakeSupabase.calls)).toHaveLength(1)
+  })
+
+  test.each(actions)('%s skips the workout lookup for a slot that is not planned or has no session', async (_name, run) => {
+    fakeSupabase.reset(guarded({ row: { ...today, status: 'done' }, write: { data: [] } }))
+    await expect(run()).rejects.toMatchObject({ code: expect.stringMatching(/^not_/) })
+    expect(fakeSupabase.calls.some((call) => call.table === 'workout')).toBe(false)
+  })
+
+  test('a failing lookup stops the action', async () => {
+    fakeSupabase.reset((call) => (call.table === 'workout' ? { error: { message: 'boom', code: 'XX000' } } : { data: today }))
+    await expect(skipSlot('x1')).rejects.toMatchObject({ code: 'XX000' })
+    expect(writes(fakeSupabase.calls)).toEqual([])
   })
 })
 
 describe('deleteSlot', () => {
   test('deletes by id only when planned and dated today or later', async () => {
-    fakeSupabase.reset(() => ({ data: [{ id: 'x1' }] }))
+    fakeSupabase.reset(guarded())
     await deleteSlot('x1')
-    expect(fakeSupabase.calls).toHaveLength(1)
-    expect(fakeSupabase.calls[0]).toMatchObject({
+    expect(writes(fakeSupabase.calls)).toHaveLength(1)
+    expect(writes(fakeSupabase.calls)[0]).toMatchObject({
       table: 'scheduled_session',
       op: 'delete',
       filters: [
@@ -192,18 +260,55 @@ describe('deleteSlot', () => {
   })
 
   test('refuses a done, skipped or past slot with not_deletable', async () => {
-    fakeSupabase.reset(() => ({ data: [] }))
+    fakeSupabase.reset(guarded({ write: { data: [] } }))
     await expect(deleteSlot('x1')).rejects.toMatchObject({ name: 'DataError', code: 'not_deletable' })
   })
 })
 
-describe('deleteFuturePlannedSlots', () => {
-  test('one delete limited to planned, workout-less slots from today on, of the given sessions', async () => {
-    await deleteFuturePlannedSlots(['s1', 's2'])
+describe('healReconciledSlots', () => {
+  const planned: ScheduledSession = { ...slot, owner_id: 'o', status: 'planned', workout_id: null, series_id: null, created_at: '2026-11-01T08:00:00Z' } as ScheduledSession
+  const workout = { id: 'w1', session_id: 's1', date: '2026-11-27' }
+
+  test('links each planned slot a workout of its session and day completes', async () => {
+    fakeSupabase.reset(() => ({ data: [{ id: 'x1' }] }))
+    await healReconciledSlots([planned, { ...planned, id: 'x2', date: '2026-11-28' }], [workout])
     expect(fakeSupabase.calls).toHaveLength(1)
     expect(fakeSupabase.calls[0]).toMatchObject({
+      op: 'update',
+      payload: { workout_id: 'w1', status: 'done' },
+      filters: [['eq', 'id', 'x1'], ['eq', 'status', 'planned']],
+    })
+  })
+
+  test('does nothing when no slot is completed by a workout', async () => {
+    await healReconciledSlots([planned], [])
+    await healReconciledSlots([{ ...planned, status: 'done' }, { ...planned, status: 'skipped' }], [workout])
+    expect(fakeSupabase.calls).toHaveLength(0)
+  })
+
+  test('a failed or refused link is silent', async () => {
+    fakeSupabase.reset(() => ({ error: { message: 'boom', code: 'XX000' } }))
+    await expect(healReconciledSlots([planned], [workout])).resolves.toBeUndefined()
+    fakeSupabase.reset(() => ({ data: [] }))
+    await expect(healReconciledSlots([planned], [workout])).resolves.toBeUndefined()
+  })
+})
+
+describe('deleteFuturePlannedSlots', () => {
+  const futureSlots = [
+    { id: 'a', plan_session_id: 's1', date: '2026-11-21' },
+    { id: 'b', plan_session_id: 's1', date: '2026-11-28' },
+    { id: 'c', plan_session_id: 's2', date: '2026-11-21' },
+  ]
+  const handler = (workouts: object[]) => (call: Call): FakeResult | undefined =>
+    call.op === 'select' ? { data: call.table === 'workout' ? workouts : futureSlots } : undefined
+
+  test('reads only planned, workout-less slots from today on, of the given sessions', async () => {
+    fakeSupabase.reset(handler([]))
+    await deleteFuturePlannedSlots(['s1', 's2'])
+    expect(fakeSupabase.calls[0]).toMatchObject({
       table: 'scheduled_session',
-      op: 'delete',
+      op: 'select',
       filters: [
         ['in', 'plan_session_id', ['s1', 's2']],
         ['eq', 'status', 'planned'],
@@ -213,6 +318,41 @@ describe('deleteFuturePlannedSlots', () => {
     })
   })
 
+  test('deletes them in one statement that repeats the safety filters', async () => {
+    fakeSupabase.reset(handler([]))
+    await deleteFuturePlannedSlots(['s1', 's2'])
+    expect(writes(fakeSupabase.calls)).toHaveLength(1)
+    expect(writes(fakeSupabase.calls)[0]).toMatchObject({
+      table: 'scheduled_session',
+      op: 'delete',
+      filters: [
+        ['in', 'id', ['a', 'b', 'c']],
+        ['eq', 'status', 'planned'],
+        ['is', 'workout_id', null],
+        ['gte', 'date', '2026-11-21'],
+      ],
+    })
+  })
+
+  test('spares a slot its session already has a workout for (link failed), and only that one', async () => {
+    fakeSupabase.reset(handler([{ session_id: 's1', date: '2026-11-21' }]))
+    await deleteFuturePlannedSlots(['s1', 's2'])
+    expect(fakeSupabase.calls[1]).toMatchObject({ table: 'workout', op: 'select', filters: [['in', 'session_id', ['s1', 's2']], ['gte', 'date', '2026-11-21']] })
+    expect(writes(fakeSupabase.calls)[0].filters[0]).toEqual(['in', 'id', ['b', 'c']])
+  })
+
+  test('deletes nothing when every slot is completed by a workout', async () => {
+    fakeSupabase.reset(handler([{ session_id: 's1', date: '2026-11-21' }, { session_id: 's1', date: '2026-11-28' }, { session_id: 's2', date: '2026-11-21' }]))
+    await deleteFuturePlannedSlots(['s1', 's2'])
+    expect(writes(fakeSupabase.calls)).toEqual([])
+  })
+
+  test('no slot to remove means no workout lookup and no delete', async () => {
+    fakeSupabase.reset(() => ({ data: [] }))
+    await deleteFuturePlannedSlots(['s1'])
+    expect(fakeSupabase.calls).toHaveLength(1)
+  })
+
   test('no sessions means no request', async () => {
     await deleteFuturePlannedSlots([])
     expect(fakeSupabase.calls).toHaveLength(0)
@@ -220,6 +360,11 @@ describe('deleteFuturePlannedSlots', () => {
 
   test('a failure is thrown', async () => {
     fakeSupabase.reset(() => ({ error: { message: 'boom', code: 'XX000' } }))
+    await expect(deleteFuturePlannedSlots(['s1'])).rejects.toMatchObject({ code: 'XX000' })
+  })
+
+  test('a failing delete is thrown too', async () => {
+    fakeSupabase.reset((call) => (call.op === 'delete' ? { error: { message: 'boom', code: 'XX000' } } : handler([])(call)))
     await expect(deleteFuturePlannedSlots(['s1'])).rejects.toMatchObject({ code: 'XX000' })
   })
 })

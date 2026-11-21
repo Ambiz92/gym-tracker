@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupByDay, resolveSlots, type ScheduleContext, type SlotRow } from './scheduleStatus'
+import { groupByDay, reconciledLinks, resolveSlots, type ScheduleContext, type SlotRow } from './scheduleStatus'
 
 const TODAY = '2026-11-21'
 
@@ -144,5 +144,30 @@ describe('groupByDay', () => {
 
   it('returns an empty map without slots', () => {
     expect(group([]).size).toBe(0)
+  })
+})
+
+describe('reconciledLinks', () => {
+  const workout = { id: 'w1', session_id: 'A', date: '2026-11-25' }
+
+  it('pairs a planned slot with the workout of its session and day', () => {
+    expect(reconciledLinks([slot()], [workout])).toEqual([{ slotId: 's1', workoutId: 'w1' }])
+  })
+
+  it('ignores done and skipped slots, other days, other sessions and workouts without a session', () => {
+    const slots = [
+      slot({ id: 'a', status: 'done' }),
+      slot({ id: 'b', status: 'skipped' }),
+      slot({ id: 'c', date: '2026-11-26' }),
+      slot({ id: 'd', plan_session_id: 'B' }),
+      slot({ id: 'e', plan_session_id: null }),
+    ]
+    expect(reconciledLinks(slots, [workout, { id: 'w2', session_id: null, date: '2026-11-25' }])).toEqual([])
+  })
+
+  it('agrees with resolveSlots: exactly the planned slots shown as done are linked', () => {
+    const slots = [slot({ id: 'a' }), slot({ id: 'b', date: '2026-11-26' }), slot({ id: 'c', status: 'done' })]
+    const done = resolveSlots(slots, context({ workouts: [workout] })).filter((view) => view.state === 'done' && view.slot.status === 'planned')
+    expect(reconciledLinks(slots, [workout]).map((link) => link.slotId)).toEqual(done.map((view) => view.slot.id))
   })
 })

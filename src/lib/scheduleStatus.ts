@@ -28,7 +28,8 @@ export interface ScheduleContext {
   startableSessionIds: ReadonlySet<string>
 }
 
-const workoutKey = (sessionId: string, date: string): string => `${sessionId}@${date}`
+/** Identity of "this session on this day": what a slot and its workout share. */
+export const workoutKey = (sessionId: string, date: string): string => `${sessionId}@${date}`
 
 /**
  * Derives the state of each slot, keeping input order. A `planned` slot whose session has a workout on
@@ -46,6 +47,24 @@ export function resolveSlots<Slot extends SlotRow>(slots: readonly Slot[], conte
     const startable =
       state !== 'done' && state !== 'skipped' && slot.plan_session_id !== null && context.startableSessionIds.has(slot.plan_session_id)
     return { slot, state, startable }
+  })
+}
+
+/** A `planned` slot that a workout of its session and day already completes, with that workout's id. */
+export interface ReconciledLink {
+  slotId: string
+  workoutId: string
+}
+
+/** The planned slots `resolveSlots` shows as done only through reconciliation: the links the database is still missing. */
+export function reconciledLinks(slots: readonly SlotRow[], workouts: readonly Pick<Workout, 'id' | 'session_id' | 'date'>[]): ReconciledLink[] {
+  const workoutIds = new Map<string, string>()
+  for (const workout of workouts) {
+    if (workout.session_id !== null) workoutIds.set(workoutKey(workout.session_id, workout.date), workout.id)
+  }
+  return slots.flatMap((slot) => {
+    const workoutId = slot.status === 'planned' && slot.plan_session_id !== null ? workoutIds.get(workoutKey(slot.plan_session_id, slot.date)) : undefined
+    return workoutId === undefined ? [] : [{ slotId: slot.id, workoutId }]
   })
 }
 

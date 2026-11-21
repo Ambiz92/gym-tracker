@@ -1,8 +1,10 @@
 import { weeklyDates } from '../lib/calendar'
 import { localDateString } from '../lib/localDate'
+import { reconciledLinks, workoutKey } from '../lib/scheduleStatus'
 import { newUuid } from '../lib/uuid'
 import type { ScheduledSession, ScheduledSessionUpdate } from '../types/db'
 import { DataError, ensureOk, supabase, unwrap, unwrapOrNull } from './client'
+import type { WorkoutDay } from './history'
 
 const TABLE = 'scheduled_session'
 const UNIQUE_VIOLATION = '23505'
@@ -24,6 +26,20 @@ async function updatePlanned(id: string, changes: ScheduledSessionUpdate): Promi
     await supabase.from(TABLE).update(changes).eq('id', id).eq('status', 'planned').select('id'),
   )
   if (rows.length === 0) throw new DataError('The slot does not exist or is no longer planned', 'not_planned')
+}
+
+/**
+ * Refuses to touch a `planned` slot whose session already has a workout on its date: reading shows
+ * it as done, and a failed link must never let it be moved, skipped or deleted. Other states and
+ * unknown ids pass, so the caller's own filters answer them.
+ */
+async function refuseIfWorkedOut(id: string): Promise<void> {
+  const slot = await getSlot(id)
+  if (!slot || slot.status !== 'planned' || slot.plan_session_id === null) return
+  const workouts = unwrap<{ id: string }[]>(
+    await supabase.from('workout').select('id').eq('session_id', slot.plan_session_id).eq('date', slot.date).limit(1),
+  )
+  if (workouts.length > 0) throw new DataError('A workout was already logged for this slot', 'already_done')
 }
 
 /** Slots with a date in [from, to] (both inclusive, YYYY-MM-DD), by date. Query by month so the 1000-row limit never bites. */
@@ -83,8 +99,10 @@ export async function scheduleRepeating(
   }
 }
 
-/** Moves a planned slot (also an overdue one) to `date`; done and skipped slots are never moved. */
+/** Moves a planned slot (also an overdue one) to `date`, today or later; done, skipped and worked-out slots are never moved. */
 export async function moveSlot(id: string, date: string): Promise<void> {
+  if (date < today()) throw new DataError('A slot cannot be moved to a past date', 'past_date')
+  await refuseIfWorkedOut(id)
   try {
     await updatePlanned(id, { date })
   } catch (error) {
@@ -98,15 +116,17 @@ export function moveSlotToToday(id: string): Promise<void> {
 }
 
 /** Marks a planned slot as skipped on purpose. */
-export function skipSlot(id: string): Promise<void> {
-  return updatePlanned(id, { status: 'skipped' })
+export async function skipSlot(id: string): Promise<void> {
+  await refuseIfWorkedOut(id)
+  await updatePlanned(id, { status: 'skipped' })
 }
 
 /**
- * Deletes a planned slot of today or later. Done and skipped slots, and anything in the past, are
- * history and stay (an overdue slot is skipped, not deleted).
+ * Deletes a planned slot of today or later. Done and skipped slots, anything in the past and a slot
+ * its session already has a workout for are history and stay (an overdue slot is skipped, not deleted).
  */
 export async function deleteSlot(id: string): Promise<void> {
+  await refuseIfWorkedOut(id)
   const rows = unwrap<{ id: string }[]>(
     await supabase.from(TABLE).delete().eq('id', id).eq('status', 'planned').gte('date', today()).select('id'),
   )
@@ -122,19 +142,38 @@ export function linkWorkout(slotId: string, workoutId: string): Promise<void> {
 }
 
 /**
+ * Persists the "done" that reading derived from a workout (same session and day) for slots whose
+ * link never saved, so the database converges. Best effort: it never rejects and a failure is
+ * not reported, because the derived state stays correct without it.
+ */
+export async function healReconciledSlots(slots: readonly ScheduledSession[], workouts: readonly WorkoutDay[]): Promise<void> {
+  await Promise.allSettled(reconciledLinks(slots, workouts).map(({ slotId, workoutId }) => linkWorkout(slotId, workoutId)))
+}
+
+/**
  * Deletes the slots of `planSessionIds` that are still to do: `planned`, dated today or later and
- * without a workout. One statement with all those filters, so workouts, sets and any done, skipped
- * or past slot are out of its reach.
+ * without a workout, and not completed by one either (a workout of the same session and day whose
+ * link failed). Workouts, sets and any done, skipped or past slot are out of its reach.
  */
 export async function deleteFuturePlannedSlots(planSessionIds: string[]): Promise<void> {
   if (planSessionIds.length === 0) return
-  ensureOk(
+  const from = today()
+  const slots = unwrap<{ id: string; plan_session_id: string; date: string }[]>(
     await supabase
       .from(TABLE)
-      .delete()
+      .select('id, plan_session_id, date')
       .in('plan_session_id', planSessionIds)
       .eq('status', 'planned')
       .is('workout_id', null)
-      .gte('date', today()),
+      .gte('date', from),
   )
+  if (slots.length === 0) return
+  const workouts = unwrap<{ session_id: string; date: string }[]>(
+    await supabase.from('workout').select('session_id, date').in('session_id', planSessionIds).gte('date', from),
+  )
+  const worked = new Set(workouts.map((workout) => workoutKey(workout.session_id, workout.date)))
+  const doomed = slots.filter((slot) => !worked.has(workoutKey(slot.plan_session_id, slot.date))).map((slot) => slot.id)
+  if (doomed.length === 0) return
+  // The same filters again: a slot that changed since the read is still out of reach.
+  ensureOk(await supabase.from(TABLE).delete().in('id', doomed).eq('status', 'planned').is('workout_id', null).gte('date', from))
 }

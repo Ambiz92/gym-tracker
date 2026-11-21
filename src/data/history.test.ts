@@ -74,13 +74,13 @@ test('listRecentWorkouts asks for the newest workouts first', async () => {
   })
 })
 
-test('listWorkoutDays reads only session and date, bounded on both ends', async () => {
-  fakeSupabase.reset(() => ({ data: [{ session_id: 's1', date: '2026-11-17' }] }))
-  expect(await listWorkoutDays('2026-11-01', '2026-11-30')).toEqual([{ session_id: 's1', date: '2026-11-17' }])
+test('listWorkoutDays reads only id, session and date, bounded on both ends', async () => {
+  fakeSupabase.reset(() => ({ data: [{ id: 'w1', session_id: 's1', date: '2026-11-17' }] }))
+  expect(await listWorkoutDays('2026-11-01', '2026-11-30')).toEqual([{ id: 'w1', session_id: 's1', date: '2026-11-17' }])
   expect(fakeSupabase.calls[0]).toMatchObject({
     table: 'workout',
     op: 'select',
-    columns: 'session_id, date',
+    columns: 'id, session_id, date',
     filters: [['gte', 'date', '2026-11-01'], ['lte', 'date', '2026-11-30']],
   })
 })

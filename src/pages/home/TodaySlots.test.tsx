@@ -75,7 +75,7 @@ test('on desktop nothing starts a session, the actions stay', () => {
 
 test('done and skipped slots, and a slot reconciled by a workout, are not shown', () => {
   const html = render(
-    ready([slot('a', TODAY, { status: 'done' }), slot('b', '2026-11-19', { status: 'skipped' }), slot('c', '2026-11-18')], [{ session_id: 's1', date: '2026-11-18' }]),
+    ready([slot('a', TODAY, { status: 'done' }), slot('b', '2026-11-19', { status: 'skipped' }), slot('c', '2026-11-18')], [{ id: 'w1', session_id: 's1', date: '2026-11-18' }]),
   )
   expect(html).toBe('')
 })

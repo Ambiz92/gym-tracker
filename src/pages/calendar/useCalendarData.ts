@@ -1,21 +1,23 @@
 import { useRef } from 'react'
 import { getActivePlan } from '../../data/activePlan'
-import { listWorkoutDays } from '../../data/history'
-import { listSlots } from '../../data/schedule'
+import { listWorkoutDays, type WorkoutDay } from '../../data/history'
+import { healReconciledSlots, listSlots } from '../../data/schedule'
 import { useAsync } from '../../hooks/useAsync'
 import { groupByDay, resolveSlots, type DayGroup } from '../../lib/scheduleStatus'
-import type { ScheduledSession, Workout } from '../../types/db'
+import type { ScheduledSession } from '../../types/db'
 import type { PickableSession } from './SchedulePicker'
 
 interface RangeData {
   from: string
   to: string
   slots: ScheduledSession[]
-  workouts: Pick<Workout, 'session_id' | 'date'>[]
+  workouts: WorkoutDay[]
 }
 
-async function loadRange(from: string, to: string): Promise<RangeData> {
+/** Reads the range and, as a side effect, persists the done states reconciliation derives from it. */
+export async function loadRange(from: string, to: string): Promise<RangeData> {
   const [slots, workouts] = await Promise.all([listSlots(from, to), listWorkoutDays(from, to)])
+  void healReconciledSlots(slots, workouts)
   return { from, to, slots, workouts }
 }
 
