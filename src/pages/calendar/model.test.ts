@@ -1,10 +1,10 @@
 import { expect, test } from 'vitest'
 import type { SlotState, SlotView } from '../../lib/scheduleStatus'
 import {
-  arrowTarget,
   dayAriaLabel,
   gridWeeks,
   isArchived,
+  keyTarget,
   periodLabel,
   shiftPeriod,
   slotActions,
@@ -45,12 +45,29 @@ test('shiftPeriod does not pick the today of a neighbouring month shown only as 
   expect(shiftPeriod('month', '2026-11-05', 1, '2026-11-30')).toBe('2026-12-01')
 })
 
-test('arrowTarget moves a day sideways and a week vertically, and ignores other keys', () => {
-  expect(arrowTarget('2026-11-30', 'ArrowRight')).toBe('2026-12-01')
-  expect(arrowTarget('2026-12-01', 'ArrowLeft')).toBe('2026-11-30')
-  expect(arrowTarget('2026-11-27', 'ArrowDown')).toBe('2026-12-04')
-  expect(arrowTarget('2026-11-27', 'ArrowUp')).toBe('2026-11-20')
-  expect(arrowTarget('2026-11-27', 'Enter')).toBeNull()
+test('keyTarget moves a day sideways and a week vertically, and ignores other keys', () => {
+  expect(keyTarget('2026-11-30', 'ArrowRight')).toBe('2026-12-01')
+  expect(keyTarget('2026-12-01', 'ArrowLeft')).toBe('2026-11-30')
+  expect(keyTarget('2026-11-27', 'ArrowDown')).toBe('2026-12-04')
+  expect(keyTarget('2026-11-27', 'ArrowUp')).toBe('2026-11-20')
+  expect(keyTarget('2026-11-27', 'Enter')).toBeNull()
+})
+
+test('keyTarget moves a month with Page Up/Down, keeping the day or clamping it to the shorter month', () => {
+  expect(keyTarget('2026-11-27', 'PageDown')).toBe('2026-12-27')
+  expect(keyTarget('2026-11-27', 'PageUp')).toBe('2026-10-27')
+  expect(keyTarget('2026-12-31', 'PageUp')).toBe('2026-11-30')
+  expect(keyTarget('2026-01-31', 'PageDown')).toBe('2026-02-28')
+  expect(keyTarget('2028-01-31', 'PageDown')).toBe('2028-02-29')
+  expect(keyTarget('2026-12-15', 'PageDown')).toBe('2027-01-15')
+})
+
+test('keyTarget goes to the Monday with Home and the Sunday with End of the same week', () => {
+  expect(keyTarget('2026-11-25', 'Home')).toBe('2026-11-23')
+  expect(keyTarget('2026-11-25', 'End')).toBe('2026-11-29')
+  expect(keyTarget('2026-11-23', 'Home')).toBe('2026-11-23')
+  expect(keyTarget('2026-11-29', 'End')).toBe('2026-11-29')
+  expect(keyTarget('2026-12-01', 'Home')).toBe('2026-11-30')
 })
 
 test('stateLabel uses the product wording', () => {

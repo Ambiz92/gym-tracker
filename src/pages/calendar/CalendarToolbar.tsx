@@ -32,7 +32,7 @@ export function CalendarToolbar({ view, selected, onShift, onToday, onView }: Ca
         </button>
       </div>
       <div className="cal-toolbar__views">
-        <button type="button" className="cal-key" onClick={onToday}>
+        <button type="button" className="cal-key" aria-label="Vai a oggi" onClick={onToday}>
           Oggi
         </button>
         <div role="group" aria-label="Vista del calendario" className="cal-switch">

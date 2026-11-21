@@ -1,7 +1,7 @@
 import { useEffect, useRef, type KeyboardEvent } from 'react'
 import { WEEKDAY_SHORT, sameMonth } from '../../lib/calendar'
 import type { DayGroup, DotKind } from '../../lib/scheduleStatus'
-import { arrowTarget, dayAriaLabel, periodLabel, type CalendarView } from './model'
+import { keyTarget, dayAriaLabel, periodLabel, type CalendarView } from './model'
 
 interface DayGridProps {
   view: CalendarView
@@ -12,12 +12,12 @@ interface DayGridProps {
   onSelect: (date: string) => void
 }
 
-/** Month (or one-week) grid, Monday first: one button per day with a dot for its slots; arrow keys move the selection. */
+/** Month (or one-week) grid, Monday first: one button per day with a dot for its slots; arrows, Page Up/Down and Home/End move the selection. */
 export function DayGrid({ view, weeks, selected, today, groups, onSelect }: DayGridProps) {
   const gridRef = useRef<HTMLTableElement>(null)
   const refocus = useRef(false)
 
-  // The selected cell is the only tab stop: after an arrow key it must also take the focus.
+  // The selected cell is the only tab stop: after a navigation key it must also take the focus.
   useEffect(() => {
     if (!refocus.current) return
     refocus.current = false
@@ -25,7 +25,7 @@ export function DayGrid({ view, weeks, selected, today, groups, onSelect }: DayG
   }, [selected])
 
   function onKeyDown(event: KeyboardEvent<HTMLTableElement>) {
-    const next = arrowTarget(selected, event.key)
+    const next = keyTarget(selected, event.key)
     if (next === null) return
     event.preventDefault()
     refocus.current = true

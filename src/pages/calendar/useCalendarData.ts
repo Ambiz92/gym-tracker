@@ -36,6 +36,8 @@ export type CalendarData =
   | {
       /** `loading` while data is on its way; `groups` is empty until the range has loaded once. */
       status: 'loading' | 'ready'
+      /** True once this range has loaded; a later reload keeps the days on screen (`status` is `loading` again meanwhile). */
+      loaded: boolean
       groups: ReadonlyMap<string, DayGroup<ScheduledSession>>
       /** Non-archived sessions of the active plan; empty without one. */
       sessions: readonly PickableSession[]
@@ -59,6 +61,7 @@ export function useCalendarData(from: string, to: string, today: string): Calend
   const shown = plan.status === 'ready' ? kept : null
   return {
     status: plan.status === 'ready' && range.status === 'ready' && kept ? 'ready' : 'loading',
+    loaded: shown !== null,
     groups: shown ? groupSlots(shown, sessions, today) : new Map(),
     sessions,
     hasPlan: plan.status === 'ready' && plan.data !== null,

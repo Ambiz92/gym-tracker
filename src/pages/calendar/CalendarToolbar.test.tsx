@@ -20,6 +20,7 @@ test('the arrows are named after what they move', () => {
 test('offers Oggi and a switch that shows the current view as pressed', () => {
   const html = render('week')
   expect(html).toContain('>Oggi<')
+  expect(html).toContain('aria-label="Vai a oggi"')
   expect(html).toMatch(/aria-pressed="false"[^>]*>Mese</)
   expect(html).toMatch(/aria-pressed="true"[^>]*>Settimana</)
 })

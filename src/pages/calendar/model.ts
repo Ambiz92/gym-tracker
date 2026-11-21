@@ -13,6 +13,7 @@ const STATE_WORDS: readonly { state: SlotState; one: string; many: string }[] = 
 ]
 
 const ARROW_STEPS: Readonly<Record<string, number>> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }
+const MONTH_STEPS: Readonly<Record<string, number>> = { PageUp: -1, PageDown: 1 }
 
 /** Weeks shown for `selected`: the whole month grid, or just its week. */
 export function gridWeeks(view: CalendarView, selected: string): string[][] {
@@ -38,10 +39,25 @@ export function shiftPeriod(view: CalendarView, selected: string, direction: -1 
   return containsToday ? today : target
 }
 
-/** The day an arrow key moves to (left/right one day, up/down one week); null for any other key. */
-export function arrowTarget(date: string, key: string): string | null {
+/** Same day of the month `months` away, or its last day when that month is shorter. */
+function sameDayInMonth(date: string, months: number): string {
+  const first = shiftMonth(date, months)
+  const lastDay = Number(addDays(shiftMonth(date, months + 1), -1).slice(8))
+  return `${first.slice(0, 8)}${String(Math.min(Number(date.slice(8)), lastDay)).padStart(2, '0')}`
+}
+
+/**
+ * The day a key moves the selection to: arrows by a day or a week, PageUp/PageDown by a month, Home/End to
+ * the Monday/Sunday of the week; null for any other key.
+ */
+export function keyTarget(date: string, key: string): string | null {
   const step = ARROW_STEPS[key]
-  return step === undefined ? null : addDays(date, step)
+  if (step !== undefined) return addDays(date, step)
+  const months = MONTH_STEPS[key]
+  if (months !== undefined) return sameDayInMonth(date, months)
+  if (key === 'Home') return weekDays(date)[0]!
+  if (key === 'End') return weekDays(date)[6]!
+  return null
 }
 
 /** "fatta", "da recuperare": the label of one slot's state. */

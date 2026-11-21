@@ -37,11 +37,12 @@ export function Calendar() {
       <Legend />
       {data.status === 'error' ? (
         <LoadError error={data.error} onRetry={data.retry} />
-      ) : data.status === 'loading' && data.groups.size === 0 ? (
+      ) : !data.loaded ? (
         <Skeleton label="Carico il calendario…" rows={2} />
       ) : (
         <DayPanel
           date={selected}
+          refreshing={data.status === 'loading'}
           today={today}
           group={data.groups.get(selected)}
           periodHasSlots={data.groups.size > 0}

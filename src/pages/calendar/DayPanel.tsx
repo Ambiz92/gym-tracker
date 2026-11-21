@@ -13,6 +13,8 @@ import { isArchived, slotActions, stateLabel } from './model'
 interface DayPanelProps {
   date: string
   today: string
+  /** The range is reloading: the panel stays (and keeps an open delete confirmation) and is marked busy. */
+  refreshing: boolean
   group: DayGroup<ScheduledSession> | undefined
   /** False when nothing at all is planned in the visible period: the empty-state sentence replaces the day's own. */
   periodHasSlots: boolean
@@ -24,7 +26,7 @@ interface DayPanelProps {
 }
 
 /** The selected day: its slots with the actions each one allows, and the way to plan another. */
-export function DayPanel({ date, today, group, periodHasSlots, canPlan, onChanged, onPlan }: DayPanelProps) {
+export function DayPanel({ date, today, refreshing, group, periodHasSlots, canPlan, onChanged, onPlan }: DayPanelProps) {
   const { busy, error, run } = useAction(describeScheduleError)
   const [confirming, setConfirming] = useState<string | null>(null)
   const views = group?.views ?? []
@@ -37,7 +39,7 @@ export function DayPanel({ date, today, group, periodHasSlots, canPlan, onChange
   }
 
   return (
-    <section aria-labelledby="cal-day-heading">
+    <section aria-labelledby="cal-day-heading" aria-busy={refreshing || undefined}>
       <h2 id="cal-day-heading" className="session-label">
         {dayLabel(date)}
       </h2>

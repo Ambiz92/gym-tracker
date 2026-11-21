@@ -22,13 +22,14 @@ function slot(id: string, date: string, over: Partial<ScheduledSession> = {}): S
   }
 }
 
-function render(date: string, slots: ScheduledSession[], props: { startable?: string[]; canPlan?: boolean; periodHasSlots?: boolean } = {}) {
+function render(date: string, slots: ScheduledSession[], props: { startable?: string[]; canPlan?: boolean; periodHasSlots?: boolean; refreshing?: boolean } = {}) {
   const views = resolveSlots(slots, { today: TODAY, workouts: [], startableSessionIds: new Set(props.startable ?? ['s1']) })
   return renderToStaticMarkup(
     <MemoryRouter>
       <DayPanel
         date={date}
         today={TODAY}
+        refreshing={props.refreshing ?? false}
         group={groupByDay(views).get(date)}
         periodHasSlots={props.periodHasSlots ?? slots.length > 0}
         canPlan={props.canPlan ?? true}
@@ -104,4 +105,9 @@ test('nothing is being confirmed or reported on first render', () => {
   const html = render('2026-11-27', [slot('a', '2026-11-27')])
   expect(html).not.toContain('Conferma eliminazione')
   expect(html).not.toContain('role="alert"')
+})
+
+test('while the range reloads the panel stays, marked busy; otherwise it is not', () => {
+  expect(render('2026-11-27', [slot('a', '2026-11-27')], { refreshing: true })).toMatch(/<section[^>]*aria-busy="true"/)
+  expect(render('2026-11-27', [slot('a', '2026-11-27')])).not.toContain('aria-busy')
 })
