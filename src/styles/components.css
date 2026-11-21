@@ -57,6 +57,7 @@
   color: var(--ds-color-text-muted);
   font-size: var(--ds-text-xs);
   font-weight: var(--ds-weight-black);
+  white-space: nowrap;
 }
 
 .tab-bar__link:focus-visible {
