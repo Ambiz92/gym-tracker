@@ -5,7 +5,7 @@ import { fakeSupabase } from './fakeSupabase'
 
 vi.mock('../lib/supabase', async () => ({ supabase: (await import('./fakeSupabase')).fakeSupabase }))
 
-const TABLE_NAMES = ['exercise', 'plan', 'plan_session', 'plan_exercise', 'warmup_item', 'workout', 'set_log']
+const TABLE_NAMES = ['exercise', 'plan', 'plan_session', 'plan_exercise', 'warmup_item', 'workout', 'set_log', 'scheduled_session']
 
 const rows = (count: number, start = 0) => Array.from({ length: count }, (_, i) => ({ id: `r${start + i}` }))
 
@@ -47,4 +47,13 @@ test('exercises are read with every column, catalog_id included, and the catalog
   const exerciseCall = fakeSupabase.calls.find((call) => call.table === 'exercise')
   expect(exerciseCall?.columns).toBe('*')
   expect(fakeSupabase.calls.map((call) => call.table)).not.toContain('exercise_catalog')
+})
+
+test('planned, done and skipped slots are exported with the other tables', async () => {
+  fakeSupabase.reset((call) => ({ data: call.table === 'scheduled_session' ? rows(3) : [] }))
+  const tables = await fetchAllTables()
+
+  expect(tables.scheduled_session).toEqual(rows(3))
+  const slotCall = fakeSupabase.calls.find((call) => call.table === 'scheduled_session')
+  expect(slotCall).toMatchObject({ op: 'select', columns: '*', filters: [] })
 })

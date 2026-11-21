@@ -18,6 +18,9 @@ const sample: ExportTables = {
   warmup_item: [{ id: 'wu1', ...owner, session_id: 's1', position: 1, name: 'Cerchi', reps_text: '10', note: null }],
   workout: [{ id: 'w1', ...owner, date: '2026-11-17', created_at: '2026-11-17T08:00:00Z', session_id: 's1', session_name: 'A', notes: null }],
   set_log: [{ id: 'l1', ...owner, workout_id: 'w1', exercise_id: 'e1', set_number: 1, reps: 8, weight_kg: 27.5, equipment_used: 'barbell', rpe: null }],
+  scheduled_session: [
+    { id: 'x1', ...owner, plan_session_id: 's1', session_name: 'A', date: '2026-11-27', status: 'done', workout_id: 'w1', series_id: null, created_at: '2026-11-21T08:00:00Z' },
+  ],
 }
 
 describe('buildCsvFiles', () => {
