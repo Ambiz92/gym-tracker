@@ -3,7 +3,7 @@ import { localDateString } from '../lib/localDate'
 import { reconciledLinks, workoutKey } from '../lib/scheduleStatus'
 import { newUuid } from '../lib/uuid'
 import type { ScheduledSession, ScheduledSessionUpdate } from '../types/db'
-import { DataError, ensureOk, supabase, unwrap, unwrapOrNull } from './client'
+import { DataError, ensureOk, own, unwrap, unwrapOrNull } from './client'
 import type { WorkoutDay } from './history'
 
 const TABLE = 'scheduled_session'
@@ -23,7 +23,7 @@ function asDuplicate(error: unknown): unknown {
 /** Update that only matches a still-`planned` slot; any other state (or id) is refused with `not_planned`. */
 async function updatePlanned(id: string, changes: ScheduledSessionUpdate): Promise<void> {
   const rows = unwrap<{ id: string }[]>(
-    await supabase.from(TABLE).update(changes).eq('id', id).eq('status', 'planned').select('id'),
+    await (await own(TABLE)).update(changes).eq('id', id).eq('status', 'planned').select('id'),
   )
   if (rows.length === 0) throw new DataError('The slot does not exist or is no longer planned', 'not_planned')
 }
@@ -37,7 +37,7 @@ async function refuseIfWorkedOut(id: string): Promise<void> {
   const slot = await getSlot(id)
   if (!slot || slot.status !== 'planned' || slot.plan_session_id === null) return
   const workouts = unwrap<{ id: string }[]>(
-    await supabase.from('workout').select('id').eq('session_id', slot.plan_session_id).eq('date', slot.date).limit(1),
+    await (await own('workout')).select('id').eq('session_id', slot.plan_session_id).eq('date', slot.date).limit(1),
   )
   if (workouts.length > 0) throw new DataError('A workout was already logged for this slot', 'already_done')
 }
@@ -45,8 +45,7 @@ async function refuseIfWorkedOut(id: string): Promise<void> {
 /** Slots with a date in [from, to] (both inclusive, YYYY-MM-DD), by date. Query by month so the 1000-row limit never bites. */
 export async function listSlots(from: string, to: string): Promise<ScheduledSession[]> {
   return unwrap<ScheduledSession[]>(
-    await supabase
-      .from(TABLE)
+    await (await own(TABLE))
       .select()
       .gte('date', from)
       .lte('date', to)
@@ -57,15 +56,14 @@ export async function listSlots(from: string, to: string): Promise<ScheduledSess
 
 /** One slot by id, or null when it does not exist. */
 export async function getSlot(id: string): Promise<ScheduledSession | null> {
-  return unwrapOrNull<ScheduledSession>(await supabase.from(TABLE).select().eq('id', id).maybeSingle())
+  return unwrapOrNull<ScheduledSession>(await (await own(TABLE)).select().eq('id', id).maybeSingle())
 }
 
 /** Plans `planSessionId` on `date`; `sessionName` is the snapshot that outlives the session. */
 export async function scheduleSession(planSessionId: string, sessionName: string, date: string): Promise<ScheduledSession> {
   try {
     return unwrap<ScheduledSession>(
-      await supabase
-        .from(TABLE)
+      await (await own(TABLE))
         .insert({ plan_session_id: planSessionId, session_name: sessionName, date })
         .select()
         .single(),
@@ -93,7 +91,7 @@ export async function scheduleRepeating(
     series_id: seriesId,
   }))
   try {
-    return unwrap<ScheduledSession[]>(await supabase.from(TABLE).insert(rows).select())
+    return unwrap<ScheduledSession[]>(await (await own(TABLE)).insert(rows).select())
   } catch (error) {
     throw asDuplicate(error)
   }
@@ -128,7 +126,7 @@ export async function skipSlot(id: string): Promise<void> {
 export async function deleteSlot(id: string): Promise<void> {
   await refuseIfWorkedOut(id)
   const rows = unwrap<{ id: string }[]>(
-    await supabase.from(TABLE).delete().eq('id', id).eq('status', 'planned').gte('date', today()).select('id'),
+    await (await own(TABLE)).delete().eq('id', id).eq('status', 'planned').gte('date', today()).select('id'),
   )
   if (rows.length === 0) throw new DataError('Only a planned slot from today on can be deleted', 'not_deletable')
 }
@@ -158,8 +156,7 @@ export async function healReconciledSlots(slots: readonly ScheduledSession[], wo
 export async function reopenSlot(slotId: string, workoutId: string): Promise<void> {
   try {
     ensureOk(
-      await supabase
-        .from(TABLE)
+      await (await own(TABLE))
         .update({ status: 'planned', workout_id: null })
         .eq('id', slotId)
         .eq('status', 'done')
@@ -179,8 +176,7 @@ export async function deleteFuturePlannedSlots(planSessionIds: string[]): Promis
   if (planSessionIds.length === 0) return
   const from = today()
   const slots = unwrap<{ id: string; plan_session_id: string; date: string }[]>(
-    await supabase
-      .from(TABLE)
+    await (await own(TABLE))
       .select('id, plan_session_id, date')
       .in('plan_session_id', planSessionIds)
       .eq('status', 'planned')
@@ -189,11 +185,11 @@ export async function deleteFuturePlannedSlots(planSessionIds: string[]): Promis
   )
   if (slots.length === 0) return
   const workouts = unwrap<{ session_id: string; date: string }[]>(
-    await supabase.from('workout').select('session_id, date').in('session_id', planSessionIds).gte('date', from),
+    await (await own('workout')).select('session_id, date').in('session_id', planSessionIds).gte('date', from),
   )
   const worked = new Set(workouts.map((workout) => workoutKey(workout.session_id, workout.date)))
   const doomed = slots.filter((slot) => !worked.has(workoutKey(slot.plan_session_id, slot.date))).map((slot) => slot.id)
   if (doomed.length === 0) return
   // The same filters again: a slot that changed since the read is still out of reach.
-  ensureOk(await supabase.from(TABLE).delete().in('id', doomed).eq('status', 'planned').is('workout_id', null).gte('date', from))
+  ensureOk(await (await own(TABLE)).delete().in('id', doomed).eq('status', 'planned').is('workout_id', null).gte('date', from))
 }

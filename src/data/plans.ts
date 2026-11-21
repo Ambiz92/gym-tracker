@@ -13,7 +13,7 @@ import { nextSessionName } from '../lib/planBuilder'
 import { moveTo } from '../lib/reorder'
 import { newUuid } from '../lib/uuid'
 import { getPlanById, type EditablePlan, type PlanExerciseDetail, type SessionDetail } from './activePlan'
-import { DataError, ensureAffected, ensureOk, inUseError, isReferenced, supabase, unwrap, unwrapOrNull } from './client'
+import { DataError, ensureAffected, ensureOk, inUseError, isReferenced, own, unwrap, unwrapOrNull } from './client'
 import { deleteFuturePlannedSlots } from './schedule'
 
 export type NewSession = Omit<PlanSessionInsert, 'id' | 'plan_id' | 'position'>
@@ -31,7 +31,7 @@ interface RawSummary extends Plan {
 /** All plans, archived included (the caller filters), by name, with the counts of their live sessions and exercises. */
 export async function listPlanSummaries(): Promise<PlanSummary[]> {
   const rows = unwrap<RawSummary[]>(
-    await supabase.from('plan').select('*, plan_session(id, archived, plan_exercise(id))').order('name'),
+    await (await own('plan')).select('*, plan_session(id, archived, plan_exercise(id))').order('name'),
   )
   return rows.map(({ plan_session, ...plan }) => {
     const live = plan_session.filter((session) => !session.archived)
@@ -46,7 +46,7 @@ export async function listPlanSummaries(): Promise<PlanSummary[]> {
 /** The plan shown in Oggi, if any; the builder asks before replacing it. */
 export async function getActivePlanHead(): Promise<Pick<Plan, 'id' | 'name'> | null> {
   return unwrapOrNull<Pick<Plan, 'id' | 'name'>>(
-    await supabase.from('plan').select('id, name').eq('is_active', true).maybeSingle(),
+    await (await own('plan')).select('id, name').eq('is_active', true).maybeSingle(),
   )
 }
 
@@ -56,15 +56,15 @@ export async function getActivePlanHead(): Promise<Pick<Plan, 'id' | 'name'> | n
  * session cannot be added the empty plan is removed again, so a retry never leaves two.
  */
 export async function createPlanWithSession(name: string): Promise<Plan> {
-  const existing = unwrap<{ id: string }[]>(await supabase.from('plan').select('id').limit(1))
+  const existing = unwrap<{ id: string }[]>(await (await own('plan')).select('id').limit(1))
   const plan = unwrap<Plan>(
-    await supabase.from('plan').insert({ name, is_active: existing.length === 0 }).select().single(),
+    await (await own('plan')).insert({ name, is_active: existing.length === 0 }).select().single(),
   )
   try {
     await addSession(plan.id, { name: nextSessionName([]) })
     return plan
   } catch (failure) {
-    const cleanup = await supabase.from('plan').delete().eq('id', plan.id)
+    const cleanup = await (await own('plan')).delete().eq('id', plan.id)
     if (cleanup.error) {
       throw new DataError(`The session could not be added and the empty plan "${name}" could not be removed`, 'partial_create', {
         cause: failure,
@@ -75,7 +75,7 @@ export async function createPlanWithSession(name: string): Promise<Plan> {
 }
 
 export async function renamePlan(id: string, name: string): Promise<void> {
-  ensureAffected(await supabase.from('plan').update({ name }).eq('id', id).select('id'))
+  ensureAffected(await (await own('plan')).update({ name }).eq('id', id).select('id'))
 }
 
 /**
@@ -92,7 +92,7 @@ export type ScheduleCleanup = { ok: true } | { ok: false; error: DataError }
 async function clearFutureSlotsOfPlans(planIds: string[]): Promise<ScheduleCleanup> {
   if (planIds.length === 0) return { ok: true }
   try {
-    const sessions = unwrap<{ id: string }[]>(await supabase.from('plan_session').select('id').in('plan_id', planIds))
+    const sessions = unwrap<{ id: string }[]>(await (await own('plan_session')).select('id').in('plan_id', planIds))
     await deleteFuturePlannedSlots(sessions.map((session) => session.id))
     return { ok: true }
   } catch (error) {
@@ -103,28 +103,28 @@ async function clearFutureSlotsOfPlans(planIds: string[]): Promise<ScheduleClean
 
 /** Takes a plan out of Oggi without choosing another; having no active plan is a state the app handles. */
 export async function deactivatePlan(id: string): Promise<ScheduleCleanup> {
-  ensureAffected(await supabase.from('plan').update({ is_active: false }).eq('id', id).select('id'))
+  ensureAffected(await (await own('plan')).update({ is_active: false }).eq('id', id).select('id'))
   return clearFutureSlotsOfPlans([id])
 }
 
 /** Archived plans cannot be active (check constraint), so both flags change together. */
 export async function archivePlan(id: string): Promise<ScheduleCleanup> {
-  ensureAffected(await supabase.from('plan').update({ archived: true, is_active: false }).eq('id', id).select('id'))
+  ensureAffected(await (await own('plan')).update({ archived: true, is_active: false }).eq('id', id).select('id'))
   return clearFutureSlotsOfPlans([id])
 }
 
 export async function restorePlan(id: string): Promise<void> {
-  ensureAffected(await supabase.from('plan').update({ archived: false }).eq('id', id).select('id'))
+  ensureAffected(await (await own('plan')).update({ archived: false }).eq('id', id).select('id'))
 }
 
 /** Deletes a plan whose sessions were never logged; refuses with an `in_use` DataError otherwise. */
 export async function deletePlan(id: string): Promise<void> {
-  const sessions = unwrap<{ id: string }[]>(await supabase.from('plan_session').select('id').eq('plan_id', id))
+  const sessions = unwrap<{ id: string }[]>(await (await own('plan_session')).select('id').eq('plan_id', id))
   const sessionIds = sessions.map((s) => s.id)
   if (await isReferenced('workout', 'session_id', sessionIds)) throw inUseError('The plan')
   // Deleting the plan only nulls the session of its slots: the future ones would stay as orphans.
   await deleteFuturePlannedSlots(sessionIds)
-  ensureOk(await supabase.from('plan').delete().eq('id', id))
+  ensureOk(await (await own('plan')).delete().eq('id', id))
 }
 
 /**
@@ -136,18 +136,18 @@ export async function deletePlan(id: string): Promise<void> {
  */
 export async function setActivePlan(planId: string): Promise<ScheduleCleanup> {
   const target = unwrapOrNull<Pick<Plan, 'archived'>>(
-    await supabase.from('plan').select('archived').eq('id', planId).maybeSingle(),
+    await (await own('plan')).select('archived').eq('id', planId).maybeSingle(),
   )
   if (!target) throw new DataError('The plan does not exist', 'not_found')
   if (target.archived) throw new DataError('An archived plan cannot be activated', 'archived')
 
   const deactivated = unwrap<{ id: string }[]>(
-    await supabase.from('plan').update({ is_active: false }).eq('is_active', true).neq('id', planId).select('id'),
+    await (await own('plan')).update({ is_active: false }).eq('is_active', true).neq('id', planId).select('id'),
   )
 
   let failure: DataError
   try {
-    ensureAffected(await supabase.from('plan').update({ is_active: true }).eq('id', planId).select('id'))
+    ensureAffected(await (await own('plan')).update({ is_active: true }).eq('id', planId).select('id'))
     return await clearFutureSlotsOfPlans(deactivated.map((plan) => plan.id))
   } catch (error) {
     if (!(error instanceof DataError)) throw error
@@ -155,8 +155,7 @@ export async function setActivePlan(planId: string): Promise<ScheduleCleanup> {
   }
 
   if (deactivated.length > 0) {
-    const restore = await supabase
-      .from('plan')
+    const restore = await (await own('plan'))
       .update({ is_active: true })
       .in('id', deactivated.map((p) => p.id))
     if (restore.error) {
@@ -172,7 +171,7 @@ export async function setActivePlan(planId: string): Promise<ScheduleCleanup> {
 
 async function nextPosition(table: 'plan_session' | 'plan_exercise', parentColumn: string, parentId: string): Promise<number> {
   const [last] = unwrap<{ position: number }[]>(
-    await supabase.from(table).select('position').eq(parentColumn, parentId).order('position', { ascending: false }).limit(1),
+    await (await own(table)).select('position').eq(parentColumn, parentId).order('position', { ascending: false }).limit(1),
   )
   return last ? last.position + 1 : 0
 }
@@ -180,12 +179,12 @@ async function nextPosition(table: 'plan_session' | 'plan_exercise', parentColum
 export async function addSession(planId: string, session: NewSession): Promise<PlanSession> {
   const position = await nextPosition('plan_session', 'plan_id', planId)
   return unwrap<PlanSession>(
-    await supabase.from('plan_session').insert({ ...session, plan_id: planId, position }).select().single(),
+    await (await own('plan_session')).insert({ ...session, plan_id: planId, position }).select().single(),
   )
 }
 
 export async function updateSession(id: string, changes: PlanSessionUpdate): Promise<void> {
-  ensureAffected(await supabase.from('plan_session').update(changes).eq('id', id).select('id'))
+  ensureAffected(await (await own('plan_session')).update(changes).eq('id', id).select('id'))
 }
 
 export type SessionRemoval = 'deleted' | 'archived'
@@ -204,7 +203,7 @@ export async function removeSession(id: string): Promise<SessionRemoval> {
     return 'archived'
   }
   await deleteFuturePlannedSlots([id])
-  ensureOk(await supabase.from('plan_session').delete().eq('id', id))
+  ensureOk(await (await own('plan_session')).delete().eq('id', id))
   return 'deleted'
 }
 
@@ -231,23 +230,23 @@ export async function reorderSessions(sessions: PlanSession[]): Promise<void> {
     archived,
     position,
   }))
-  ensureOk(await supabase.from('plan_session').upsert(rows, { onConflict: 'id' }))
+  ensureOk(await (await own('plan_session')).upsert(rows, { onConflict: 'id' }))
 }
 
 export async function addPlanExercise(sessionId: string, exercise: NewPlanExercise): Promise<PlanExercise> {
   const position = await nextPosition('plan_exercise', 'session_id', sessionId)
   return unwrap<PlanExercise>(
-    await supabase.from('plan_exercise').insert({ ...exercise, session_id: sessionId, position }).select().single(),
+    await (await own('plan_exercise')).insert({ ...exercise, session_id: sessionId, position }).select().single(),
   )
 }
 
 export async function updatePlanExercise(id: string, changes: PlanExerciseUpdate): Promise<void> {
-  ensureAffected(await supabase.from('plan_exercise').update(changes).eq('id', id).select('id'))
+  ensureAffected(await (await own('plan_exercise')).update(changes).eq('id', id).select('id'))
 }
 
 /** Plan rows are templates: logged sets point at the exercise, so removing one is always safe. */
 export async function removePlanExercise(id: string): Promise<void> {
-  ensureOk(await supabase.from('plan_exercise').delete().eq('id', id))
+  ensureOk(await (await own('plan_exercise')).delete().eq('id', id))
 }
 
 /** Same single-upsert reorder as `reorderSessions` (complete list required), for the exercises of one session. */
@@ -268,7 +267,7 @@ export async function reorderPlanExercises(exercises: PlanExercise[]): Promise<v
       position,
     }),
   )
-  ensureOk(await supabase.from('plan_exercise').upsert(rows, { onConflict: 'id' }))
+  ensureOk(await (await own('plan_exercise')).upsert(rows, { onConflict: 'id' }))
 }
 
 /**
@@ -297,7 +296,7 @@ export async function restorePlanExercise(
 const COPY_SUFFIX = ' (copia)'
 
 async function insertRows(table: 'plan_session' | 'plan_exercise' | 'warmup_item', rows: object[]): Promise<void> {
-  if (rows.length > 0) ensureOk(await supabase.from(table).insert(rows))
+  if (rows.length > 0) ensureOk(await (await own(table)).insert(rows))
 }
 
 const copyExerciseRow = (
@@ -351,13 +350,13 @@ export async function duplicatePlan(sourceId: string): Promise<Plan> {
   if (!source) throw new DataError('The plan does not exist', 'not_found')
 
   const name = source.name.slice(0, MAX_NAME_LENGTH - COPY_SUFFIX.length) + COPY_SUFFIX
-  const copy = unwrap<Plan>(await supabase.from('plan').insert({ name }).select().single())
+  const copy = unwrap<Plan>(await (await own('plan')).insert({ name }).select().single())
   try {
     await copyContents(source, copy.id)
     return copy
   } catch (failure) {
     // sessions, exercises and warm-ups of the copy go with it (on delete cascade).
-    const cleanup = await supabase.from('plan').delete().eq('id', copy.id)
+    const cleanup = await (await own('plan')).delete().eq('id', copy.id)
     if (cleanup.error) {
       throw new DataError(`Duplication failed and the partial copy "${name}" could not be removed`, 'partial_copy', {
         cause: failure,
@@ -370,7 +369,7 @@ export async function duplicatePlan(sourceId: string): Promise<Plan> {
 /** Inserts `rows` and returns them as stored, in position order; nothing to insert is not a request. */
 async function insertAndRead<T extends { position: number }>(table: 'plan_exercise' | 'warmup_item', rows: object[]): Promise<T[]> {
   if (rows.length === 0) return []
-  const stored = unwrap<T[]>(await supabase.from(table).insert(rows).select())
+  const stored = unwrap<T[]>(await (await own(table)).insert(rows).select())
   return [...stored].sort((a, b) => a.position - b.position)
 }
 
@@ -382,8 +381,7 @@ async function insertAndRead<T extends { position: number }>(table: 'plan_exerci
 export async function duplicateSession(source: SessionDetail, name: string): Promise<SessionDetail> {
   const position = await nextPosition('plan_session', 'plan_id', source.plan_id)
   const copy = unwrap<PlanSession>(
-    await supabase
-      .from('plan_session')
+    await (await own('plan_session'))
       .insert({ plan_id: source.plan_id, name, subtitle: source.subtitle, is_optional: source.is_optional, position })
       .select()
       .single(),
@@ -399,7 +397,7 @@ export async function duplicateSession(source: SessionDetail, name: string): Pro
     return { ...copy, exercises, warmup }
   } catch (failure) {
     // its exercises and warm-ups go with it (on delete cascade).
-    const cleanup = await supabase.from('plan_session').delete().eq('id', copy.id)
+    const cleanup = await (await own('plan_session')).delete().eq('id', copy.id)
     if (cleanup.error) {
       throw new DataError(`Duplication failed and the partial session "${name}" could not be removed`, 'partial_session', {
         cause: failure,
