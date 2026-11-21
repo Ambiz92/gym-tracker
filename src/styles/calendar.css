@@ -235,3 +235,8 @@ select.field__input {
 .schedule-picker__actions {
   margin-top: var(--ds-space-6);
 }
+
+/* Oggi: spacing under the actions of a planned-session row. */
+.home-slot__actions {
+  margin-bottom: var(--ds-space-3);
+}

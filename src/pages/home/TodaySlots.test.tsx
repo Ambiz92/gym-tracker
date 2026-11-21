@@ -23,10 +23,10 @@ function slot(id: string, date: string, over: Partial<ScheduledSession> = {}): S
   }
 }
 
-function render(schedule: TodaySlotsState, props: { startable?: string[]; canStart?: boolean } = {}) {
+function render(schedule: TodaySlotsState, props: { startable?: string[]; canStart?: boolean; hasPlan?: boolean } = {}) {
   return renderToStaticMarkup(
     <MemoryRouter>
-      <TodaySlots schedule={schedule} today={TODAY} startableSessionIds={new Set(props.startable ?? ['s1'])} canStart={props.canStart ?? true} />
+      <TodaySlots schedule={schedule} today={TODAY} startableSessionIds={new Set(props.startable ?? ['s1'])} hasPlan={props.hasPlan ?? true} canStart={props.canStart ?? true} />
     </MemoryRouter>,
   )
 }
@@ -62,6 +62,14 @@ test('a slot of an archived session has no start link, keeps its actions and say
   expect(html).not.toContain('href=')
   expect(html).not.toContain('Inizia')
   expect(html).toContain('>archiviata<')
+  expect(html).toContain('Salta')
+})
+
+test('without an active plan the slot is not tagged archived: there is just no plan to start it from', () => {
+  const html = render(ready([slot('a', '2026-11-18')]), { startable: [], hasPlan: false })
+  expect(html).not.toContain('archiviata')
+  expect(html).not.toContain('cal-slot--archived')
+  expect(html).not.toContain('Inizia')
   expect(html).toContain('Salta')
 })
 

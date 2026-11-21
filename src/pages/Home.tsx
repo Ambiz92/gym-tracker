@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -40,6 +41,8 @@ export function Home() {
   const sync = useSyncStatus()
   const isDesktop = useIsDesktop()
   useFlushOnMount()
+  const plan = state.status === 'ready' ? state.data.plan : null
+  const startableSessionIds = useMemo(() => new Set(plan?.sessions.map((session) => session.id)), [plan])
 
   return (
     <>
@@ -71,7 +74,7 @@ export function Home() {
         </p>
       )}
       <SyncBanner {...sync} />
-      {draft && <ResumeRow draft={draft} plan={state.status === 'ready' ? state.data.plan : null} />}
+      {draft && <ResumeRow draft={draft} plan={plan} />}
       {state.status === 'loading' && <Skeleton label="Carico la scheda…" />}
       {state.status === 'error' && (
         <>
@@ -86,7 +89,8 @@ export function Home() {
           <TodaySlots
             schedule={schedule}
             today={today}
-            startableSessionIds={new Set(state.data.plan?.sessions.map((session) => session.id))}
+            startableSessionIds={startableSessionIds}
+            hasPlan={plan !== null}
             canStart={!isDesktop}
           />
           <PlanSessions {...state.data} isDesktop={isDesktop} />

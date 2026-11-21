@@ -11,19 +11,20 @@ import { slotStartPath } from '../session/paths'
 import { todayBlock } from './model'
 import type { TodaySlotsState } from './useTodaySlots'
 import '../../styles/calendar.css'
-import '../../styles/home.css'
 
 interface TodaySlotsProps {
   schedule: TodaySlotsState
   today: string
   /** Sessions of the active plan that are not archived: the only ones a slot can start. */
   startableSessionIds: ReadonlySet<string>
+  /** False without an active plan: its slots are not "archived", there is just nothing to start them from. */
+  hasPlan: boolean
   /** False on desktop, where sets are not logged. */
   canStart: boolean
 }
 
 /** Above the plan on Oggi: today's planned sessions with the start link, then the overdue ones to recover. Renders nothing when there is nothing scheduled. */
-export function TodaySlots({ schedule, today, startableSessionIds, canStart }: TodaySlotsProps) {
+export function TodaySlots({ schedule, today, startableSessionIds, hasPlan, canStart }: TodaySlotsProps) {
   const { busy, error, run } = useAction(describeScheduleError)
   if (schedule.status === 'loading') return null
   if (schedule.status === 'error') {
@@ -51,6 +52,7 @@ export function TodaySlots({ schedule, today, startableSessionIds, canStart }: T
           today={today}
           detail={detail(view.slot)}
           canStart={canStart}
+          hasPlan={hasPlan}
           busy={busy}
           onMove={() => void act(() => moveSlotToToday(view.slot.id), 'Non riesco a spostare la sessione: riprova.')}
           onSkip={() => void act(() => skipSlot(view.slot.id), 'Non riesco a saltare la sessione: riprova.')}
@@ -87,15 +89,16 @@ interface SlotRowProps {
   today: string
   detail: string | undefined
   canStart: boolean
+  hasPlan: boolean
   busy: boolean
   onMove: () => void
   onSkip: () => void
 }
 
-function SlotRow({ view, today, detail, canStart, busy, onMove, onSkip }: SlotRowProps) {
+function SlotRow({ view, today, detail, canStart, hasPlan, busy, onMove, onSkip }: SlotRowProps) {
   const { id, plan_session_id: sessionId, session_name: name } = view.slot
   const actions = slotActions(view, today)
-  const archived = isArchived(view)
+  const archived = hasPlan && isArchived(view)
 
   return (
     <li>
