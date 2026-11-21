@@ -11,7 +11,7 @@ import { LoadState } from './history/LoadState'
 /** Atleti tab: the coach's active athletes, each opening a read-only view. Needs aal2, like every read of their data. */
 export function Athletes() {
   const state = useCoachLinks()
-  const aal2 = useAal2()
+  const { aal2 } = useAal2()
 
   return (
     <>

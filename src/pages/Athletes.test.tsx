@@ -6,8 +6,10 @@ import { AthleteView } from './AthleteView'
 import { Athletes } from './Athletes'
 import { LinksStub, makeLink, ME, OTHER } from './coach/fakeLinks'
 
-let aal2: boolean | null = true
-vi.mock('../auth/useAal2', () => ({ useAal2: () => aal2 }))
+let aal2: boolean | null | 'loading' = true
+vi.mock('../auth/useAal2', () => ({
+  useAal2: () => ({ aal2: aal2 === 'loading' ? null : aal2, loading: aal2 === 'loading', retry: () => undefined }),
+}))
 
 beforeEach(() => {
   aal2 = true
@@ -67,6 +69,17 @@ describe('Atleta view', () => {
 
   test('at aal2 it starts loading the data', () => {
     expect(renderAt(`/athletes/${ATHLETE}`, [asCoach()])).toContain('Caricamento')
+  })
+
+  test('while the level is read it shows a skeleton, and when reading failed a retryable alert without a prompt', () => {
+    aal2 = 'loading'
+    expect(renderAt(`/athletes/${ATHLETE}`, [asCoach()])).toContain('Caricamento')
+    aal2 = null
+    const html = renderAt(`/athletes/${ATHLETE}`, [asCoach()])
+    expect(html).toContain('Non riesco a verificare il secondo fattore')
+    expect(html).toContain('Riprova')
+    expect(html).not.toContain('Attiva il secondo fattore')
+    expect(html).not.toContain('Caricamento')
   })
 
   test('at aal1 it asks for the second factor and loads nothing', () => {

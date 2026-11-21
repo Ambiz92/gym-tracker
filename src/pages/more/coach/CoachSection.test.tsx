@@ -6,7 +6,7 @@ import { LinksStub, makeLink, ME, OTHER } from '../../coach/fakeLinks'
 import { CoachSection } from './CoachSection'
 
 let aal2: boolean | null = true
-vi.mock('../../../auth/useAal2', () => ({ useAal2: () => aal2 }))
+vi.mock('../../../auth/useAal2', () => ({ useAal2: () => ({ aal2, loading: aal2 === null, retry: () => undefined }) }))
 
 beforeEach(() => {
   aal2 = true

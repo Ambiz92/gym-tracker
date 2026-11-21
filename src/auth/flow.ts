@@ -102,13 +102,14 @@ export async function currentEmail(api: AuthApi): Promise<string | null> {
   }
 }
 
-/** True when the session is at aal2 (second factor verified). Fails closed: any error counts as "not verified". */
-export async function isAal2(api: AuthApi): Promise<boolean> {
+/** True at aal2, false below it, null when the level cannot be read: an error is "unknown", never "not verified". */
+export async function isAal2(api: AuthApi): Promise<boolean | null> {
   try {
-    const { data } = await api.mfa.getAuthenticatorAssuranceLevel()
-    return data?.currentLevel === 'aal2'
+    const { data, error } = await api.mfa.getAuthenticatorAssuranceLevel()
+    if (error || !data) return null
+    return data.currentLevel === 'aal2'
   } catch {
-    return false
+    return null
   }
 }
 

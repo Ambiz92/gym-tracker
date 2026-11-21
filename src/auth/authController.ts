@@ -34,8 +34,8 @@ export interface AuthActions {
   startEnrollment(): Promise<Result<Enrollment>>
   verifyEnrollment(factorId: string, code: string): Promise<AuthFailure | null>
   signOut(): Promise<AuthFailure | null>
-  /** Whether the session is at aal2 right now; false when it cannot be read. */
-  isAal2(): Promise<boolean>
+  /** Whether the session is at aal2 right now; null when it cannot be read. */
+  isAal2(): Promise<boolean | null>
   clearOauthError(): void
 }
 

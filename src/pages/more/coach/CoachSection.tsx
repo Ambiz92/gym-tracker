@@ -13,7 +13,7 @@ import { RequestCoachForm } from './RequestCoachForm'
 /** Altro, "Allenatore": my code, my coach (or the request form), requests to answer and my athletes. */
 export function CoachSection() {
   const state = useCoachLinks()
-  const aal2 = useAal2()
+  const { aal2 } = useAal2()
   return (
     <LoadState state={state} what="i collegamenti con l’allenatore">
       {(links) => <CoachLinksView links={links} aal2={aal2} onChanged={state.reload} />}

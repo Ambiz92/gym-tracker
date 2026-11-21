@@ -107,15 +107,15 @@ describe('isAal2', () => {
     expect(await isAal2(fake.api)).toBe(true)
   })
 
-  test('fails closed when the level cannot be read', async () => {
+  test('is unknown (null), not false, when the level cannot be read', async () => {
     const fake = createFakeAuth({ enrolled: true })
     await signIn(fake.api, EMAIL, PASSWORD)
     await verifyCode(fake.api, CODE)
     fake.state.fail.getAuthenticatorAssuranceLevel = { message: 'x', name: 'AuthRetryableFetchError', status: 0 }
-    expect(await isAal2(fake.api)).toBe(false)
+    expect(await isAal2(fake.api)).toBeNull()
     fake.state.fail.getAuthenticatorAssuranceLevel = undefined
     fake.state.crash.add('getAuthenticatorAssuranceLevel')
-    expect(await isAal2(fake.api)).toBe(false)
+    expect(await isAal2(fake.api)).toBeNull()
   })
 })
 
