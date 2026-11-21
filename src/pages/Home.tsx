@@ -9,9 +9,12 @@ import { getLastWorkoutDates } from '../data/sessionLog'
 import { useAsync } from '../hooks/useAsync'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { dayMonth, weekdayDayMonth } from '../lib/formatDate'
+import { localDateString } from '../lib/localDate'
 import { nextSessionId } from '../lib/nextSession'
 import { activeSets, type Draft } from '../lib/sessionDraft'
 import { completedExercises } from '../lib/sessionProgress'
+import { TodaySlots } from './home/TodaySlots'
+import { useTodaySlots } from './home/useTodaySlots'
 import { sessionPath } from './session/paths'
 import { SessionTable } from './session/SessionTable'
 import { useFlushOnMount, useSessionState, useSyncStatus } from './session/sessionStore'
@@ -28,9 +31,11 @@ async function loadHome(): Promise<HomeData> {
   return { plan, lastDates }
 }
 
-/** Today: the open session to resume, then the sessions of the active plan with the next one marked. */
+/** Today: the open session to resume, the sessions planned for today, then the sessions of the active plan with the next one marked. */
 export function Home() {
   const state = useAsync(loadHome, [])
+  const today = localDateString(new Date())
+  const schedule = useTodaySlots(today)
   const { draft } = useSessionState()
   const sync = useSyncStatus()
   const isDesktop = useIsDesktop()
@@ -76,7 +81,17 @@ export function Home() {
           <PrimaryButton onClick={state.reload}>Riprova</PrimaryButton>
         </>
       )}
-      {state.status === 'ready' && <PlanSessions {...state.data} isDesktop={isDesktop} />}
+      {state.status === 'ready' && (
+        <>
+          <TodaySlots
+            schedule={schedule}
+            today={today}
+            startableSessionIds={new Set(state.data.plan?.sessions.map((session) => session.id))}
+            canStart={!isDesktop}
+          />
+          <PlanSessions {...state.data} isDesktop={isDesktop} />
+        </>
+      )}
     </>
   )
 }
