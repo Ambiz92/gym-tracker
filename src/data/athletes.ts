@@ -34,6 +34,8 @@ const PLAN_COLUMNS =
  * What the coach sees of an athlete: the latest `recentWorkouts` workouts with their notes, the exercise
  * library, every logged set (for the weight trend) and the plans that are not archived (archived sessions
  * left out). Fails with `not_linked` unless the caller is the coach of an active link with `athleteId`.
+ * The link is checked once, before the reads: a revoke while they run is enforced by RLS, which then
+ * answers with fewer rows (possibly none), never more.
  */
 export async function loadAthleteData(athleteId: string, recentWorkouts: number): Promise<AthleteData> {
   const reader = await athleteReader(athleteId)

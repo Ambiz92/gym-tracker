@@ -95,8 +95,10 @@ export interface LinkTable {
   asAthlete: Query['select']
   /** Links where the caller is the coach. */
   asCoach: Query['select']
-  insert: Query['insert']
-  update: Query['update']
+  /** The athlete asks a coach: the database sets athlete_id, status and consent_version. */
+  insert(row: { coach_id: string; athlete_label: string }): ReturnType<Query['insert']>
+  /** Only `status` is writable (the grants allow nothing else). */
+  update(values: { status: 'active' | 'revoked' }): ReturnType<Query['update']>
 }
 
 /**
@@ -115,9 +117,12 @@ export async function linkTable(): Promise<LinkTable & { userId: string }> {
   }
 }
 
+/** The tables migration 0008 opens to a coach for reading; plan_session and plan_exercise come embedded in `plan`. */
+export type AthleteTable = 'workout' | 'set_log' | 'exercise' | 'plan'
+
 /** Read-only view of one athlete's rows: every read is pinned to `owner_id = athlete`. Nothing here can write. */
 export interface AthleteReader {
-  table(name: TableName): { select: Query['select'] }
+  table(name: AthleteTable): { select: Query['select'] }
 }
 
 /**

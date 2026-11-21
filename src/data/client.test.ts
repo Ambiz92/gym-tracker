@@ -115,12 +115,12 @@ describe('linkTable', () => {
     expect(links.userId).toBe(FAKE_USER_ID)
     await links.asAthlete('id')
     await links.asCoach('id')
-    await links.insert({ coach_id: 'c1' })
+    await links.insert({ coach_id: 'c1', athlete_label: 'Marta' })
     await links.update({ status: 'revoked' }).eq('id', 'l1')
     expect(fakeSupabase.calls).toMatchObject([
       { table: 'coach_athlete', op: 'select', filters: [['eq', 'athlete_id', FAKE_USER_ID]] },
       { table: 'coach_athlete', op: 'select', filters: [['eq', 'coach_id', FAKE_USER_ID]] },
-      { table: 'coach_athlete', op: 'insert', payload: { coach_id: 'c1' } },
+      { table: 'coach_athlete', op: 'insert', payload: { coach_id: 'c1', athlete_label: 'Marta' } },
       { table: 'coach_athlete', op: 'update', payload: { status: 'revoked' }, filters: [['eq', 'id', 'l1']] },
     ])
   })
