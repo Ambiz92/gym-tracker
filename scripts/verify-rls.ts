@@ -200,11 +200,12 @@ async function coachAthleteSection(): Promise<Check[]> {
   if (both && !(both.totpSecret && coach.totpSecret)) throw new Error('RLS_TEST_BOTH_* needs RLS_TEST_BOTH_TOTP_SECRET and RLS_TEST_COACH_TOTP_SECRET: it accepts requests as a coach')
   const athleteClient = await signIn(athlete)
   const strangerClient = await signIn(stranger)
+  const bothSession = both ? await factorSession(both) : null
   const accounts: Accounts = {
     coach: await factorSession(coach),
     athlete: { id: await userId(athleteClient), client: athleteClient },
     stranger: { id: await userId(strangerClient), client: strangerClient },
-    both: both ? ((await factorSession(both)) as Accounts['both']) : null,
+    both: bothSession?.aal2 ? { ...bothSession, aal2: bothSession.aal2 } : null,
   }
   return coachAthleteChecks(accounts)
 }
