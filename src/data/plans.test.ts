@@ -36,13 +36,24 @@ const summary = (c: Call) => `${c.table}.${c.op}`
 const TODAY = '2026-11-21'
 const isSlotDeletion = (c: Call) => c.table === 'scheduled_session' && c.op === 'delete'
 
-/** The only slots a cleanup may delete: planned, workout-less, dated today or later, of the given sessions. */
+/** The only slots a cleanup may read for deletion: planned, workout-less, dated today or later, of the given sessions. */
 const futurePlannedFilters = (sessionIds: string[]) => [
   ['in', 'plan_session_id', sessionIds],
   ['eq', 'status', 'planned'],
   ['is', 'workout_id', null],
   ['gte', 'date', TODAY],
 ]
+
+const isSlotRead = (c: Call) => c.table === 'scheduled_session' && c.op === 'select'
+
+/** The cleanup reads, then deletes by id: one future slot of `sessionId`, no workout completing it. */
+const cleanupReads = (c: Call, sessionId = 's1'): FakeResult | undefined => {
+  if (isSlotRead(c)) return { data: [{ id: 'f1', plan_session_id: sessionId, date: TODAY }] }
+  return c.table === 'workout' ? { data: [] } : undefined
+}
+
+/** The same four calls every slot cleanup makes after the sessions are known. */
+const CLEANUP_CALLS = ['scheduled_session.select', 'workout.select', 'scheduled_session.delete']
 
 /** Nothing but slot deletions may delete or change history-bearing tables. */
 const historyCalls = (calls: Call[]) => calls.filter((c) => c.op !== 'select' && ['workout', 'set_log'].includes(c.table))
@@ -69,14 +80,14 @@ describe('setActivePlan', () => {
       if (isActivation(call)) return overrides.activation ?? { data: [{ id: 'new' }] }
       if (call.table === 'plan_session') return overrides.sessions ?? { data: [{ id: 's-old-1' }, { id: 's-old-2' }] }
       if (isSlotDeletion(call)) return overrides.slots
-      return overrides.restore
+      return cleanupReads(call, 's-old-1') ?? overrides.restore
     })
 
   test('checks the target, deactivates the old plan, then activates the new one', async () => {
     scenario()
     expect(await setActivePlan('new')).toEqual({ ok: true })
 
-    expect(fakeSupabase.calls).toHaveLength(5)
+    expect(fakeSupabase.calls).toHaveLength(3 + 1 + CLEANUP_CALLS.length)
     expect(fakeSupabase.calls[0]).toMatchObject({ table: 'plan', op: 'select', filters: [['eq', 'id', 'new']], mode: 'maybeSingle' })
     expect(fakeSupabase.calls[1]).toMatchObject({
       table: 'plan',
@@ -100,9 +111,10 @@ describe('setActivePlan', () => {
     scenario()
     await setActivePlan('new')
 
-    expect(fakeSupabase.calls.slice(3).map(summary)).toEqual(['plan_session.select', 'scheduled_session.delete'])
+    expect(fakeSupabase.calls.slice(3).map(summary)).toEqual(['plan_session.select', ...CLEANUP_CALLS])
     expect(fakeSupabase.calls[3]).toMatchObject({ filters: [['in', 'plan_id', ['old']]] })
     expect(fakeSupabase.calls[4].filters).toEqual(futurePlannedFilters(['s-old-1', 's-old-2']))
+    expect(fakeSupabase.calls[6]).toMatchObject({ op: 'delete', filters: [['in', 'id', ['f1']], ['eq', 'status', 'planned'], ['is', 'workout_id', null], ['gte', 'date', TODAY]] })
     expect(historyCalls(fakeSupabase.calls)).toEqual([])
   })
 
@@ -211,14 +223,14 @@ describe.each([
   const handler = (slots?: FakeResult, sessions?: FakeResult) => (call: Call) => {
     if (call.table === 'plan_session') return sessions ?? { data: [{ id: 's1' }] }
     if (isSlotDeletion(call)) return slots
-    return { data: [{ id: 'p1' }] }
+    return cleanupReads(call) ?? { data: [{ id: 'p1' }] }
   }
 
   test('after the plan update, and only those of its own sessions', async () => {
     fakeSupabase.reset(handler())
     expect(await run('p1')).toEqual({ ok: true })
 
-    expect(fakeSupabase.calls.map(summary)).toEqual(['plan.update', 'plan_session.select', 'scheduled_session.delete'])
+    expect(fakeSupabase.calls.map(summary)).toEqual(['plan.update', 'plan_session.select', ...CLEANUP_CALLS])
     expect(fakeSupabase.calls[1]).toMatchObject({ filters: [['in', 'plan_id', ['p1']]] })
     expect(fakeSupabase.calls[2].filters).toEqual(futurePlannedFilters(['s1']))
     expect(historyCalls(fakeSupabase.calls)).toEqual([])
@@ -343,31 +355,49 @@ describe('append position', () => {
 })
 
 describe('removing a session', () => {
-  test('with workouts it is archived, not deleted, so the history stays linked', async () => {
-    fakeSupabase.reset(() => ({ data: [{ id: 'w1' }] }))
+  /** The history check answers `logged`; the slot cleanup reads find one future slot and no workout. */
+  const removalReads = (logged: boolean) => (call: Call) => {
+    if (call.table === 'workout' && call.columns === 'id') return { data: logged ? [{ id: 'w1' }] : [] }
+    return call.table === 'plan_session' ? { data: [{ id: 's1' }] } : cleanupReads(call)
+  }
+
+  test('with workouts it is archived first, then its future slots go: the session id stays, so they are still findable', async () => {
+    fakeSupabase.reset(removalReads(true))
     expect(await removeSession('s1')).toBe('archived')
-    expect(fakeSupabase.calls.map(summary)).toEqual(['workout.select', 'scheduled_session.delete', 'plan_session.update'])
-    expect(fakeSupabase.calls[2]).toMatchObject({ payload: { archived: true }, filters: [['eq', 'id', 's1']] })
+    expect(fakeSupabase.calls.map(summary)).toEqual(['workout.select', 'plan_session.update', ...CLEANUP_CALLS])
+    expect(fakeSupabase.calls[1]).toMatchObject({ payload: { archived: true }, filters: [['eq', 'id', 's1']] })
   })
 
-  test('without workouts it is deleted', async () => {
-    fakeSupabase.reset((call) => (call.op === 'select' ? { data: [] } : undefined))
+  test('without workouts its slots go first, then it is deleted (deleting would null the slots session)', async () => {
+    fakeSupabase.reset(removalReads(false))
     expect(await removeSession('s1')).toBe('deleted')
-    expect(fakeSupabase.calls.map(summary)).toEqual(['workout.select', 'scheduled_session.delete', 'plan_session.delete'])
+    expect(fakeSupabase.calls.map(summary)).toEqual(['workout.select', ...CLEANUP_CALLS, 'plan_session.delete'])
   })
 
-  test('first deletes only its future planned slots, so past, done and skipped ones stay and no workout is touched', async () => {
-    fakeSupabase.reset((call) => (call.op === 'select' ? { data: [] } : undefined))
+  test('only deletes its future planned slots, so past, done and skipped ones stay and no workout is touched', async () => {
+    fakeSupabase.reset(removalReads(false))
     await removeSession('s1')
     expect(fakeSupabase.calls.filter(isSlotDeletion)).toHaveLength(1)
-    expect(fakeSupabase.calls.find(isSlotDeletion)!.filters).toEqual(futurePlannedFilters(['s1']))
+    expect(fakeSupabase.calls.find(isSlotRead)!.filters).toEqual(futurePlannedFilters(['s1']))
     expect(historyCalls(fakeSupabase.calls)).toEqual([])
   })
 
-  test('a failing slot cleanup stops the removal before the session is touched', async () => {
-    fakeSupabase.reset((call) => (isSlotDeletion(call) ? failure : { data: [] }))
+  test('a failing slot cleanup stops a delete before the session is touched', async () => {
+    fakeSupabase.reset((call) => (isSlotDeletion(call) ? failure : removalReads(false)(call)))
     await expect(removeSession('s1')).rejects.toMatchObject({ name: 'DataError', code: '23514' })
-    expect(fakeSupabase.calls.map(summary)).toEqual(['workout.select', 'scheduled_session.delete'])
+    expect(fakeSupabase.calls.map(summary)).toEqual(['workout.select', ...CLEANUP_CALLS])
+  })
+
+  test('a failing archive deletes no slot', async () => {
+    fakeSupabase.reset((call) => (call.table === 'plan_session' ? failure : removalReads(true)(call)))
+    await expect(removeSession('s1')).rejects.toMatchObject({ code: '23514' })
+    expect(fakeSupabase.calls.map(summary)).toEqual(['workout.select', 'plan_session.update'])
+  })
+
+  test('a failing cleanup after an archive is thrown, the session stays archived', async () => {
+    fakeSupabase.reset((call) => (isSlotDeletion(call) ? failure : removalReads(true)(call)))
+    await expect(removeSession('s1')).rejects.toMatchObject({ code: '23514' })
+    expect(fakeSupabase.calls.map(summary)).toContain('plan_session.update')
   })
 
   test('a failing history check deletes no slot', async () => {
@@ -395,13 +425,22 @@ describe('delete refuses when history references the rows', () => {
     expect(fakeSupabase.calls.map((c) => c.op)).not.toContain('delete')
   })
 
-  test('deletePlan deletes a plan without history', async () => {
-    fakeSupabase.reset((call) => (call.table === 'plan_session' ? { data: [{ id: 's1' }] } : call.op === 'select' ? { data: [] } : undefined))
+  test('deletePlan removes the future planned slots of its sessions, then deletes the plan', async () => {
+    fakeSupabase.reset((call) => (call.table === 'plan_session' ? { data: [{ id: 's1' }] } : call.op === 'select' && call.table === 'workout' && call.columns === 'id' ? { data: [] } : cleanupReads(call)))
     await deletePlan('p1')
+    expect(fakeSupabase.calls.map(summary)).toEqual(['plan_session.select', 'workout.select', ...CLEANUP_CALLS, 'plan.delete'])
+    expect(fakeSupabase.calls.find(isSlotRead)!.filters).toEqual(futurePlannedFilters(['s1']))
     expect(fakeSupabase.calls.at(-1)).toMatchObject({ table: 'plan', op: 'delete', filters: [['eq', 'id', 'p1']] })
+    expect(historyCalls(fakeSupabase.calls)).toEqual([])
   })
 
-  test('deletePlan with no sessions deletes without querying workouts', async () => {
+  test('a failing slot cleanup stops deletePlan before the plan is deleted', async () => {
+    fakeSupabase.reset((call) => (isSlotDeletion(call) ? failure : call.table === 'plan_session' ? { data: [{ id: 's1' }] } : call.columns === 'id' ? { data: [] } : cleanupReads(call)))
+    await expect(deletePlan('p1')).rejects.toMatchObject({ code: '23514' })
+    expect(fakeSupabase.calls.some((c) => c.table === 'plan' && c.op === 'delete')).toBe(false)
+  })
+
+  test('deletePlan with no sessions deletes without querying workouts or slots', async () => {
     fakeSupabase.reset((call) => (call.op === 'select' ? { data: [] } : undefined))
     await deletePlan('p1')
     expect(fakeSupabase.calls.map(summary)).toEqual(['plan_session.select', 'plan.delete'])

@@ -120,7 +120,10 @@ export async function restorePlan(id: string): Promise<void> {
 /** Deletes a plan whose sessions were never logged; refuses with an `in_use` DataError otherwise. */
 export async function deletePlan(id: string): Promise<void> {
   const sessions = unwrap<{ id: string }[]>(await supabase.from('plan_session').select('id').eq('plan_id', id))
-  if (await isReferenced('workout', 'session_id', sessions.map((s) => s.id))) throw inUseError('The plan')
+  const sessionIds = sessions.map((s) => s.id)
+  if (await isReferenced('workout', 'session_id', sessionIds)) throw inUseError('The plan')
+  // Deleting the plan only nulls the session of its slots: the future ones would stay as orphans.
+  await deleteFuturePlannedSlots(sessionIds)
   ensureOk(await supabase.from('plan').delete().eq('id', id))
 }
 
@@ -189,17 +192,18 @@ export type SessionRemoval = 'deleted' | 'archived'
 
 /**
  * Deletes a session that was never logged; one with workouts is archived so the history stays linked.
- * Its future planned slots go first, and a failure there stops the removal before anything changed:
- * after a delete the slots would lose their session (set null) and could no longer be found, and
- * after an archive they would stay as slots nobody can start. Past, done and skipped slots stay.
+ * Its future planned slots go too; past, done and skipped slots stay. A delete cleans up first: it
+ * would null the slots' session and they could no longer be found. An archive keeps the session id,
+ * so it goes first and a failed cleanup never deletes slots of a session that stays in the plan.
  */
 export async function removeSession(id: string): Promise<SessionRemoval> {
   const logged = await isReferenced('workout', 'session_id', [id])
-  await deleteFuturePlannedSlots([id])
   if (logged) {
     await updateSession(id, { archived: true })
+    await deleteFuturePlannedSlots([id])
     return 'archived'
   }
+  await deleteFuturePlannedSlots([id])
   ensureOk(await supabase.from('plan_session').delete().eq('id', id))
   return 'deleted'
 }
