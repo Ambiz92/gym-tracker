@@ -14,6 +14,7 @@ import { moveTo } from '../lib/reorder'
 import { newUuid } from '../lib/uuid'
 import { getPlanById, type EditablePlan, type PlanExerciseDetail, type SessionDetail } from './activePlan'
 import { DataError, ensureAffected, ensureOk, inUseError, isReferenced, supabase, unwrap, unwrapOrNull } from './client'
+import { deleteFuturePlannedSlots } from './schedule'
 
 export type NewSession = Omit<PlanSessionInsert, 'id' | 'plan_id' | 'position'>
 export type NewPlanExercise = Omit<PlanExerciseInsert, 'id' | 'session_id' | 'position'>
@@ -77,14 +78,39 @@ export async function renamePlan(id: string, name: string): Promise<void> {
   ensureAffected(await supabase.from('plan').update({ name }).eq('id', id).select('id'))
 }
 
+/**
+ * Result of dropping the future planned slots of a plan that stopped being current. The plan change
+ * itself is already saved when this is reported: a failure only leaves slots to remove later.
+ */
+export type ScheduleCleanup = { ok: true } | { ok: false; error: DataError }
+
+/**
+ * Deletes the future `planned` slots of every session of `planIds`; see `deleteFuturePlannedSlots`
+ * for what is never touched. Runs only after the plan change succeeded, and a DataError becomes a
+ * result instead of a throw, so a cleanup problem cannot make a saved switch look failed.
+ */
+async function clearFutureSlotsOfPlans(planIds: string[]): Promise<ScheduleCleanup> {
+  if (planIds.length === 0) return { ok: true }
+  try {
+    const sessions = unwrap<{ id: string }[]>(await supabase.from('plan_session').select('id').in('plan_id', planIds))
+    await deleteFuturePlannedSlots(sessions.map((session) => session.id))
+    return { ok: true }
+  } catch (error) {
+    if (!(error instanceof DataError)) throw error
+    return { ok: false, error }
+  }
+}
+
 /** Takes a plan out of Oggi without choosing another; having no active plan is a state the app handles. */
-export async function deactivatePlan(id: string): Promise<void> {
+export async function deactivatePlan(id: string): Promise<ScheduleCleanup> {
   ensureAffected(await supabase.from('plan').update({ is_active: false }).eq('id', id).select('id'))
+  return clearFutureSlotsOfPlans([id])
 }
 
 /** Archived plans cannot be active (check constraint), so both flags change together. */
-export async function archivePlan(id: string): Promise<void> {
+export async function archivePlan(id: string): Promise<ScheduleCleanup> {
   ensureAffected(await supabase.from('plan').update({ archived: true, is_active: false }).eq('id', id).select('id'))
+  return clearFutureSlotsOfPlans([id])
 }
 
 export async function restorePlan(id: string): Promise<void> {
@@ -102,8 +128,10 @@ export async function deletePlan(id: string): Promise<void> {
  * Makes `planId` the only active plan. One active plan per owner is a unique index, so the old
  * one is deactivated first; if activating fails the old one is put back to avoid "no active plan".
  * The target is checked up front so a missing or archived plan never touches the current one.
+ * Only once the switch is saved are the old plan's future planned slots removed (a failure there is
+ * reported in the result, never thrown: the switch stands and a restored old plan keeps its slots).
  */
-export async function setActivePlan(planId: string): Promise<void> {
+export async function setActivePlan(planId: string): Promise<ScheduleCleanup> {
   const target = unwrapOrNull<Pick<Plan, 'archived'>>(
     await supabase.from('plan').select('archived').eq('id', planId).maybeSingle(),
   )
@@ -117,7 +145,7 @@ export async function setActivePlan(planId: string): Promise<void> {
   let failure: DataError
   try {
     ensureAffected(await supabase.from('plan').update({ is_active: true }).eq('id', planId).select('id'))
-    return
+    return await clearFutureSlotsOfPlans(deactivated.map((plan) => plan.id))
   } catch (error) {
     if (!(error instanceof DataError)) throw error
     failure = error
@@ -159,9 +187,16 @@ export async function updateSession(id: string, changes: PlanSessionUpdate): Pro
 
 export type SessionRemoval = 'deleted' | 'archived'
 
-/** Deletes a session that was never logged; one with workouts is archived so the history stays linked. */
+/**
+ * Deletes a session that was never logged; one with workouts is archived so the history stays linked.
+ * Its future planned slots go first, and a failure there stops the removal before anything changed:
+ * after a delete the slots would lose their session (set null) and could no longer be found, and
+ * after an archive they would stay as slots nobody can start. Past, done and skipped slots stay.
+ */
 export async function removeSession(id: string): Promise<SessionRemoval> {
-  if (await isReferenced('workout', 'session_id', [id])) {
+  const logged = await isReferenced('workout', 'session_id', [id])
+  await deleteFuturePlannedSlots([id])
+  if (logged) {
     await updateSession(id, { archived: true })
     return 'archived'
   }
