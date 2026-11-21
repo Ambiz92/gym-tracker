@@ -45,7 +45,7 @@ Spingi verso l''alto fino a estendere le braccia, tenendo addome e glutei contra
   ('chest-dip', 'Dip alle parallele', 'Chest Dip', array['dip', 'dips', 'parallele', 'distensioni alle parallele']::text[], 'other', 'Petto', array['Tricipiti', 'Spalle']::text[], 'Sostieniti sulle parallele a braccia tese, con il busto inclinato in avanti.
 Scendi flettendo i gomiti fino a sentire un buon allungamento del petto.
 Spingi verso l''alto fino a estendere le braccia.', 'free-exercise-db', 'Dips_-_Chest_Version'),
-  ('barbell-deadlift', 'Stacco da terra', 'Barbell Deadlift', array['stacco', 'stacco con bilanciere', 'stacco da terra con bilanciere', 'deadlift']::text[], 'barbell', 'Lombari', array['Glutei', 'Femorali', 'Quadricipiti', 'Trapezi', 'Avambracci']::text[], 'Posizionati con il bilanciere sopra la metà dei piedi e piedi alla larghezza del bacino.
+  ('barbell-deadlift', 'Stacco da terra', 'Barbell Deadlift', array['stacco', 'stacco con bilanciere', 'stacco da terra con bilanciere', 'deadlift']::text[], 'barbell', 'Glutei', array['Femorali', 'Quadricipiti', 'Lombari', 'Trapezi', 'Avambracci']::text[], 'Posizionati con il bilanciere sopra la metà dei piedi e piedi alla larghezza del bacino.
 Piegati ad afferrare il bilanciere, con schiena neutra, petto alto e braccia tese.
 Spingi sui piedi ed estendi gambe e bacino insieme, tenendo il bilanciere vicino al corpo.
 Arrivato in piedi, non iperestendere la schiena. Riscendi con controllo lungo le gambe.', 'free-exercise-db', 'Barbell_Deadlift'),
@@ -57,10 +57,10 @@ Abbassa con controllo fino a braccia tese, senza muovere il busto.', 'free-exerc
 Con l''altra mano tieni il manubrio a braccio disteso.
 Tira il manubrio verso il fianco portando il gomito indietro e in alto.
 Abbassa con controllo, poi ripeti e cambia lato.', 'free-exercise-db', 'One-Arm_Dumbbell_Row'),
-  ('pull-up', 'Trazioni alla sbarra', 'Pull-Up', array['trazioni', 'trazioni presa prona', 'pull-up', 'pullup']::text[], 'other', 'Dorsali', array['Bicipiti', 'Dorso']::text[], 'Impugna la sbarra a presa prona, poco oltre la larghezza delle spalle, e sospenditi a braccia tese.
+  ('pull-up', 'Trazioni alla sbarra', 'Pull-Up', array['trazioni', 'trazioni presa prona', 'pull-up', 'pullup']::text[], 'other', 'Dorsali', array['Bicipiti']::text[], 'Impugna la sbarra a presa prona, poco oltre la larghezza delle spalle, e sospenditi a braccia tese.
 Tira il corpo verso l''alto portando i gomiti verso i fianchi, fino a superare la sbarra con il mento.
 Scendi con controllo fino a braccia tese, senza dondolare.', 'free-exercise-db', 'Pullups'),
-  ('chin-up', 'Trazioni a presa supina', 'Chin-Up', array['trazioni supine', 'chin-up', 'chin up', 'trazioni presa inversa']::text[], 'other', 'Dorsali', array['Bicipiti', 'Avambracci', 'Dorso']::text[], 'Impugna la sbarra a presa supina, alla larghezza delle spalle, e sospenditi a braccia tese.
+  ('chin-up', 'Trazioni a presa supina', 'Chin-Up', array['trazioni supine', 'chin-up', 'chin up', 'trazioni presa inversa']::text[], 'other', 'Dorsali', array['Bicipiti', 'Avambracci']::text[], 'Impugna la sbarra a presa supina, alla larghezza delle spalle, e sospenditi a braccia tese.
 Tira il corpo verso l''alto fino a portare il mento sopra la sbarra.
 Scendi con controllo fino a braccia tese.', 'free-exercise-db', 'Chin-Up'),
   ('lat-pulldown', 'Lat machine', 'Wide-Grip Lat Pulldown', array['lat machine presa larga', 'pulldown', 'lat pulldown', 'trazioni al cavo alto']::text[], 'other', 'Dorsali', array['Bicipiti', 'Dorso', 'Spalle']::text[], 'Siediti bloccando le cosce sotto i cuscinetti e impugna la barra a presa larga.
@@ -164,8 +164,8 @@ Abbassa con controllo e alterna le braccia.', 'free-exercise-db', 'Dumbbell_Alte
   ('hammer-curl', 'Curl a martello', 'Hammer Curls', array['hammer curl', 'curl martello', 'curl con manubri presa neutra']::text[], 'dumbbell', 'Bicipiti', array['Avambracci']::text[], 'In piedi, con un manubrio per mano e i palmi rivolti verso le cosce (presa neutra).
 Fletti i gomiti portando i manubri verso le spalle, senza ruotare i polsi.
 Abbassa con controllo fino a braccia tese.', 'free-exercise-db', 'Hammer_Curls'),
-  ('preacher-curl', 'Curl alla panca Scott', 'Preacher Curl', array['panca scott', 'curl scott', 'preacher curl', 'curl alla scott']::text[], 'barbell', 'Bicipiti', array['Avambracci']::text[], 'Siediti alla panca Scott con le braccia appoggiate sul cuscino e impugna il bilanciere a presa supina.
-Fletti i gomiti portando il bilanciere verso le spalle.
+  ('preacher-curl', 'Curl alla panca Scott', 'Preacher Curl', array['panca scott', 'curl scott', 'preacher curl', 'curl alla scott']::text[], 'other', 'Bicipiti', array['Avambracci']::text[], 'Siediti alla panca Scott con le braccia appoggiate sul cuscino e impugna la barra EZ a presa supina.
+Fletti i gomiti portando la barra verso le spalle.
 Abbassa lentamente fino a quasi estendere le braccia, senza scattare in basso.', 'free-exercise-db', 'Preacher_Curl'),
   ('triceps-pushdown', 'Pushdown ai cavi per tricipiti', 'Triceps Pushdown', array['pushdown', 'push down', 'tricipiti al cavo', 'french al cavo', 'pushdown tricipiti']::text[], 'other', 'Tricipiti', array[]::text[], 'In piedi davanti al cavo alto, impugna la barra con i gomiti vicino ai fianchi.
 Estendi i gomiti spingendo la barra verso il basso, fino a braccia tese.

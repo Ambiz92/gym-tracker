@@ -155,8 +155,8 @@
     "name_en": "Barbell Deadlift",
     "synonyms": ["stacco", "stacco con bilanciere", "stacco da terra con bilanciere", "deadlift"],
     "equipment": "barbell",
-    "primary_muscle": "Lombari",
-    "secondary_muscles": ["Glutei", "Femorali", "Quadricipiti", "Trapezi", "Avambracci"],
+    "primary_muscle": "Glutei",
+    "secondary_muscles": ["Femorali", "Quadricipiti", "Lombari", "Trapezi", "Avambracci"],
     "execution_steps": [
       "Posizionati con il bilanciere sopra la metà dei piedi e piedi alla larghezza del bacino.",
       "Piegati ad afferrare il bilanciere, con schiena neutra, petto alto e braccia tese.",
@@ -207,7 +207,7 @@
     "synonyms": ["trazioni", "trazioni presa prona", "pull-up", "pullup"],
     "equipment": "other",
     "primary_muscle": "Dorsali",
-    "secondary_muscles": ["Bicipiti", "Dorso"],
+    "secondary_muscles": ["Bicipiti"],
     "execution_steps": [
       "Impugna la sbarra a presa prona, poco oltre la larghezza delle spalle, e sospenditi a braccia tese.",
       "Tira il corpo verso l'alto portando i gomiti verso i fianchi, fino a superare la sbarra con il mento.",
@@ -223,7 +223,7 @@
     "synonyms": ["trazioni supine", "chin-up", "chin up", "trazioni presa inversa"],
     "equipment": "other",
     "primary_muscle": "Dorsali",
-    "secondary_muscles": ["Bicipiti", "Avambracci", "Dorso"],
+    "secondary_muscles": ["Bicipiti", "Avambracci"],
     "execution_steps": [
       "Impugna la sbarra a presa supina, alla larghezza delle spalle, e sospenditi a braccia tese.",
       "Tira il corpo verso l'alto fino a portare il mento sopra la sbarra.",
@@ -754,12 +754,12 @@
     "name_it": "Curl alla panca Scott",
     "name_en": "Preacher Curl",
     "synonyms": ["panca scott", "curl scott", "preacher curl", "curl alla scott"],
-    "equipment": "barbell",
+    "equipment": "other",
     "primary_muscle": "Bicipiti",
     "secondary_muscles": ["Avambracci"],
     "execution_steps": [
-      "Siediti alla panca Scott con le braccia appoggiate sul cuscino e impugna il bilanciere a presa supina.",
-      "Fletti i gomiti portando il bilanciere verso le spalle.",
+      "Siediti alla panca Scott con le braccia appoggiate sul cuscino e impugna la barra EZ a presa supina.",
+      "Fletti i gomiti portando la barra verso le spalle.",
       "Abbassa lentamente fino a quasi estendere le braccia, senza scattare in basso."
     ],
     "source": "free-exercise-db",
