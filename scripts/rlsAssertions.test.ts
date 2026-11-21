@@ -5,10 +5,16 @@ import {
   judgeDuplicate,
   judgeForeignKey,
   judgeHiddenByPolicy,
+  judgeNoRowsWritten,
   judgeOtp,
+  judgePermissionDenied,
+  judgeRefusedTransition,
+  judgeRlsRefusal,
+  judgeRowUnchanged,
   judgeSelect,
   judgeSignUp,
   judgeSignedInRead,
+  judgeVisibleRows,
   judgeWrite,
   publicTablesFrom,
 } from './rlsAssertions'
@@ -92,6 +98,116 @@ describe('judgeForeignKey', () => {
 
   it('fails when the cross-owner reference is accepted', () => {
     expect(judgeForeignKey({ data: [{ id: 1 }], error: null }).pass).toBe(false)
+  })
+})
+
+const byPolicy = {
+  data: null,
+  error: { code: '42501', message: 'new row violates row-level security policy for table "workout"' },
+}
+const byGrant = { data: null, error: { code: '42501', message: 'permission denied for table coach_athlete' } }
+
+describe('judgeRlsRefusal', () => {
+  it('passes on a policy violation, both WITH CHECK and USING', () => {
+    expect(judgeRlsRefusal(byPolicy).pass).toBe(true)
+    const using = { data: null, error: { code: '42501', message: 'new row violates row-level security policy (USING expression) for table "workout"' } }
+    expect(judgeRlsRefusal(using).pass).toBe(true)
+  })
+
+  it('fails on a missing grant, which is another layer with the same code', () => {
+    expect(judgeRlsRefusal(byGrant).pass).toBe(false)
+  })
+
+  it('fails when the write is accepted, with or without rows', () => {
+    expect(judgeRlsRefusal({ data: [{ id: 1 }], error: null }).pass).toBe(false)
+    expect(judgeRlsRefusal({ data: [], error: null }).pass).toBe(false)
+  })
+})
+
+describe('judgePermissionDenied', () => {
+  it('passes only on a privilege error', () => {
+    expect(judgePermissionDenied(byGrant).pass).toBe(true)
+    expect(judgePermissionDenied(byPolicy).pass).toBe(false)
+  })
+
+  it('fails when the write is accepted', () => {
+    expect(judgePermissionDenied({ data: [{ id: 1 }], error: null }).pass).toBe(false)
+  })
+
+  it('fails on an unrelated error', () => {
+    expect(judgePermissionDenied({ data: null, error: { code: '23505', message: 'duplicate key' } }).pass).toBe(false)
+  })
+})
+
+describe('judgeNoRowsWritten', () => {
+  it('passes only on an empty success', () => {
+    expect(judgeNoRowsWritten({ data: [], error: null }).pass).toBe(true)
+    expect(judgeNoRowsWritten({ data: [{ id: 1 }], error: null }).pass).toBe(false)
+  })
+
+  it('fails on an error: a refusal by error is a different outcome', () => {
+    expect(judgeNoRowsWritten(byPolicy).pass).toBe(false)
+  })
+})
+
+describe('judgeVisibleRows', () => {
+  const rows = [{ owner_id: 'athlete' }, { owner_id: 'athlete' }]
+
+  it('passes when every row is the owner\'s and the count matches', () => {
+    expect(judgeVisibleRows({ data: rows, error: null }, 'athlete', 2).pass).toBe(true)
+    expect(judgeVisibleRows({ data: [], error: null }, 'athlete', 0).pass).toBe(true)
+  })
+
+  it('fails when a row belongs to someone else, even if the count matches', () => {
+    const mixed = [{ owner_id: 'athlete' }, { owner_id: 'coach' }]
+    expect(judgeVisibleRows({ data: mixed, error: null }, 'athlete', 2).pass).toBe(false)
+  })
+
+  it('fails when the count differs, so a hidden table is not mistaken for a seeded one', () => {
+    expect(judgeVisibleRows({ data: [], error: null }, 'athlete', 2).pass).toBe(false)
+    expect(judgeVisibleRows({ data: rows, error: null }, 'athlete', 0).pass).toBe(false)
+  })
+
+  it('fails on an error or a non-array', () => {
+    expect(judgeVisibleRows(denied, 'athlete', 0).pass).toBe(false)
+    expect(judgeVisibleRows({ data: null, error: null }, 'athlete', 0).pass).toBe(false)
+  })
+})
+
+describe('judgeRowUnchanged', () => {
+  it('compares what was read before and after', () => {
+    expect(judgeRowUnchanged([{ id: 1, status: 'pending' }], [{ id: 1, status: 'pending' }]).pass).toBe(true)
+    expect(judgeRowUnchanged([{ id: 1, status: 'pending' }], [{ id: 1, status: 'active' }]).pass).toBe(false)
+  })
+
+  it('fails when the row disappeared', () => {
+    expect(judgeRowUnchanged([{ id: 1 }], []).pass).toBe(false)
+  })
+})
+
+describe('judgeRefusedTransition', () => {
+  it('passes on a 42501 refusal with the status unchanged', () => {
+    expect(judgeRefusedTransition(byPolicy, 'pending', 'pending').pass).toBe(true)
+    expect(judgeRefusedTransition(byGrant, 'pending', 'pending').pass).toBe(true)
+  })
+
+  it('passes when the update matched no row and the status is unchanged', () => {
+    expect(judgeRefusedTransition({ data: [], error: null }, 'revoked', 'revoked').pass).toBe(true)
+  })
+
+  it('fails when the update returned the changed row', () => {
+    expect(judgeRefusedTransition({ data: [{ status: 'active' }], error: null }, 'pending', 'pending').pass).toBe(false)
+  })
+
+  it('fails when the status moved, whatever the update reported', () => {
+    expect(judgeRefusedTransition({ data: [], error: null }, 'revoked', 'active').pass).toBe(false)
+    expect(judgeRefusedTransition(byPolicy, 'pending', 'active').pass).toBe(false)
+  })
+
+  it('fails on an unrelated error and when the row is gone', () => {
+    const other = { data: null, error: { code: '23514', message: 'check constraint' } }
+    expect(judgeRefusedTransition(other, 'pending', 'pending').pass).toBe(false)
+    expect(judgeRefusedTransition({ data: [], error: null }, 'pending', undefined).pass).toBe(false)
   })
 })
 
