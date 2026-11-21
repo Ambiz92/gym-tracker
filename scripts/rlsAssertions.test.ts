@@ -3,6 +3,7 @@ import {
   formatTable,
   isPrivilegedKey,
   judgeDuplicate,
+  judgeForeignKey,
   judgeHiddenByPolicy,
   judgeOtp,
   judgeSelect,
@@ -79,6 +80,18 @@ describe('judgeDuplicate', () => {
 
   it('fails when the duplicate is accepted', () => {
     expect(judgeDuplicate({ data: [{ id: 2 }], error: null }).pass).toBe(false)
+  })
+})
+
+describe('judgeForeignKey', () => {
+  it('passes only on a foreign key violation', () => {
+    const foreignKey = { data: null, error: { code: '23503', message: 'violates foreign key constraint' } }
+    expect(judgeForeignKey(foreignKey).pass).toBe(true)
+    expect(judgeForeignKey(denied).pass).toBe(false)
+  })
+
+  it('fails when the cross-owner reference is accepted', () => {
+    expect(judgeForeignKey({ data: [{ id: 1 }], error: null }).pass).toBe(false)
   })
 })
 

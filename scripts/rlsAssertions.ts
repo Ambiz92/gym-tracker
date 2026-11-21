@@ -14,6 +14,7 @@ type Verdict = Pick<Check, 'pass' | 'detail'>
 
 const PERMISSION_DENIED = '42501'
 const UNIQUE_VIOLATION = '23505'
+const FOREIGN_KEY_VIOLATION = '23503'
 
 function describeError(error: NonNullable<Outcome['error']>): string {
   return `error ${error.code || 'none'}: ${error.message}`
@@ -59,6 +60,12 @@ export function judgeHiddenByPolicy({ data, error }: Outcome): Verdict {
 export function judgeDuplicate({ data, error }: Outcome): Verdict {
   if (error) return { pass: error.code === UNIQUE_VIOLATION, detail: describeError(error) }
   return { pass: false, detail: `duplicate accepted: ${JSON.stringify(data)}` }
+}
+
+/** The composite key must refuse a reference to another owner's row. */
+export function judgeForeignKey({ data, error }: Outcome): Verdict {
+  if (error) return { pass: error.code === FOREIGN_KEY_VIOLATION, detail: describeError(error) }
+  return { pass: false, detail: `cross-owner reference accepted: ${JSON.stringify(data)}` }
 }
 
 /** Sign-ups must be refused by the project, not by an email validator. */
