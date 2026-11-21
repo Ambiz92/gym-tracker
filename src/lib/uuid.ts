@@ -13,3 +13,10 @@ export function newUuid(): string {
     .map((part) => part.join(''))
     .join('-')
 }
+
+const UUID_FORMAT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** True for the canonical 8-4-4-4-12 hex form, any version. */
+export function isUuid(value: string): boolean {
+  return UUID_FORMAT.test(value)
+}
