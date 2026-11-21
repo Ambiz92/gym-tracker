@@ -102,6 +102,16 @@ export async function currentEmail(api: AuthApi): Promise<string | null> {
   }
 }
 
+/** True when the session is at aal2 (second factor verified). Fails closed: any error counts as "not verified". */
+export async function isAal2(api: AuthApi): Promise<boolean> {
+  try {
+    const { data } = await api.mfa.getAuthenticatorAssuranceLevel()
+    return data?.currentLevel === 'aal2'
+  } catch {
+    return false
+  }
+}
+
 export function signIn(api: AuthApi, email: string, password: string): Promise<Result<AuthStatus>> {
   const trimmedEmail = email.trim()
   if (!trimmedEmail || !password) return Promise.resolve({ ok: false, error: failure('invalid_credentials') })
