@@ -46,6 +46,7 @@ const NIL_UUID = '00000000-0000-0000-0000-000000000000'
 
 // Minimal valid-looking rows: a rejection must come from access control, not from a constraint.
 const PROBE_ROWS: Record<string, Record<string, unknown>> = {
+  coach_athlete: { coach_id: NIL_UUID, athlete_label: 'rls-check' },
   exercise: { name: 'rls-check', equipment: 'other' },
   exercise_catalog: { slug: 'rls-check', name_it: 'rls-check', equipment: 'other', primary_muscle: 'rls-check' },
   plan: { name: 'rls-check' },
