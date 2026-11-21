@@ -1,0 +1,960 @@
+[
+  {
+    "slug": "barbell-bench-press",
+    "name_it": "Panca piana con bilanciere",
+    "name_en": "Barbell Bench Press",
+    "synonyms": ["panca piana", "distensioni su panca piana", "bench press", "panca bilanciere"],
+    "equipment": "barbell",
+    "primary_muscle": "Petto",
+    "secondary_muscles": ["Spalle", "Tricipiti"],
+    "execution_steps": [
+      "Sdraiati sulla panca con occhi sotto il bilanciere, piedi ben appoggiati e scapole addotte.",
+      "Impugna il bilanciere poco oltre la larghezza delle spalle e staccalo dai supporti.",
+      "Abbassa il bilanciere con controllo fino a sfiorare la parte centrale del petto.",
+      "Spingi verso l'alto fino a estendere i gomiti, senza staccare glutei e spalle dalla panca."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Barbell_Bench_Press_-_Medium_Grip"
+  },
+  {
+    "slug": "incline-barbell-bench-press",
+    "name_it": "Panca inclinata con bilanciere",
+    "name_en": "Incline Barbell Bench Press",
+    "synonyms": ["panca inclinata", "distensioni su panca inclinata", "incline bench press"],
+    "equipment": "barbell",
+    "primary_muscle": "Petto",
+    "secondary_muscles": ["Spalle", "Tricipiti"],
+    "execution_steps": [
+      "Regola la panca a 30-45 gradi e sdraiati con le scapole addotte.",
+      "Impugna il bilanciere poco oltre la larghezza delle spalle e staccalo dai supporti.",
+      "Abbassa il bilanciere fino alla parte alta del petto, con i gomiti leggermente aperti.",
+      "Spingi verso l'alto fino a estendere i gomiti."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Barbell_Incline_Bench_Press_-_Medium_Grip"
+  },
+  {
+    "slug": "dumbbell-bench-press",
+    "name_it": "Panca piana con manubri",
+    "name_en": "Dumbbell Bench Press",
+    "synonyms": ["distensioni con manubri su panca piana", "panca manubri", "distensioni con manubri"],
+    "equipment": "dumbbell",
+    "primary_muscle": "Petto",
+    "secondary_muscles": ["Spalle", "Tricipiti"],
+    "execution_steps": [
+      "Siediti sulla panca con i manubri sulle cosce, poi sdraiati portandoli all'altezza del petto.",
+      "Spingi i manubri verso l'alto fino a estendere i gomiti, con i polsi sopra i gomiti.",
+      "Abbassa i manubri con controllo fino a sentire un allungamento del petto.",
+      "Risali senza far sbattere i manubri tra loro."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Dumbbell_Bench_Press"
+  },
+  {
+    "slug": "incline-dumbbell-press",
+    "name_it": "Panca inclinata con manubri",
+    "name_en": "Incline Dumbbell Press",
+    "synonyms": ["distensioni con manubri su panca inclinata", "panca inclinata manubri"],
+    "equipment": "dumbbell",
+    "primary_muscle": "Petto",
+    "secondary_muscles": ["Spalle", "Tricipiti"],
+    "execution_steps": [
+      "Regola la panca a 30-45 gradi e porta i manubri all'altezza della parte alta del petto.",
+      "Spingi i manubri verso l'alto fino a estendere i gomiti.",
+      "Abbassa con controllo fino a sentire un allungamento del petto.",
+      "Mantieni le scapole addotte e i piedi ben appoggiati per tutta la serie."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Incline_Dumbbell_Press"
+  },
+  {
+    "slug": "dumbbell-fly",
+    "name_it": "Croci con manubri",
+    "name_en": "Dumbbell Flyes",
+    "synonyms": ["croci", "croci su panca piana", "croci manubri", "aperture con manubri"],
+    "equipment": "dumbbell",
+    "primary_muscle": "Petto",
+    "secondary_muscles": ["Spalle"],
+    "execution_steps": [
+      "Sdraiati sulla panca con i manubri sopra il petto, palmi uno di fronte all'altro.",
+      "Con i gomiti leggermente flessi, apri le braccia ad arco fino a sentire l'allungamento del petto.",
+      "Riporta i manubri sopra il petto stringendo i pettorali.",
+      "Usa un carico moderato: il movimento è di isolamento."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Dumbbell_Flyes"
+  },
+  {
+    "slug": "cable-crossover",
+    "name_it": "Croci ai cavi",
+    "name_en": "Cable Crossover",
+    "synonyms": ["croci al cavo", "croci ai cavi alti", "cable crossover", "croci cavi"],
+    "equipment": "other",
+    "primary_muscle": "Petto",
+    "secondary_muscles": ["Spalle"],
+    "execution_steps": [
+      "Posizionati al centro dei due cavi alti, un passo avanti, con il busto leggermente inclinato.",
+      "Con i gomiti leggermente flessi, porta le mani davanti al petto in un movimento ad arco.",
+      "Stringi i pettorali per un istante quando le mani si incontrano.",
+      "Torna lentamente alla posizione iniziale, controllando il carico."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Cable_Crossover"
+  },
+  {
+    "slug": "chest-press-machine",
+    "name_it": "Chest press",
+    "name_en": "Machine Chest Press",
+    "synonyms": ["chest press alla macchina", "pressa per il petto", "macchina per il petto", "pectoral machine"],
+    "equipment": "other",
+    "primary_muscle": "Petto",
+    "secondary_muscles": ["Spalle", "Tricipiti"],
+    "execution_steps": [
+      "Regola il sedile in modo che le impugnature siano all'altezza del petto.",
+      "Schiena appoggiata allo schienale, spingi in avanti fino a estendere i gomiti.",
+      "Torna indietro con controllo, senza far toccare i pesi tra una ripetizione e l'altra."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Leverage_Chest_Press"
+  },
+  {
+    "slug": "push-up",
+    "name_it": "Piegamenti sulle braccia",
+    "name_en": "Push-Up",
+    "synonyms": ["flessioni", "piegamenti", "push-up", "flessioni a terra"],
+    "equipment": "other",
+    "primary_muscle": "Petto",
+    "secondary_muscles": ["Spalle", "Tricipiti"],
+    "execution_steps": [
+      "Appoggia le mani a terra poco oltre la larghezza delle spalle, con il corpo in linea retta.",
+      "Abbassa il petto verso il pavimento flettendo i gomiti.",
+      "Spingi verso l'alto fino a estendere le braccia, tenendo addome e glutei contratti."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Pushups"
+  },
+  {
+    "slug": "chest-dip",
+    "name_it": "Dip alle parallele",
+    "name_en": "Chest Dip",
+    "synonyms": ["dip", "dips", "parallele", "distensioni alle parallele"],
+    "equipment": "other",
+    "primary_muscle": "Petto",
+    "secondary_muscles": ["Tricipiti", "Spalle"],
+    "execution_steps": [
+      "Sostieniti sulle parallele a braccia tese, con il busto inclinato in avanti.",
+      "Scendi flettendo i gomiti fino a sentire un buon allungamento del petto.",
+      "Spingi verso l'alto fino a estendere le braccia."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Dips_-_Chest_Version"
+  },
+  {
+    "slug": "barbell-deadlift",
+    "name_it": "Stacco da terra",
+    "name_en": "Barbell Deadlift",
+    "synonyms": ["stacco", "stacco con bilanciere", "stacco da terra con bilanciere", "deadlift"],
+    "equipment": "barbell",
+    "primary_muscle": "Glutei",
+    "secondary_muscles": ["Femorali", "Quadricipiti", "Lombari", "Trapezi", "Avambracci"],
+    "execution_steps": [
+      "Posizionati con il bilanciere sopra la metà dei piedi e piedi alla larghezza del bacino.",
+      "Piegati ad afferrare il bilanciere, con schiena neutra, petto alto e braccia tese.",
+      "Spingi sui piedi ed estendi gambe e bacino insieme, tenendo il bilanciere vicino al corpo.",
+      "Arrivato in piedi, non iperestendere la schiena. Riscendi con controllo lungo le gambe."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Barbell_Deadlift"
+  },
+  {
+    "slug": "barbell-row",
+    "name_it": "Rematore con bilanciere",
+    "name_en": "Bent Over Barbell Row",
+    "synonyms": ["rematore", "rematore bilanciere", "rematore a busto flesso", "barbell row"],
+    "equipment": "barbell",
+    "primary_muscle": "Dorso",
+    "secondary_muscles": ["Dorsali", "Bicipiti", "Spalle"],
+    "execution_steps": [
+      "Impugna il bilanciere e inclina il busto in avanti, con schiena neutra e ginocchia leggermente flesse.",
+      "Tira il bilanciere verso l'addome portando i gomiti indietro.",
+      "Stringi le scapole per un istante in alto.",
+      "Abbassa con controllo fino a braccia tese, senza muovere il busto."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Bent_Over_Barbell_Row"
+  },
+  {
+    "slug": "one-arm-dumbbell-row",
+    "name_it": "Rematore con manubrio a un braccio",
+    "name_en": "One-Arm Dumbbell Row",
+    "synonyms": ["rematore con manubrio", "rematore manubrio", "rematore a un braccio", "dumbbell row"],
+    "equipment": "dumbbell",
+    "primary_muscle": "Dorso",
+    "secondary_muscles": ["Dorsali", "Bicipiti", "Spalle"],
+    "execution_steps": [
+      "Appoggia una mano e un ginocchio sulla panca, con la schiena parallela al suolo.",
+      "Con l'altra mano tieni il manubrio a braccio disteso.",
+      "Tira il manubrio verso il fianco portando il gomito indietro e in alto.",
+      "Abbassa con controllo, poi ripeti e cambia lato."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "One-Arm_Dumbbell_Row"
+  },
+  {
+    "slug": "pull-up",
+    "name_it": "Trazioni alla sbarra",
+    "name_en": "Pull-Up",
+    "synonyms": ["trazioni", "trazioni presa prona", "pull-up", "pullup"],
+    "equipment": "other",
+    "primary_muscle": "Dorsali",
+    "secondary_muscles": ["Bicipiti"],
+    "execution_steps": [
+      "Impugna la sbarra a presa prona, poco oltre la larghezza delle spalle, e sospenditi a braccia tese.",
+      "Tira il corpo verso l'alto portando i gomiti verso i fianchi, fino a superare la sbarra con il mento.",
+      "Scendi con controllo fino a braccia tese, senza dondolare."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Pullups"
+  },
+  {
+    "slug": "chin-up",
+    "name_it": "Trazioni a presa supina",
+    "name_en": "Chin-Up",
+    "synonyms": ["trazioni supine", "chin-up", "chin up", "trazioni presa inversa"],
+    "equipment": "other",
+    "primary_muscle": "Dorsali",
+    "secondary_muscles": ["Bicipiti", "Avambracci"],
+    "execution_steps": [
+      "Impugna la sbarra a presa supina, alla larghezza delle spalle, e sospenditi a braccia tese.",
+      "Tira il corpo verso l'alto fino a portare il mento sopra la sbarra.",
+      "Scendi con controllo fino a braccia tese."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Chin-Up"
+  },
+  {
+    "slug": "lat-pulldown",
+    "name_it": "Lat machine",
+    "name_en": "Wide-Grip Lat Pulldown",
+    "synonyms": ["lat machine presa larga", "pulldown", "lat pulldown", "trazioni al cavo alto"],
+    "equipment": "other",
+    "primary_muscle": "Dorsali",
+    "secondary_muscles": ["Bicipiti", "Dorso", "Spalle"],
+    "execution_steps": [
+      "Siediti bloccando le cosce sotto i cuscinetti e impugna la barra a presa larga.",
+      "Inclina leggermente il busto indietro e tira la barra fino all'altezza della parte alta del petto.",
+      "Porta i gomiti verso il basso e stringi le scapole.",
+      "Risali con controllo fino a braccia tese."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Wide-Grip_Lat_Pulldown"
+  },
+  {
+    "slug": "seated-cable-row",
+    "name_it": "Pulley basso",
+    "name_en": "Seated Cable Row",
+    "synonyms": ["pulley", "rematore ai cavi", "rematore seduto al cavo", "low row", "rowing seduto"],
+    "equipment": "other",
+    "primary_muscle": "Dorso",
+    "secondary_muscles": ["Dorsali", "Bicipiti", "Spalle"],
+    "execution_steps": [
+      "Siediti con i piedi sulle pedane, ginocchia leggermente flesse e schiena dritta.",
+      "Tira la maniglia verso l'addome portando i gomiti indietro.",
+      "Stringi le scapole per un istante, senza dondolare con il busto.",
+      "Torna lentamente alla posizione iniziale."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Seated_Cable_Rows"
+  },
+  {
+    "slug": "t-bar-row",
+    "name_it": "Rematore con T-bar",
+    "name_en": "T-Bar Row",
+    "synonyms": ["t-bar", "rematore t-bar", "rematore al t-bar"],
+    "equipment": "barbell",
+    "primary_muscle": "Dorso",
+    "secondary_muscles": ["Dorsali", "Bicipiti"],
+    "execution_steps": [
+      "Posizionati sopra la barra con il busto inclinato e la schiena neutra.",
+      "Impugna la maniglia e tira il carico verso il petto portando i gomiti indietro.",
+      "Stringi le scapole in alto, poi abbassa con controllo."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "T-Bar_Row_with_Handle"
+  },
+  {
+    "slug": "face-pull",
+    "name_it": "Face pull",
+    "name_en": "Face Pull",
+    "synonyms": ["tirate al viso", "tirate al viso ai cavi", "face pull ai cavi"],
+    "equipment": "other",
+    "primary_muscle": "Spalle",
+    "secondary_muscles": ["Dorso", "Trapezi"],
+    "execution_steps": [
+      "Imposta il cavo con la corda all'altezza del viso e afferrala a presa neutra.",
+      "Fai un passo indietro e tira la corda verso il viso, aprendo i gomiti verso l'esterno.",
+      "Stringi le scapole per un istante, poi torna con controllo."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Face_Pull"
+  },
+  {
+    "slug": "back-extension",
+    "name_it": "Estensioni per la schiena",
+    "name_en": "Back Extension",
+    "synonyms": ["iperestensioni", "estensioni lombari", "panca per lombari", "hyperextension"],
+    "equipment": "other",
+    "primary_muscle": "Lombari",
+    "secondary_muscles": ["Glutei", "Femorali"],
+    "execution_steps": [
+      "Posizionati sulla panca con i fianchi appena sopra il cuscino e le caviglie bloccate.",
+      "Incrocia le braccia sul petto e abbassa il busto con la schiena neutra.",
+      "Risali contraendo glutei e lombari fino ad allineare il corpo, senza iperestendere."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Hyperextensions_Back_Extensions"
+  },
+  {
+    "slug": "straight-arm-pulldown",
+    "name_it": "Pulldown a braccia tese",
+    "name_en": "Straight-Arm Pulldown",
+    "synonyms": ["pullover ai cavi", "pulldown braccia tese", "pushdown per dorsali"],
+    "equipment": "other",
+    "primary_muscle": "Dorsali",
+    "secondary_muscles": [],
+    "execution_steps": [
+      "In piedi davanti al cavo alto, impugna la barra a braccia tese e busto leggermente inclinato.",
+      "Porta la barra verso le cosce con le braccia quasi tese, contraendo i dorsali.",
+      "Risali lentamente fino all'altezza della testa."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Straight-Arm_Pulldown"
+  },
+  {
+    "slug": "barbell-shrug",
+    "name_it": "Scrollate con bilanciere",
+    "name_en": "Barbell Shrug",
+    "synonyms": ["scrollate", "scrollate di spalle", "shrug", "scrollate bilanciere"],
+    "equipment": "barbell",
+    "primary_muscle": "Trapezi",
+    "secondary_muscles": [],
+    "execution_steps": [
+      "In piedi, impugna il bilanciere davanti alle cosce a braccia tese.",
+      "Solleva le spalle verso le orecchie senza piegare i gomiti.",
+      "Resta un istante in alto, poi abbassa con controllo."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Barbell_Shrug"
+  },
+  {
+    "slug": "standing-barbell-overhead-press",
+    "name_it": "Military press",
+    "name_en": "Standing Military Press",
+    "synonyms": ["lento avanti con bilanciere", "overhead press", "distensioni sopra la testa", "shoulder press con bilanciere"],
+    "equipment": "barbell",
+    "primary_muscle": "Spalle",
+    "secondary_muscles": ["Tricipiti"],
+    "execution_steps": [
+      "In piedi, impugna il bilanciere poco oltre la larghezza delle spalle e appoggialo sulla parte alta del petto.",
+      "Contrai addome e glutei, poi spingi il bilanciere sopra la testa fino a estendere i gomiti.",
+      "Porta la testa leggermente avanti quando il bilanciere la supera.",
+      "Abbassa con controllo fino alla posizione iniziale."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Standing_Military_Press"
+  },
+  {
+    "slug": "dumbbell-shoulder-press",
+    "name_it": "Lento avanti con manubri",
+    "name_en": "Dumbbell Shoulder Press",
+    "synonyms": ["shoulder press", "shoulder press con manubri", "distensioni con manubri sopra la testa", "lento manubri"],
+    "equipment": "dumbbell",
+    "primary_muscle": "Spalle",
+    "secondary_muscles": ["Tricipiti"],
+    "execution_steps": [
+      "Siediti con la schiena appoggiata e porta i manubri all'altezza delle spalle.",
+      "Spingi i manubri verso l'alto fino a estendere i gomiti.",
+      "Abbassa con controllo fino a portare i gomiti poco sotto l'altezza delle spalle."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Dumbbell_Shoulder_Press"
+  },
+  {
+    "slug": "arnold-press",
+    "name_it": "Arnold press",
+    "name_en": "Arnold Dumbbell Press",
+    "synonyms": ["distensioni arnold", "arnold dumbbell press"],
+    "equipment": "dumbbell",
+    "primary_muscle": "Spalle",
+    "secondary_muscles": ["Tricipiti"],
+    "execution_steps": [
+      "Parti con i manubri davanti al petto, palmi rivolti verso di te.",
+      "Spingi verso l'alto ruotando i polsi, fino ad arrivare a palmi in avanti con i gomiti estesi.",
+      "Scendi invertendo la rotazione fino alla posizione iniziale."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Arnold_Dumbbell_Press"
+  },
+  {
+    "slug": "dumbbell-lateral-raise",
+    "name_it": "Alzate laterali con manubri",
+    "name_en": "Side Lateral Raise",
+    "synonyms": ["alzate laterali", "alzate laterali manubri", "lateral raise", "alzate laterali per spalle"],
+    "equipment": "dumbbell",
+    "primary_muscle": "Spalle",
+    "secondary_muscles": [],
+    "execution_steps": [
+      "In piedi, con un manubrio per mano lungo i fianchi e i gomiti leggermente flessi.",
+      "Solleva le braccia di lato fino all'altezza delle spalle.",
+      "Abbassa lentamente, senza dondolare con il busto."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Side_Lateral_Raise"
+  },
+  {
+    "slug": "dumbbell-front-raise",
+    "name_it": "Alzate frontali con manubri",
+    "name_en": "Front Dumbbell Raise",
+    "synonyms": ["alzate frontali", "alzate frontali manubri", "front raise"],
+    "equipment": "dumbbell",
+    "primary_muscle": "Spalle",
+    "secondary_muscles": [],
+    "execution_steps": [
+      "In piedi, con un manubrio per mano davanti alle cosce.",
+      "Solleva un braccio davanti a te, quasi teso, fino all'altezza delle spalle.",
+      "Abbassa con controllo e alterna le braccia."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Front_Dumbbell_Raise"
+  },
+  {
+    "slug": "rear-delt-fly",
+    "name_it": "Alzate posteriori con manubri",
+    "name_en": "Rear Delt Fly",
+    "synonyms": ["alzate a 90", "alzate busto flesso", "croci inverse", "deltoidi posteriori", "rear delt fly"],
+    "equipment": "dumbbell",
+    "primary_muscle": "Spalle",
+    "secondary_muscles": ["Dorso"],
+    "execution_steps": [
+      "Inclina il busto in avanti con la schiena neutra e i manubri sotto le spalle.",
+      "Con i gomiti leggermente flessi, apri le braccia di lato fino all'altezza del busto.",
+      "Abbassa lentamente, senza darti slancio."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Reverse_Flyes"
+  },
+  {
+    "slug": "upright-row",
+    "name_it": "Tirate al mento con bilanciere",
+    "name_en": "Upright Barbell Row",
+    "synonyms": ["tirate al mento", "upright row", "rematore verticale"],
+    "equipment": "barbell",
+    "primary_muscle": "Spalle",
+    "secondary_muscles": ["Trapezi"],
+    "execution_steps": [
+      "In piedi, impugna il bilanciere a presa prona, poco più stretta delle spalle.",
+      "Tira il bilanciere verso il petto, portando i gomiti in alto e verso l'esterno.",
+      "Fermati all'altezza del petto, poi abbassa con controllo."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Upright_Barbell_Row"
+  },
+  {
+    "slug": "barbell-back-squat",
+    "name_it": "Squat con bilanciere",
+    "name_en": "Barbell Back Squat",
+    "synonyms": ["squat", "squat bilanciere", "back squat", "accosciata"],
+    "equipment": "barbell",
+    "primary_muscle": "Quadricipiti",
+    "secondary_muscles": ["Glutei", "Femorali", "Lombari"],
+    "execution_steps": [
+      "Appoggia il bilanciere sui trapezi, piedi poco più larghi delle spalle e punte leggermente aperte.",
+      "Scendi flettendo anche e ginocchia insieme, con schiena neutra e petto alto.",
+      "Scendi almeno fino a cosce parallele al suolo, con i ginocchi in linea con i piedi.",
+      "Spingi sui piedi per risalire, estendendo gambe e bacino."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Barbell_Squat"
+  },
+  {
+    "slug": "front-squat",
+    "name_it": "Front squat",
+    "name_en": "Front Barbell Squat",
+    "synonyms": ["squat frontale", "squat anteriore", "front squat con bilanciere"],
+    "equipment": "barbell",
+    "primary_muscle": "Quadricipiti",
+    "secondary_muscles": ["Glutei", "Femorali"],
+    "execution_steps": [
+      "Appoggia il bilanciere sulle spalle davanti, con i gomiti alti e le dita sotto la barra.",
+      "Scendi mantenendo il busto verticale e i gomiti alti.",
+      "Scendi fino a cosce almeno parallele al suolo, poi spingi sui piedi per risalire."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Front_Barbell_Squat"
+  },
+  {
+    "slug": "leg-press",
+    "name_it": "Leg press",
+    "name_en": "Leg Press",
+    "synonyms": ["pressa", "pressa orizzontale", "pressa 45", "pressa per gambe"],
+    "equipment": "other",
+    "primary_muscle": "Quadricipiti",
+    "secondary_muscles": ["Glutei", "Femorali", "Polpacci"],
+    "execution_steps": [
+      "Siediti con la schiena e il bacino ben appoggiati, piedi sulla pedana alla larghezza delle spalle.",
+      "Sblocca il carico e scendi flettendo le ginocchia, senza staccare il bacino dallo schienale.",
+      "Spingi sulla pedana fino a quasi estendere le gambe, senza bloccare le ginocchia."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Leg_Press"
+  },
+  {
+    "slug": "romanian-deadlift",
+    "name_it": "Stacco rumeno",
+    "name_en": "Romanian Deadlift",
+    "synonyms": ["rdl", "stacco a gambe semitese", "stacco rumeno con bilanciere"],
+    "equipment": "barbell",
+    "primary_muscle": "Femorali",
+    "secondary_muscles": ["Glutei", "Lombari"],
+    "execution_steps": [
+      "In piedi con il bilanciere davanti alle cosce, ginocchia appena flesse.",
+      "Spingi il bacino indietro e abbassa il bilanciere lungo le gambe, con la schiena neutra.",
+      "Scendi fino a sentire l'allungamento dei femorali, poi risali spingendo il bacino in avanti."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Romanian_Deadlift"
+  },
+  {
+    "slug": "sumo-deadlift",
+    "name_it": "Stacco sumo",
+    "name_en": "Sumo Deadlift",
+    "synonyms": ["stacco sumo con bilanciere", "sumo deadlift"],
+    "equipment": "barbell",
+    "primary_muscle": "Glutei",
+    "secondary_muscles": ["Femorali", "Quadricipiti", "Adduttori", "Lombari"],
+    "execution_steps": [
+      "Posizionati con i piedi molto larghi e le punte aperte, il bilanciere sopra la metà dei piedi.",
+      "Piegati e impugna il bilanciere all'interno delle gambe, con schiena neutra e petto alto.",
+      "Spingi sui piedi aprendo le ginocchia ed estendi gambe e bacino fino a stare in piedi.",
+      "Riscendi con controllo lungo le gambe."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Sumo_Deadlift"
+  },
+  {
+    "slug": "barbell-lunge",
+    "name_it": "Affondi con bilanciere",
+    "name_en": "Barbell Lunge",
+    "synonyms": ["affondi bilanciere", "affondi con il bilanciere"],
+    "equipment": "barbell",
+    "primary_muscle": "Quadricipiti",
+    "secondary_muscles": ["Glutei", "Femorali"],
+    "execution_steps": [
+      "Appoggia il bilanciere sui trapezi e fai un passo in avanti.",
+      "Scendi flettendo entrambe le ginocchia fino a sfiorare il suolo con il ginocchio posteriore.",
+      "Spingi con la gamba anteriore per tornare alla posizione iniziale, poi ripeti dall'altro lato."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Barbell_Lunge"
+  },
+  {
+    "slug": "dumbbell-lunge",
+    "name_it": "Affondi con manubri",
+    "name_en": "Dumbbell Lunges",
+    "synonyms": ["affondi", "affondi manubri", "affondi camminati", "walking lunge"],
+    "equipment": "dumbbell",
+    "primary_muscle": "Quadricipiti",
+    "secondary_muscles": ["Glutei", "Femorali"],
+    "execution_steps": [
+      "In piedi con un manubrio per mano lungo i fianchi, fai un passo in avanti.",
+      "Scendi flettendo entrambe le ginocchia fino a sfiorare il suolo con il ginocchio posteriore.",
+      "Spingi con la gamba anteriore per tornare in piedi, poi alterna le gambe."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Dumbbell_Lunges"
+  },
+  {
+    "slug": "bulgarian-split-squat",
+    "name_it": "Squat bulgaro",
+    "name_en": "Bulgarian Split Squat",
+    "synonyms": ["affondi bulgari", "split squat bulgaro", "squat bulgaro con manubri", "bulgarian split squat"],
+    "equipment": "dumbbell",
+    "primary_muscle": "Quadricipiti",
+    "secondary_muscles": ["Glutei", "Femorali"],
+    "execution_steps": [
+      "Appoggia il collo del piede posteriore su una panca dietro di te, con un manubrio per mano.",
+      "Scendi flettendo il ginocchio anteriore, con il busto eretto.",
+      "Spingi sul piede anteriore per risalire. Completa le ripetizioni, poi cambia gamba."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Split_Squat_with_Dumbbells"
+  },
+  {
+    "slug": "leg-extension",
+    "name_it": "Leg extension",
+    "name_en": "Leg Extensions",
+    "synonyms": ["estensioni per quadricipiti", "estensioni delle gambe", "leg extension alla macchina"],
+    "equipment": "other",
+    "primary_muscle": "Quadricipiti",
+    "secondary_muscles": [],
+    "execution_steps": [
+      "Siediti alla macchina con la schiena appoggiata e il cuscinetto sopra le caviglie.",
+      "Estendi le gambe fino quasi a distenderle, contraendo i quadricipiti.",
+      "Torna indietro lentamente, controllando il carico."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Leg_Extensions"
+  },
+  {
+    "slug": "lying-leg-curl",
+    "name_it": "Leg curl da sdraiato",
+    "name_en": "Lying Leg Curls",
+    "synonyms": ["leg curl", "curl femorali", "leg curl sdraiato", "femorali alla macchina"],
+    "equipment": "other",
+    "primary_muscle": "Femorali",
+    "secondary_muscles": [],
+    "execution_steps": [
+      "Sdraiati a pancia in giù sulla macchina, con il cuscinetto appena sopra i talloni.",
+      "Fletti le ginocchia portando i talloni verso i glutei.",
+      "Torna lentamente alla posizione iniziale, senza sollevare il bacino."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Lying_Leg_Curls"
+  },
+  {
+    "slug": "seated-leg-curl",
+    "name_it": "Leg curl da seduto",
+    "name_en": "Seated Leg Curl",
+    "synonyms": ["leg curl seduto", "curl femorali da seduto"],
+    "equipment": "other",
+    "primary_muscle": "Femorali",
+    "secondary_muscles": [],
+    "execution_steps": [
+      "Siediti alla macchina con la schiena appoggiata e il cuscinetto sopra le caviglie.",
+      "Fletti le ginocchia portando i talloni verso il basso e indietro.",
+      "Torna lentamente alla posizione iniziale, controllando il carico."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Seated_Leg_Curl"
+  },
+  {
+    "slug": "standing-calf-raise",
+    "name_it": "Calf raise in piedi",
+    "name_en": "Standing Calf Raises",
+    "synonyms": ["calf raise", "polpacci in piedi", "calf in piedi", "sollevamenti sulle punte"],
+    "equipment": "other",
+    "primary_muscle": "Polpacci",
+    "secondary_muscles": [],
+    "execution_steps": [
+      "Posiziona le spalle sotto i cuscinetti e le punte dei piedi sul bordo della pedana.",
+      "Solleva i talloni il più in alto possibile, contraendo i polpacci.",
+      "Abbassa i talloni sotto il livello della pedana per allungare bene il muscolo."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Standing_Calf_Raises"
+  },
+  {
+    "slug": "seated-calf-raise",
+    "name_it": "Calf raise da seduto",
+    "name_en": "Seated Calf Raise",
+    "synonyms": ["polpacci da seduto", "calf da seduto", "calf seduto"],
+    "equipment": "other",
+    "primary_muscle": "Polpacci",
+    "secondary_muscles": [],
+    "execution_steps": [
+      "Siediti alla macchina con i cuscinetti sopra le ginocchia e le punte dei piedi sulla pedana.",
+      "Solleva i talloni il più in alto possibile.",
+      "Abbassa lentamente fino a sentire l'allungamento dei polpacci."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Seated_Calf_Raise"
+  },
+  {
+    "slug": "barbell-hip-thrust",
+    "name_it": "Hip thrust",
+    "name_en": "Barbell Hip Thrust",
+    "synonyms": ["spinta d'anca", "ponte glutei con bilanciere", "hip thrust con bilanciere"],
+    "equipment": "barbell",
+    "primary_muscle": "Glutei",
+    "secondary_muscles": ["Femorali", "Quadricipiti"],
+    "execution_steps": [
+      "Appoggia la parte alta della schiena su una panca, con il bilanciere sopra i fianchi.",
+      "Piedi a terra, ginocchia flesse: spingi il bacino verso l'alto contraendo i glutei.",
+      "In alto, il busto e le cosce formano una linea retta. Scendi con controllo."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Barbell_Hip_Thrust"
+  },
+  {
+    "slug": "dumbbell-step-up",
+    "name_it": "Step-up con manubri",
+    "name_en": "Dumbbell Step Ups",
+    "synonyms": ["step up", "step-up", "salite sulla panca", "salite sullo step"],
+    "equipment": "dumbbell",
+    "primary_muscle": "Quadricipiti",
+    "secondary_muscles": ["Glutei", "Femorali"],
+    "execution_steps": [
+      "Davanti a una panca o a uno step, con un manubrio per mano.",
+      "Appoggia un piede sulla panca e spingi per salire, estendendo la gamba.",
+      "Scendi con controllo, poi ripeti con l'altra gamba."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Dumbbell_Step_Ups"
+  },
+  {
+    "slug": "barbell-curl",
+    "name_it": "Curl con bilanciere",
+    "name_en": "Barbell Curl",
+    "synonyms": ["curl", "curl bilanciere", "curl in piedi con bilanciere", "curl per bicipiti"],
+    "equipment": "barbell",
+    "primary_muscle": "Bicipiti",
+    "secondary_muscles": ["Avambracci"],
+    "execution_steps": [
+      "In piedi, impugna il bilanciere a presa supina alla larghezza delle spalle.",
+      "Fletti i gomiti portando il bilanciere verso le spalle, tenendo i gomiti vicino ai fianchi.",
+      "Abbassa con controllo fino a braccia tese, senza dondolare."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Barbell_Curl"
+  },
+  {
+    "slug": "dumbbell-curl",
+    "name_it": "Curl con manubri alternato",
+    "name_en": "Dumbbell Alternate Bicep Curl",
+    "synonyms": ["curl manubri", "curl con manubri", "curl alternato", "curl alternato con manubri"],
+    "equipment": "dumbbell",
+    "primary_muscle": "Bicipiti",
+    "secondary_muscles": ["Avambracci"],
+    "execution_steps": [
+      "In piedi, con un manubrio per mano e i palmi rivolti in avanti.",
+      "Fletti un gomito portando il manubrio verso la spalla, ruotando il polso verso l'alto.",
+      "Abbassa con controllo e alterna le braccia."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Dumbbell_Alternate_Bicep_Curl"
+  },
+  {
+    "slug": "hammer-curl",
+    "name_it": "Curl a martello",
+    "name_en": "Hammer Curls",
+    "synonyms": ["hammer curl", "curl martello", "curl con manubri presa neutra"],
+    "equipment": "dumbbell",
+    "primary_muscle": "Bicipiti",
+    "secondary_muscles": ["Avambracci"],
+    "execution_steps": [
+      "In piedi, con un manubrio per mano e i palmi rivolti verso le cosce (presa neutra).",
+      "Fletti i gomiti portando i manubri verso le spalle, senza ruotare i polsi.",
+      "Abbassa con controllo fino a braccia tese."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Hammer_Curls"
+  },
+  {
+    "slug": "preacher-curl",
+    "name_it": "Curl alla panca Scott",
+    "name_en": "Preacher Curl",
+    "synonyms": ["panca scott", "curl scott", "preacher curl", "curl alla scott"],
+    "equipment": "other",
+    "primary_muscle": "Bicipiti",
+    "secondary_muscles": ["Avambracci"],
+    "execution_steps": [
+      "Siediti alla panca Scott con le braccia appoggiate sul cuscino e impugna la barra EZ a presa supina.",
+      "Fletti i gomiti portando la barra verso le spalle.",
+      "Abbassa lentamente fino a quasi estendere le braccia, senza scattare in basso."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Preacher_Curl"
+  },
+  {
+    "slug": "triceps-pushdown",
+    "name_it": "Pushdown ai cavi per tricipiti",
+    "name_en": "Triceps Pushdown",
+    "synonyms": ["pushdown", "push down", "tricipiti al cavo", "french al cavo", "pushdown tricipiti"],
+    "equipment": "other",
+    "primary_muscle": "Tricipiti",
+    "secondary_muscles": [],
+    "execution_steps": [
+      "In piedi davanti al cavo alto, impugna la barra con i gomiti vicino ai fianchi.",
+      "Estendi i gomiti spingendo la barra verso il basso, fino a braccia tese.",
+      "Risali lentamente fino a gomiti a 90 gradi, senza muovere le spalle."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Triceps_Pushdown"
+  },
+  {
+    "slug": "close-grip-bench-press",
+    "name_it": "Panca piana presa stretta",
+    "name_en": "Close-Grip Barbell Bench Press",
+    "synonyms": ["panca presa stretta", "distensioni presa stretta", "close grip bench press"],
+    "equipment": "barbell",
+    "primary_muscle": "Tricipiti",
+    "secondary_muscles": ["Petto", "Spalle"],
+    "execution_steps": [
+      "Sdraiati sulla panca e impugna il bilanciere a una larghezza poco inferiore a quella delle spalle.",
+      "Abbassa il bilanciere verso la parte bassa del petto, con i gomiti vicino ai fianchi.",
+      "Spingi verso l'alto fino a estendere i gomiti."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Close-Grip_Barbell_Bench_Press"
+  },
+  {
+    "slug": "skullcrusher",
+    "name_it": "French press con barra EZ",
+    "name_en": "EZ-Bar Skullcrusher",
+    "synonyms": ["french press", "skull crusher", "skullcrusher", "french press da sdraiato", "tricipiti da sdraiato"],
+    "equipment": "other",
+    "primary_muscle": "Tricipiti",
+    "secondary_muscles": ["Avambracci"],
+    "execution_steps": [
+      "Sdraiati sulla panca con la barra EZ sopra il petto, a braccia tese.",
+      "Fletti solo i gomiti abbassando la barra verso la fronte, tenendo i gomiti fermi.",
+      "Estendi i gomiti riportando la barra sopra il petto."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "EZ-Bar_Skullcrusher"
+  },
+  {
+    "slug": "overhead-dumbbell-triceps-extension",
+    "name_it": "Estensioni sopra la testa con manubrio",
+    "name_en": "Overhead Dumbbell Triceps Extension",
+    "synonyms": ["french press con manubrio", "estensioni tricipiti con manubrio", "tricipiti sopra la testa"],
+    "equipment": "dumbbell",
+    "primary_muscle": "Tricipiti",
+    "secondary_muscles": [],
+    "execution_steps": [
+      "In piedi o seduto, tieni un manubrio con entrambe le mani sopra la testa, a braccia tese.",
+      "Fletti i gomiti abbassando il manubrio dietro la testa, tenendo i gomiti vicini.",
+      "Estendi i gomiti per tornare in alto."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Standing_Dumbbell_Triceps_Extension"
+  },
+  {
+    "slug": "bench-dip",
+    "name_it": "Dip alla panca",
+    "name_en": "Bench Dips",
+    "synonyms": ["dip su panca", "dip tra due panche", "bench dip"],
+    "equipment": "other",
+    "primary_muscle": "Tricipiti",
+    "secondary_muscles": ["Petto", "Spalle"],
+    "execution_steps": [
+      "Appoggia le mani su una panca dietro di te, con le gambe distese davanti.",
+      "Scendi flettendo i gomiti fino a circa 90 gradi, tenendo il corpo vicino alla panca.",
+      "Spingi verso l'alto fino a estendere i gomiti."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Bench_Dips"
+  },
+  {
+    "slug": "plank",
+    "name_it": "Plank",
+    "name_en": "Plank",
+    "synonyms": ["ponte frontale", "plank sugli avambracci", "tavola"],
+    "equipment": "other",
+    "primary_muscle": "Addominali",
+    "secondary_muscles": [],
+    "execution_steps": [
+      "Appoggia avambracci e punte dei piedi a terra, con i gomiti sotto le spalle.",
+      "Mantieni il corpo in linea retta dalla testa ai talloni, contraendo addome e glutei.",
+      "Resta fermo per il tempo previsto, respirando con regolarità."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Plank"
+  },
+  {
+    "slug": "crunch",
+    "name_it": "Crunch",
+    "name_en": "Crunches",
+    "synonyms": ["crunch addominali", "addominali", "addominali a terra"],
+    "equipment": "other",
+    "primary_muscle": "Addominali",
+    "secondary_muscles": [],
+    "execution_steps": [
+      "Sdraiati sulla schiena con le ginocchia flesse e i piedi a terra.",
+      "Con le mani ai lati della testa, solleva spalle e parte alta della schiena contraendo l'addome.",
+      "Abbassa lentamente senza tirare il collo."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Crunches"
+  },
+  {
+    "slug": "hanging-leg-raise",
+    "name_it": "Sollevamento gambe alla sbarra",
+    "name_en": "Hanging Leg Raise",
+    "synonyms": ["leg raise alla sbarra", "sollevamento gambe", "leg raise sospeso", "hanging leg raise"],
+    "equipment": "other",
+    "primary_muscle": "Addominali",
+    "secondary_muscles": [],
+    "execution_steps": [
+      "Sospenditi alla sbarra a braccia tese, senza dondolare.",
+      "Solleva le gambe davanti a te, fino ad arrivare almeno all'orizzontale, contraendo l'addome.",
+      "Abbassa con controllo senza darti slancio."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Hanging_Leg_Raise"
+  },
+  {
+    "slug": "cable-crunch",
+    "name_it": "Crunch ai cavi",
+    "name_en": "Cable Crunch",
+    "synonyms": ["crunch al cavo", "crunch cavo alto", "addominali ai cavi"],
+    "equipment": "other",
+    "primary_muscle": "Addominali",
+    "secondary_muscles": [],
+    "execution_steps": [
+      "Inginocchiati davanti al cavo alto e tieni la corda ai lati della testa.",
+      "Fletti il busto portando i gomiti verso le cosce, contraendo l'addome.",
+      "Risali lentamente, senza spingere con i fianchi."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Cable_Crunch"
+  },
+  {
+    "slug": "russian-twist",
+    "name_it": "Russian twist",
+    "name_en": "Russian Twist",
+    "synonyms": ["torsioni russe", "rotazioni del busto da seduto"],
+    "equipment": "other",
+    "primary_muscle": "Addominali",
+    "secondary_muscles": ["Lombari"],
+    "execution_steps": [
+      "Siediti a terra con il busto inclinato indietro e i piedi appoggiati o sollevati.",
+      "Ruota il busto da un lato all'altro, portando le mani accanto ai fianchi.",
+      "Mantieni la schiena dritta e il ritmo controllato."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Russian_Twist"
+  },
+  {
+    "slug": "ab-wheel-rollout",
+    "name_it": "Ruota addominale",
+    "name_en": "Ab Wheel Rollout",
+    "synonyms": ["ab wheel", "rollout", "ab roller", "rullo per addominali"],
+    "equipment": "other",
+    "primary_muscle": "Addominali",
+    "secondary_muscles": ["Spalle"],
+    "execution_steps": [
+      "Inginocchiati e impugna la ruota con le braccia tese sotto le spalle.",
+      "Fai rotolare la ruota in avanti, mantenendo addome contratto e schiena neutra.",
+      "Quando senti di non poter controllare la schiena, torna indietro contraendo l'addome."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Ab_Roller"
+  },
+  {
+    "slug": "farmers-walk",
+    "name_it": "Farmer's walk",
+    "name_en": "Farmer's Walk",
+    "synonyms": ["farmer walk", "camminata del contadino", "passeggiata del contadino", "farmer's carry"],
+    "equipment": "other",
+    "primary_muscle": "Avambracci",
+    "secondary_muscles": ["Trapezi", "Addominali", "Glutei"],
+    "execution_steps": [
+      "Solleva da terra un peso per mano e stai in piedi con le spalle indietro e giù.",
+      "Cammina a passi corti e controllati per la distanza prevista.",
+      "Mantieni il busto eretto, senza inclinarti da un lato."
+    ],
+    "source": "free-exercise-db",
+    "source_id": "Farmers_Walk"
+  }
+]

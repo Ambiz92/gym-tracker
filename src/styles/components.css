@@ -143,6 +143,7 @@
 /* Badge: a small caps label on the tag classes. Outline = status, copper fill = in progress. */
 .row-link__tag,
 .exercise-row__tag,
+.exercise-row__origin,
 .session-table__tag,
 .session-table__bonus {
   display: inline-block;
@@ -169,6 +170,7 @@
   color: var(--ds-color-accent-text);
 }
 
+.exercise-row__origin,
 .session-table__bonus {
   color: var(--ds-color-text-muted);
 }

@@ -21,7 +21,7 @@ function planExercise(id: string, name: string): PlanExerciseDetail {
     target_unit: 'reps',
     suggested_weight_kg: null,
     suggested_weight_max_kg: null,
-    exercise: { id, owner_id: 'o', name, equipment: 'barbell', muscles: null, execution_steps: null, notes: null, starting_weight_kg: null, archived: false },
+    exercise: { id, owner_id: 'o', name, equipment: 'barbell', muscles: null, execution_steps: null, notes: null, starting_weight_kg: null, archived: false, catalog_id: null },
   }
 }
 

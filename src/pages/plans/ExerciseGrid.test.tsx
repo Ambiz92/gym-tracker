@@ -28,6 +28,7 @@ function row(id: string, overrides: Partial<PlanExerciseDetail> = {}): PlanExerc
       notes: null,
       starting_weight_kg: null,
       archived: false,
+      catalog_id: null,
     },
     ...overrides,
   }

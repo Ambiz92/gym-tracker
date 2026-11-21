@@ -89,6 +89,10 @@
   overflow-wrap: anywhere;
 }
 
+.exercise-row__origin {
+  margin-top: var(--ds-space-1);
+}
+
 .exercise-row__glyph {
   min-width: var(--ds-size-touch);
   font-size: var(--ds-text-lg);

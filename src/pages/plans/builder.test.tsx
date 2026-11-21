@@ -26,6 +26,7 @@ function exercise(id: string, overrides: Partial<Exercise> = {}): Exercise {
     notes: null,
     starting_weight_kg: null,
     archived: false,
+    catalog_id: null,
     ...overrides,
   }
 }
@@ -198,9 +199,11 @@ describe('the add sheet', () => {
       <AddExercisesSheet
         sessionName="A"
         library={{ status: 'ready', data: exercises, reload: noop }}
+        catalog={{ status: 'ready', data: { entries: [], adoptedIds: new Set() }, reload: noop }}
         state={state}
         onToggle={noop}
         onCreate={() => Promise.resolve(true)}
+        onAdopt={() => Promise.resolve(true)}
         onClose={noop}
       />,
     )
@@ -210,8 +213,8 @@ describe('the add sheet', () => {
     expect(html).toMatch(/<dialog[^>]*aria-labelledby=/)
     expect(html).toContain('Aggiungi esercizi')
     expect(html).toContain('>Fine<')
-    expect(html.indexOf('+ Crea un nuovo esercizio')).toBeGreaterThan(html.indexOf('type="search"'))
-    expect(html.indexOf('+ Crea un nuovo esercizio')).toBeLessThan(html.indexOf('Esercizio a'))
+    expect(html.indexOf('+ Aggiungi personalizzato')).toBeGreaterThan(html.indexOf('type="search"'))
+    expect(html.indexOf('+ Aggiungi personalizzato')).toBeLessThan(html.indexOf('Esercizio a'))
   })
 
   test('marks an added exercise as pressed, says to tap to remove it, and counts the added ones', () => {
@@ -239,11 +242,44 @@ describe('the add sheet', () => {
 
   test('shows a skeleton while the library loads, with the search box and the way out already there', () => {
     const html = render(
-      <AddExercisesSheet sessionName="A" library={{ status: 'loading', reload: noop }} state={idle} onToggle={noop} onCreate={() => Promise.resolve(true)} onClose={noop} />,
+      <AddExercisesSheet
+        sessionName="A"
+        library={{ status: 'loading', reload: noop }}
+        catalog={{ status: 'loading', reload: noop }}
+        state={idle}
+        onToggle={noop}
+        onCreate={() => Promise.resolve(true)}
+        onAdopt={() => Promise.resolve(true)}
+        onClose={noop}
+      />,
     )
     expect(html).toContain('Caricamento')
     expect(html).toContain('type="search"')
     expect(html).toContain('>Fine<')
+  })
+
+  test('shows the catalog error inside the sheet and leaves the user exercises tappable', () => {
+    const html = render(
+      <AddExercisesSheet
+        sessionName="A"
+        library={{ status: 'ready', data: [exercise('a')], reload: noop }}
+        catalog={{ status: 'error', error: new Error('offline'), reload: noop }}
+        state={idle}
+        onToggle={noop}
+        onCreate={() => Promise.resolve(true)}
+        onAdopt={() => Promise.resolve(true)}
+        onClose={noop}
+      />,
+    )
+    expect(html).toContain('Catalogo non disponibile')
+    expect(html).toContain('Esercizio a, tocca per aggiungere')
+    expect(html).toContain('+ Aggiungi personalizzato')
+  })
+
+  test('has the equipment filter between the custom button and the results', () => {
+    const html = ready([exercise('a')])
+    expect(html.indexOf('Filtra per attrezzo')).toBeGreaterThan(html.indexOf('+ Aggiungi personalizzato'))
+    expect(html.indexOf('Filtra per attrezzo')).toBeLessThan(html.indexOf('I tuoi esercizi'))
   })
 
   test('the quick create row names the typed exercise and offers the three equipments, none preselected', () => {

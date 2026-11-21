@@ -14,7 +14,7 @@ interface ExerciseListProps {
   empty: ReactNode
 }
 
-/** Tappable exercise rows: name, equipment and muscles (or plan usage); archived ones are tagged. Text only, never HTML. */
+/** Tappable exercise rows: name, equipment and muscles (or plan usage); archived ones and copies of a catalog entry are tagged. Text only, never HTML. */
 export function ExerciseList({ exercises, onSelect, selectedId, usage, empty }: ExerciseListProps) {
   if (exercises.length === 0) return <div className="exercises__empty">{empty}</div>
 
@@ -33,6 +33,7 @@ export function ExerciseList({ exercises, onSelect, selectedId, usage, empty }: 
               <span className="exercise-row__detail">
                 {usage ? exerciseUsageDetail(exercise, usage.get(exercise.id) ?? 0) : exerciseDetail(exercise)}
               </span>
+              {exercise.catalog_id !== null && <span className="exercise-row__origin">dal catalogo</span>}
             </span>
             {exercise.archived ? (
               <span className="exercise-row__tag">Archiviato</span>

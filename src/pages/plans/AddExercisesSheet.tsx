@@ -10,33 +10,39 @@ import {
   validateExerciseForm,
   type ExerciseFormErrors,
 } from '../../lib/exerciseForm'
-import { exerciseDetail, filterExercises, hasExactName } from '../../lib/exerciseList'
-import { formatNumber } from '../../lib/formatNumber'
+import { hasExactName } from '../../lib/exerciseList'
 import type { SheetSnapshot } from '../../lib/exerciseSheet'
-import type { Equipment, Exercise, ExerciseInsert } from '../../types/db'
+import type { CatalogExercise, Equipment, Exercise, ExerciseInsert } from '../../types/db'
 import { LoadState } from '../history/LoadState'
 import '../../styles/session.css'
 import '../../styles/exercises.css'
 import '../../styles/builder.css'
+import { PickFilterBar, PickResults, type CatalogState, type PickFilters } from './PickResults'
 
 interface AddExercisesSheetProps {
   sessionName: string
   library: AsyncState<readonly Exercise[]> & { reload: () => void }
+  /** The shared catalog: its failure leaves the user's own exercises usable. */
+  catalog: CatalogState
   state: SheetSnapshot
   onToggle: (exercise: Exercise) => void
   /** Creates the exercise and adds it to the session; resolves true when both worked. */
   onCreate: (exercise: ExerciseInsert) => Promise<boolean>
+  /** Copies the catalog entry into the library and adds the copy; resolves true when both worked. */
+  onAdopt: (entry: CatalogExercise) => Promise<boolean>
   onClose: () => void
 }
 
-/** Bottom sheet to fill a session: tap an exercise to add it, tap again to take it out, create what is missing without leaving. */
-export function AddExercisesSheet({ sessionName, library, state, onToggle, onCreate, onClose }: AddExercisesSheetProps) {
+/** Bottom sheet to fill a session: tap an exercise to add it, tap again to take it out, pick from the catalog or create what is missing without leaving. */
+export function AddExercisesSheet({ sessionName, library, catalog, state, onToggle, onCreate, onAdopt, onClose }: AddExercisesSheetProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const titleId = useId()
   const [query, setQuery] = useState('')
+  const [filters, setFilters] = useState<PickFilters>({})
   const [formOpen, setFormOpen] = useState(false)
   const text = query.trim()
+  const catalogEntries = catalog.status === 'ready' ? catalog.data.entries : []
 
   // A native modal dialog traps focus, closes on Escape and gives focus back to the opener.
   useEffect(() => {
@@ -50,6 +56,10 @@ export function AddExercisesSheet({ sessionName, library, state, onToggle, onCre
     setFormOpen(false)
     setQuery('')
     searchRef.current?.focus()
+  }
+
+  async function adopt(entry: CatalogExercise) {
+    if (await onAdopt(entry)) searchRef.current?.focus()
   }
 
   return (
@@ -76,8 +86,9 @@ export function AddExercisesSheet({ sessionName, library, state, onToggle, onCre
         </div>
         <ExerciseSearch value={query} onChange={setQuery} inputRef={searchRef} />
         <button type="button" className="add-sheet__new" aria-expanded={formOpen} onClick={() => setFormOpen((open) => !open)}>
-          + Crea un nuovo esercizio
+          + Aggiungi personalizzato
         </button>
+        {!formOpen && <PickFilterBar catalog={catalog} value={filters} onChange={setFilters} />}
         <div className="add-sheet__status">
           <span>Tocca per aggiungere, tocca ancora per togliere</span>
           <span role="status">{state.addedCount > 0 && `${state.addedCount} aggiunti`}</span>
@@ -94,8 +105,8 @@ export function AddExercisesSheet({ sessionName, library, state, onToggle, onCre
             <LoadState state={library} what="la libreria">
               {(exercises) => (
                 <>
-                  {text !== '' && !hasExactName(exercises, text) && <QuickCreate name={text} busy={state.creating} onCreate={create} />}
-                  <PickList exercises={filterExercises(exercises, query)} state={state} query={text} onToggle={onToggle} />
+                  {text !== '' && !hasExactName(exercises, text, catalogEntries) && <QuickCreate name={text} busy={state.creating} onCreate={create} />}
+                  <PickResults exercises={exercises} catalog={catalog} query={query} filters={filters} state={state} onToggle={onToggle} onAdopt={(entry) => void adopt(entry)} />
                 </>
               )}
             </LoadState>
@@ -103,50 +114,6 @@ export function AddExercisesSheet({ sessionName, library, state, onToggle, onCre
         </div>
       </div>
     </dialog>
-  )
-}
-
-interface PickListProps {
-  exercises: readonly Exercise[]
-  state: SheetSnapshot
-  query: string
-  onToggle: (exercise: Exercise) => void
-}
-
-function PickList({ exercises, state, query, onToggle }: PickListProps) {
-  if (exercises.length === 0) {
-    return <p className="add-sheet__empty">{query ? `Nessun esercizio corrisponde a «${query}».` : 'La libreria è vuota. Crea il primo esercizio qui sopra.'}</p>
-  }
-  return (
-    <ul className="add-sheet__list">
-      {exercises.map((exercise) => {
-        const added = state.added.has(exercise.id)
-        return (
-          <li key={exercise.id}>
-            <button
-              type="button"
-              className="add-sheet__pick"
-              aria-pressed={added}
-              aria-busy={state.busy.has(exercise.id) || undefined}
-              aria-label={`${exercise.name}, ${added ? 'aggiunto: tocca per rimuovere' : 'tocca per aggiungere'}`}
-              onClick={() => onToggle(exercise)}
-            >
-              <span>
-                <span className="exercise-row__name">{exercise.name}</span>
-                <span className="exercise-row__detail">
-                  {exercise.starting_weight_kg === null
-                    ? exerciseDetail({ ...exercise, muscles: null })
-                    : `${EQUIPMENT_LABELS[exercise.equipment]} · ${formatNumber(exercise.starting_weight_kg)} kg`}
-                </span>
-              </span>
-              <span className="add-sheet__state" aria-hidden="true">
-                {added ? '✓ Aggiunto' : '+'}
-              </span>
-            </button>
-          </li>
-        )
-      })}
-    </ul>
   )
 }
 

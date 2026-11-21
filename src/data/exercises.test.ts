@@ -1,7 +1,15 @@
 import { beforeEach, expect, test, vi } from 'vitest'
 import { DataError } from './client'
 import { fakeSupabase } from './fakeSupabase'
-import { archiveExercise, createExercise, deleteExercise, listExerciseUsage, listExercises, updateExercise } from './exercises'
+import {
+  archiveExercise,
+  createExercise,
+  deleteExercise,
+  listAdoptedCatalogIds,
+  listExerciseUsage,
+  listExercises,
+  updateExercise,
+} from './exercises'
 
 vi.mock('../lib/supabase', async () => ({ supabase: (await import('./fakeSupabase')).fakeSupabase }))
 
@@ -15,6 +23,12 @@ test('listExercises reads non-archived rows ordered by name', async () => {
     filters: [['eq', 'archived', false]],
     orders: [{ column: 'name', ascending: true }],
   })
+})
+
+test('listAdoptedCatalogIds collects the catalog links of every copy, archived included, skipping personal exercises', async () => {
+  fakeSupabase.reset(() => ({ data: [{ catalog_id: 'c1' }, { catalog_id: null }, { catalog_id: 'c2' }, { catalog_id: 'c1' }] }))
+  expect(await listAdoptedCatalogIds()).toEqual(new Set(['c1', 'c2']))
+  expect(fakeSupabase.calls[0]).toMatchObject({ table: 'exercise', op: 'select', columns: 'catalog_id', filters: [] })
 })
 
 test('listExerciseUsage counts each plan once per exercise, filtering archived sessions and plans in the query', async () => {

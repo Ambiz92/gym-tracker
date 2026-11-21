@@ -1,7 +1,7 @@
-import type { Exercise, ExerciseInsert } from '../types/db'
+import type { CatalogExercise, Exercise, ExerciseInsert } from '../types/db'
 import { defaultTarget, type PlanTarget } from './planForm'
 
-export type SheetAction = 'add' | 'remove' | 'create'
+export type SheetAction = 'add' | 'remove' | 'create' | 'adopt'
 
 /** An exercise already in the session when the sheet opens. */
 export interface SheetRow {
@@ -16,6 +16,8 @@ interface SheetDeps {
   remove: (rowId: string) => Promise<void>
   /** Stores a new library exercise. */
   create: (values: ExerciseInsert) => Promise<Exercise>
+  /** Copies a catalog entry into the library (the same copy again when it is already there). */
+  adopt: (entry: CatalogExercise) => Promise<Exercise>
   /** A new library exercise exists: the list the sheet shows must include it. */
   onCreated: (exercise: Exercise) => void
   describeFailure: (cause: unknown, action: SheetAction) => string
@@ -28,7 +30,7 @@ export interface SheetSnapshot {
   busy: ReadonlySet<string>
   /** Exercises added since the sheet opened and still in the session. */
   addedCount: number
-  /** A "create and add" request is in flight. */
+  /** A "create and add" or "adopt and add" request is in flight. */
   creating: boolean
   failure: string | null
 }
@@ -83,15 +85,23 @@ export class SheetController {
    * Creates a library exercise and adds it to the session. Resolves true when both happened. When the
    * creation worked but the add did not, a retry with the same values only repeats the add.
    */
-  async createAndAdd(values: ExerciseInsert): Promise<boolean> {
+  createAndAdd(values: ExerciseInsert): Promise<boolean> {
+    return this.makeAndAdd(JSON.stringify(values), 'create', () => this.deps.create(values))
+  }
+
+  /** Copies a catalog entry into the library and adds the copy to the session; same contract as `createAndAdd`. */
+  adoptAndAdd(entry: CatalogExercise): Promise<boolean> {
+    return this.makeAndAdd(`catalog:${entry.id}`, 'adopt', () => this.deps.adopt(entry))
+  }
+
+  private async makeAndAdd(fingerprint: string, makeAction: 'create' | 'adopt', make: () => Promise<Exercise>): Promise<boolean> {
     if (this.snapshot.creating) return false
     this.update({ creating: true, failure: null })
-    const fingerprint = JSON.stringify(values)
-    let action: SheetAction = 'create'
+    let action: SheetAction = makeAction
     try {
       let exercise = this.created?.fingerprint === fingerprint ? this.created.exercise : null
       if (!exercise) {
-        exercise = await this.deps.create(values)
+        exercise = await make()
         this.created = { fingerprint, exercise }
         this.deps.onCreated(exercise)
       }

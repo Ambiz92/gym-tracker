@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   formatTable,
   isPrivilegedKey,
+  judgeDuplicate,
+  judgeHiddenByPolicy,
   judgeOtp,
   judgeSelect,
   judgeSignUp,
+  judgeSignedInRead,
   judgeWrite,
   publicTablesFrom,
 } from './rlsAssertions'
@@ -42,6 +45,40 @@ describe('judgeWrite', () => {
   it('fails on a constraint error that is not a denial', () => {
     const outcome = { data: null, error: { code: '23502', message: 'null value in column owner_id' } }
     expect(judgeWrite(outcome).pass).toBe(false)
+  })
+})
+
+describe('judgeSignedInRead', () => {
+  it('passes on rows or on an empty array', () => {
+    expect(judgeSignedInRead({ data: [{ id: 1 }], error: null }).pass).toBe(true)
+    expect(judgeSignedInRead({ data: [], error: null }).pass).toBe(true)
+  })
+
+  it('fails on permission denied, since a signed-in user must be able to read', () => {
+    expect(judgeSignedInRead(denied).pass).toBe(false)
+  })
+})
+
+describe('judgeHiddenByPolicy', () => {
+  it('passes only on an empty result', () => {
+    expect(judgeHiddenByPolicy({ data: [], error: null }).pass).toBe(true)
+    expect(judgeHiddenByPolicy({ data: [{ id: 1 }], error: null }).pass).toBe(false)
+  })
+
+  it('fails on permission denied, which means a missing grant and not the policy', () => {
+    expect(judgeHiddenByPolicy(denied).pass).toBe(false)
+  })
+})
+
+describe('judgeDuplicate', () => {
+  it('passes only on a unique violation', () => {
+    const unique = { data: null, error: { code: '23505', message: 'duplicate key value' } }
+    expect(judgeDuplicate(unique).pass).toBe(true)
+    expect(judgeDuplicate(denied).pass).toBe(false)
+  })
+
+  it('fails when the duplicate is accepted', () => {
+    expect(judgeDuplicate({ data: [{ id: 2 }], error: null }).pass).toBe(false)
   })
 })
 
