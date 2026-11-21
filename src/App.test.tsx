@@ -80,3 +80,10 @@ test('an unknown path renders the not-found page inside the layout with a link b
   expect(html).toContain('href="/"')
   expect(html).toContain('Torna a Oggi')
 })
+
+test.each(['/athletes', '/athletes/3f2b8c1e-5d4a-4e6f-9a7b-0c1d2e3f4a5b'])('%s is inside the app layout, and only for a signed-in session', (path) => {
+  expect(renderAt(path)).toContain('<nav')
+  const html = renderAt(path, 'signed_out')
+  expect(html).not.toContain('<nav')
+  expect(html).not.toContain('<main')
+})

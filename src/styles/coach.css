@@ -120,3 +120,7 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.athlete-list .row-link__title {
+  unicode-bidi: isolate;
+}

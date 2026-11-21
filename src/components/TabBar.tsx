@@ -5,6 +5,8 @@ interface Tab {
   label: string
   /** Routes that keep this tab highlighted besides `to` and its sub-paths. */
   also?: readonly string[]
+  /** Shown only to a user with at least one active athlete. */
+  coachOnly?: boolean
 }
 
 const TABS: readonly Tab[] = [
@@ -13,6 +15,7 @@ const TABS: readonly Tab[] = [
   // The exercise library is reached from the plan editor.
   { to: '/plans', label: 'Schede', also: ['/exercises'] },
   { to: '/history', label: 'Storico' },
+  { to: '/athletes', label: 'Atleti', coachOnly: true },
   { to: '/more', label: 'Altro' },
 ]
 
@@ -25,13 +28,14 @@ function isCurrent({ to, also = [] }: Tab, pathname: string): boolean {
   return [to, ...also].some((base) => startsAt(pathname, base))
 }
 
-/** Bottom navigation; the current tab carries aria-current="page". */
-export function TabBar() {
+/** Bottom navigation; the current tab carries aria-current="page". "Atleti" shows only with `hasAthletes`. */
+export function TabBar({ hasAthletes = false }: { hasAthletes?: boolean }) {
   const { pathname } = useLocation()
+  const tabs = TABS.filter((tab) => !tab.coachOnly || hasAthletes)
   return (
     <nav className="tab-bar" aria-label="Navigazione principale">
       <ul className="tab-bar__list">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <li key={tab.to}>
             <Link
               to={tab.to}

@@ -54,3 +54,8 @@ test('AuthLayout has a focusable main landmark and no navigation', () => {
   expect(html).toContain('<main class="app__content" tabindex="-1"><h1>Accesso</h1></main>')
   expect(html).not.toContain('<nav')
 })
+
+test('Layout adds the Atleti tab to the navigation only when told the user has athletes', () => {
+  expect(render(<Layout>Pagina</Layout>)).not.toContain('>Atleti<')
+  expect(render(<Layout hasAthletes>Pagina</Layout>)).toContain('>Atleti<')
+})
