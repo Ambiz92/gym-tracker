@@ -16,7 +16,7 @@ const FAILURES: Record<SheetAction, string> = {
   add: 'Aggiunta non riuscita. Controlla la connessione e riprova.',
   remove: 'Rimozione non riuscita. Riprova.',
   create: 'Creazione non riuscita. Controlla la connessione e riprova: i dati nel modulo sono ancora qui.',
-  adopt: 'Non sono riuscito a copiare l’esercizio dal catalogo. Controlla la connessione e riprova.',
+  adopt: 'Copia dal catalogo non riuscita. Controlla la connessione e riprova.',
 }
 
 async function loadCatalog(): Promise<CatalogData> {

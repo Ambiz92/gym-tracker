@@ -373,11 +373,13 @@
 /* Filters: one row of keys that scrolls sideways, equipment first, then the muscles. */
 .add-sheet__filters {
   display: flex;
+  flex-shrink: 0;
   gap: var(--ds-space-4);
   margin-top: var(--ds-space-3);
   padding-bottom: var(--ds-space-2);
   overflow-x: auto;
   overscroll-behavior-x: contain;
+  scrollbar-width: thin;
 }
 
 .add-sheet__filter-group {

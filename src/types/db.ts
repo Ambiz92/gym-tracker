@@ -47,8 +47,8 @@ export interface CatalogExercise {
   primary_muscle: string
   secondary_muscles: string[]
   execution_steps: string | null
-  source: string
-  source_id: string
+  source: string | null
+  source_id: string | null
 }
 
 export interface Plan {

@@ -60,6 +60,16 @@ describe('the two sections', () => {
     expect(html.indexOf('Voce c1')).toBeGreaterThan(html.indexOf('>Catalogo<'))
   })
 
+  test('each section is named by its heading, not by a duplicate label', () => {
+    const html = render([exercise('a')], readyCatalog([entry('c1')]))
+    for (const heading of ['I tuoi esercizi', 'Catalogo']) {
+      const id = new RegExp(`<h3 id="([^"]+)"[^>]*>${heading}</h3>`).exec(html)?.[1]
+      expect(id).toBeDefined()
+      expect(html).toContain(`<section aria-labelledby="${id}">`)
+    }
+    expect(html).not.toContain('<section aria-label=')
+  })
+
   test('a catalog entry offers to be added from the catalog and shows equipment and muscle', () => {
     const html = render([], readyCatalog([entry('c1', { equipment: 'dumbbell', primary_muscle: 'Bicipiti' })]))
     expect(html).toContain('aria-label="Voce c1, dal catalogo: tocca per aggiungere"')
@@ -157,7 +167,7 @@ describe('the catalog states', () => {
 
   test('a failed fetch shows an Italian alert with a retry, and the user exercises stay', () => {
     const html = render([exercise('a')], { status: 'error', error: new Error('boom'), reload: noop })
-    expect(html).toMatch(/role="alert"[^>]*>.*Non riesco a caricare il catalogo\. I tuoi esercizi funzionano lo stesso\./)
+    expect(html).toMatch(/role="alert"[^>]*>.*Catalogo non disponibile\. Controlla la connessione e riprova\. I tuoi esercizi funzionano lo stesso\./)
     expect(html).toContain('Riprova')
     expect(html).toContain('Esercizio a, tocca per aggiungere')
     expect(html).not.toContain('boom')

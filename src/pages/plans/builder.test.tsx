@@ -271,7 +271,7 @@ describe('the add sheet', () => {
         onClose={noop}
       />,
     )
-    expect(html).toContain('Non riesco a caricare il catalogo')
+    expect(html).toContain('Catalogo non disponibile')
     expect(html).toContain('Esercizio a, tocca per aggiungere')
     expect(html).toContain('+ Aggiungi personalizzato')
   })

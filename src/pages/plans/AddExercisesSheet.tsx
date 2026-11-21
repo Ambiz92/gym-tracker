@@ -58,6 +58,10 @@ export function AddExercisesSheet({ sessionName, library, catalog, state, onTogg
     searchRef.current?.focus()
   }
 
+  async function adopt(entry: CatalogExercise) {
+    if (await onAdopt(entry)) searchRef.current?.focus()
+  }
+
   return (
     <dialog
       ref={dialogRef}
@@ -102,7 +106,7 @@ export function AddExercisesSheet({ sessionName, library, catalog, state, onTogg
               {(exercises) => (
                 <>
                   {text !== '' && !hasExactName(exercises, text, catalogEntries) && <QuickCreate name={text} busy={state.creating} onCreate={create} />}
-                  <PickResults exercises={exercises} catalog={catalog} query={query} filters={filters} state={state} onToggle={onToggle} onAdopt={(entry) => void onAdopt(entry)} />
+                  <PickResults exercises={exercises} catalog={catalog} query={query} filters={filters} state={state} onToggle={onToggle} onAdopt={(entry) => void adopt(entry)} />
                 </>
               )}
             </LoadState>

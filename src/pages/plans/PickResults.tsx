@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { Skeleton } from '../../components/Skeleton'
 import type { AsyncState } from '../../hooks/useAsync'
@@ -80,19 +81,25 @@ export function PickResults({ exercises, catalog, query, filters, state, onToggl
   const text = query.trim()
   const filtered = text !== '' || filters.equipment !== undefined || filters.muscle !== undefined
   const sections = exerciseSections(exercises, data?.entries ?? [], { query, ...filters, adoptedCatalogIds: data?.adoptedIds })
+  const mineId = useId()
+  const catalogId = useId()
 
   return (
     <>
-      <section aria-label="I tuoi esercizi">
-        <h3 className="add-sheet__section">I tuoi esercizi</h3>
+      <section aria-labelledby={mineId}>
+        <h3 id={mineId} className="add-sheet__section">
+          I tuoi esercizi
+        </h3>
         {sections.mine.length > 0 ? (
           <MineList exercises={sections.mine} state={state} onToggle={onToggle} />
         ) : (
           <p className="add-sheet__empty">{mineEmpty(exercises.length, text, filtered)}</p>
         )}
       </section>
-      <section aria-label="Catalogo">
-        <h3 className="add-sheet__section">Catalogo</h3>
+      <section aria-labelledby={catalogId}>
+        <h3 id={catalogId} className="add-sheet__section">
+          Catalogo
+        </h3>
         <CatalogBody catalog={catalog} entries={sections.catalog} filtered={filtered} query={text} busy={state.creating} onAdopt={onAdopt} />
       </section>
     </>
@@ -121,7 +128,7 @@ function CatalogBody({ catalog, entries, filtered, query, busy, onAdopt }: Catal
   if (catalog.status === 'error') {
     return (
       <div role="alert" className="add-sheet__catalog-error">
-        <p>Non riesco a caricare il catalogo. I tuoi esercizi funzionano lo stesso.</p>
+        <p>Catalogo non disponibile. Controlla la connessione e riprova. I tuoi esercizi funzionano lo stesso.</p>
         <PrimaryButton variant="outline" onClick={catalog.reload}>
           Riprova
         </PrimaryButton>
