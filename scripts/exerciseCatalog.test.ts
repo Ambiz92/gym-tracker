@@ -84,6 +84,15 @@ describe('validateCatalog', () => {
     )
   })
 
+  it('rejects a muscles text, synonym list or secondary list the database would refuse', () => {
+    const muscles = Array<string>(40).fill('Quadricipiti')
+    expect(problems({ ...sample, secondary_muscles: muscles })).toContain('muscles text is longer than 500')
+    expect(problems({ ...sample, secondary_muscles: muscles })).toContain('more than 10 secondary muscles')
+    expect(problems({ ...sample, name_it: 'x'.repeat(121) })).toContain('name_it is longer than 120')
+    expect(problems({ ...sample, synonyms: Array.from({ length: 21 }, (_, i) => `curl ${i}`) })).toContain('more than 20 synonyms')
+    expect(problems({ ...sample, primary_muscle: 'x'.repeat(121) })).toContain('primary_muscle is longer than 120')
+  })
+
   it('rejects muscles outside the list or repeated as primary', () => {
     expect(problems({ ...sample, primary_muscle: 'Bicipite' })).toContain('not in the muscle list')
     expect(problems({ ...sample, secondary_muscles: ['Bicipiti'] })).toContain('repeated in secondary_muscles')
@@ -94,12 +103,19 @@ describe('validateCatalog', () => {
     expect(problems(sample, other)).toContain('already a name or synonym of barbell-curl')
     const accented = { ...sample, slug: 'accented', name_it: 'Cùrl', synonyms: ['altro'] }
     expect(problems(sample, accented)).toContain('"curl" is already a name or synonym of barbell-curl')
+    const english = { ...sample, slug: 'english', name_it: 'Altro', name_en: 'barbell  curl', synonyms: ['altro'] }
+    expect(problems(sample, english)).toContain('"barbell curl" is already a name or synonym of barbell-curl')
   })
 })
 
 describe('normalizeName', () => {
   it('lowercases, drops accents and trims', () => {
     expect(normalizeName('  Staccò Rumeno ')).toBe('stacco rumeno')
+  })
+
+  it('maps typographic apostrophes to straight ones and collapses inner spaces', () => {
+    expect(normalizeName('Farmer’s   walk')).toBe("farmer's walk")
+    expect(normalizeName("Curl\tall'inglese")).toBe("curl all'inglese")
   })
 })
 
@@ -129,7 +145,22 @@ describe('buildSeedSql', () => {
     expect(sql).toContain('where e.catalog_id is null')
     expect(sql).toContain('catalog_count = 1')
     expect(sql).toContain('o.owner_id = e.owner_id and o.catalog_id = r.catalog_id')
-    expect(sql).toContain("translate(e.name, 'àáâäèéêëìíîïòóôöùúûüç', 'aaaaeeeeiiiioooouuuuc')")
+    expect(sql).toContain("translate(e.name, 'àáâäèéêëìíîïòóôöùúûüç’', 'aaaaeeeeiiiioooouuuuc''')")
+    expect(sql).toContain('regexp_replace(lower(translate(e.name,')
+    expect(sql).toContain("'\\s+', ' ', 'g')")
+  })
+
+  it('links on the Italian and English names only, and only with the same equipment', () => {
+    const link = sql.slice(sql.indexOf('with catalog_names'), sql.indexOf('commit;'))
+    expect(link).toContain('c.equipment = e.equipment')
+    expect(link).toContain('unnest(array[c.name_it, c.name_en])')
+    expect(link).not.toContain('synonyms')
+  })
+
+  it('reports synonym matches for review, with the same equipment', () => {
+    const review = sql.slice(sql.lastIndexOf('commit;'))
+    expect(review).toContain('unnest(c.synonyms || array[c.name_it, c.name_en])')
+    expect(review).toContain('c.equipment = e.equipment')
   })
 
   it('never deletes, and ends with the read-only check after the commit', () => {

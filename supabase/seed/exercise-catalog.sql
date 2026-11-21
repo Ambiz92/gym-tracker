@@ -3,10 +3,12 @@
 --
 -- Run as postgres after migration 0005. Safe to run again.
 -- 1. Upserts the catalog by slug.
--- 2. Links user exercises (catalog_id null) whose normalized name equals a catalog name or synonym.
+-- 2. Links user exercises (catalog_id null) whose normalized name equals the Italian or English name
+--    of an entry with the same equipment. Synonyms are too generic to link on their own.
 --    It skips names that match several catalog entries and owners who already have that entry.
 --    It never merges exercises and never changes their id, so history stays intact.
--- 3. The last statement is read-only: exercises that still match the catalog, for manual review.
+-- 3. The last statement is read-only: exercises that match a name or synonym of the catalog
+--    (same equipment) and are still unlinked, for manual review.
 
 begin;
 
@@ -215,14 +217,16 @@ on conflict (slug) do update set
   source_id = excluded.source_id;
 
 with catalog_names as (
-  select c.id as catalog_id, trim(lower(translate(n.name, 'àáâäèéêëìíîïòóôöùúûüç', 'aaaaeeeeiiiioooouuuuc'))) as name_key
+  select c.id as catalog_id, trim(regexp_replace(lower(translate(n.name, 'àáâäèéêëìíîïòóôöùúûüç’', 'aaaaeeeeiiiioooouuuuc''')), '\s+', ' ', 'g')) as name_key
   from public.exercise_catalog c
-  cross join lateral unnest(c.synonyms || c.name_it) as n(name)
+  cross join lateral unnest(array[c.name_it, c.name_en]) as n(name)
+  where n.name is not null
 ),
 matches as (
-  select distinct e.id as exercise_id, e.owner_id, e.archived, cn.catalog_id
+  select distinct e.id as exercise_id, e.owner_id, e.archived, c.id as catalog_id
   from public.exercise e
-  join catalog_names cn on cn.name_key = trim(lower(translate(e.name, 'àáâäèéêëìíîïòóôöùúûüç', 'aaaaeeeeiiiioooouuuuc')))
+  join catalog_names cn on cn.name_key = trim(regexp_replace(lower(translate(e.name, 'àáâäèéêëìíîïòóôöùúûüç’', 'aaaaeeeeiiiioooouuuuc''')), '\s+', ' ', 'g'))
+  join public.exercise_catalog c on c.id = cn.catalog_id and c.equipment = e.equipment
   where e.catalog_id is null
 ),
 single_match as (
@@ -246,9 +250,10 @@ where e.id = r.exercise_id
 commit;
 
 with catalog_names as (
-  select c.id as catalog_id, trim(lower(translate(n.name, 'àáâäèéêëìíîïòóôöùúûüç', 'aaaaeeeeiiiioooouuuuc'))) as name_key
+  select c.id as catalog_id, trim(regexp_replace(lower(translate(n.name, 'àáâäèéêëìíîïòóôöùúûüç’', 'aaaaeeeeiiiioooouuuuc''')), '\s+', ' ', 'g')) as name_key
   from public.exercise_catalog c
-  cross join lateral unnest(c.synonyms || c.name_it) as n(name)
+  cross join lateral unnest(c.synonyms || array[c.name_it, c.name_en]) as n(name)
+  where n.name is not null
 )
 select e.owner_id,
        e.id as exercise_id,
@@ -256,8 +261,8 @@ select e.owner_id,
        string_agg(distinct c.slug, ', ') as catalog_slugs,
        string_agg(distinct o.name, ', ') as already_linked_as
 from public.exercise e
-join catalog_names cn on cn.name_key = trim(lower(translate(e.name, 'àáâäèéêëìíîïòóôöùúûüç', 'aaaaeeeeiiiioooouuuuc')))
-join public.exercise_catalog c on c.id = cn.catalog_id
+join catalog_names cn on cn.name_key = trim(regexp_replace(lower(translate(e.name, 'àáâäèéêëìíîïòóôöùúûüç’', 'aaaaeeeeiiiioooouuuuc''')), '\s+', ' ', 'g'))
+join public.exercise_catalog c on c.id = cn.catalog_id and c.equipment = e.equipment
 left join public.exercise o on o.owner_id = e.owner_id and o.catalog_id = c.id
 where e.catalog_id is null
 group by e.owner_id, e.id, e.name
