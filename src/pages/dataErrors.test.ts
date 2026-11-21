@@ -34,7 +34,9 @@ describe('describeCoachLinkError', () => {
     ['invalid_label', 'Il nome non è accettato'],
     ['not_allowed', 'secondo fattore'],
     ['not_found', 'non è più disponibile'],
+    ['not_found', 'manca il secondo fattore'],
     ['not_linked', 'collegamento non è attivo'],
+    ['not_linked', 'secondo fattore non è stato verificato'],
     ['invalid_athlete', 'Atleta non trovato'],
   ])('words %s in Italian', (code, text) => {
     expect(describeCoachLinkError(new DataError('x', code), 'Riprova.')).toContain(text)

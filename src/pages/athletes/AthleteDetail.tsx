@@ -26,7 +26,7 @@ export function AthleteContent({ data }: { data: AthleteData }) {
 export function AthleteDetail({ athleteId }: { athleteId: string }) {
   const state = useAsync(() => loadAthleteData(athleteId, RECENT_WORKOUTS), [athleteId])
   return (
-    <LoadState state={state} what="i dati dell’atleta" describe={(error) => describeCoachLinkError(error, error.message)}>
+    <LoadState state={state} what="i dati dell’atleta" describe={(error) => describeCoachLinkError(error, 'Errore imprevisto: riprova tra poco.')}>
       {(data) => <AthleteContent data={data} />}
     </LoadState>
   )
