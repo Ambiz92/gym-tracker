@@ -16,16 +16,23 @@
  * of the second user pointing at the first user's plan_session must be refused by the composite
  * key. It creates and deletes one 'rls-check' plan with a session for the first user.
  *
+ * RLS_TEST_COACH_*, RLS_TEST_ATHLETE_* and RLS_TEST_STRANGER_* (EMAIL, PASSWORD) add the three-user checks of the
+ * coach/athlete migrations (0007, 0008): see scripts/coachAthleteChecks.ts and scripts/README.md. The coach has a
+ * verified TOTP factor and its base32 secret in RLS_TEST_COACH_TOTP_SECRET (without it only the aal1 refusals run).
+ * RLS_TEST_BOTH_* (with RLS_TEST_BOTH_TOTP_SECRET) adds a user who is athlete and coach at once. The run leaves link
+ * rows behind, which only postgres can delete; the next run says how.
+ *
  * What this does NOT prove (follow-up manual tests, they need a logged-in session):
- *  - an authenticated user sees and changes only their own rows (auth.uid() = owner_id);
  *  - the restrictive *_mfa_if_enrolled policies on the other tables: an aal1 session is refused
  *    when the user has a verified factor and accepted when they have none, and aal2 works
  *    normally (scripts/README.md);
+ *  - a coach WITHOUT a factor at aal1 (it can never accept a link through the API): rehearsal-0008, file 3b;
  * Update and delete probes filter on a nil id, so they only prove the operation is denied,
  * not that existing rows are unreachable.
  */
 import { readdirSync, readFileSync } from 'node:fs'
 import { type SupabaseClient, createClient } from '@supabase/supabase-js'
+import { type Accounts, type FactorSession, coachAthleteChecks } from './coachAthleteChecks'
 import {
   type Check,
   type Outcome,
@@ -41,6 +48,7 @@ import {
   judgeWrite,
   publicTablesFrom,
 } from './rlsAssertions'
+import { totp } from './totp'
 
 const NIL_UUID = '00000000-0000-0000-0000-000000000000'
 
@@ -133,11 +141,72 @@ function testUser(prefix: string): TestUser | null {
   return { email, password }
 }
 
+interface FactorUser extends TestUser {
+  totpSecret: string | null
+}
+
+/** Like testUser, plus the base32 secret of the account's TOTP factor (`<prefix>_TOTP_SECRET`). */
+function factorUser(prefix: string): FactorUser | null {
+  const user = testUser(prefix)
+  return user && { ...user, totpSecret: process.env[`${prefix}_TOTP_SECRET`] || null }
+}
+
 async function signIn({ email, password }: TestUser): Promise<SupabaseClient> {
   const client = createClient(url, anonKey, clientOptions)
   const { error } = await client.auth.signInWithPassword({ email, password })
   if (error) throw new Error(`Sign-in failed for ${email}: ${error.message}`)
   return client
+}
+
+async function userId(client: SupabaseClient): Promise<string> {
+  const { data, error } = await client.auth.getUser()
+  if (error || !data.user) throw new Error(`Could not read the signed-in user: ${error?.message}`)
+  return data.user.id
+}
+
+/** Password sign-in, then the TOTP step with a code computed from the secret: the returned client is at aal2. */
+async function signInAal2(user: FactorUser & { totpSecret: string }): Promise<SupabaseClient> {
+  const client = await signIn(user)
+  const { data: factors, error: listError } = await client.auth.mfa.listFactors()
+  const factor = factors?.totp[0]
+  if (listError || !factor) throw new Error(`${user.email} has no verified TOTP factor: ${listError?.message ?? 'none listed'}`)
+  // The codes of the neighbouring 30 s steps cover a few seconds of clock drift.
+  for (const drift of [0, -30_000, 30_000]) {
+    const challenge = await client.auth.mfa.challenge({ factorId: factor.id })
+    if (challenge.error) throw new Error(`TOTP challenge failed for ${user.email}: ${challenge.error.message}`)
+    const code = totp(user.totpSecret, Date.now() + drift)
+    const verified = await client.auth.mfa.verify({ factorId: factor.id, challengeId: challenge.data.id, code })
+    if (!verified.error) return client
+  }
+  throw new Error(`The TOTP code for ${user.email} was refused: check the secret and the clock`)
+}
+
+async function factorSession(user: FactorUser): Promise<FactorSession> {
+  const aal1 = await signIn(user)
+  return { id: await userId(aal1), aal1, aal2: user.totpSecret ? await signInAal2({ ...user, totpSecret: user.totpSecret }) : null }
+}
+
+/** The three-user checks of the coach/athlete migrations; skipped when no fixture user is configured. */
+async function coachAthleteSection(): Promise<Check[]> {
+  const coach = factorUser('RLS_TEST_COACH')
+  const athlete = testUser('RLS_TEST_ATHLETE')
+  const stranger = testUser('RLS_TEST_STRANGER')
+  const both = factorUser('RLS_TEST_BOTH')
+  if (!coach && !athlete && !stranger && !both) {
+    console.log('Coach/athlete checks skipped: set RLS_TEST_COACH_*, RLS_TEST_ATHLETE_* and RLS_TEST_STRANGER_* to run them.\n')
+    return []
+  }
+  if (!coach || !athlete || !stranger) throw new Error('The coach/athlete checks need RLS_TEST_COACH_*, RLS_TEST_ATHLETE_* and RLS_TEST_STRANGER_* together')
+  if (both && !(both.totpSecret && coach.totpSecret)) throw new Error('RLS_TEST_BOTH_* needs RLS_TEST_BOTH_TOTP_SECRET and RLS_TEST_COACH_TOTP_SECRET: it accepts requests as a coach')
+  const athleteClient = await signIn(athlete)
+  const strangerClient = await signIn(stranger)
+  const accounts: Accounts = {
+    coach: await factorSession(coach),
+    athlete: { id: await userId(athleteClient), client: athleteClient },
+    stranger: { id: await userId(strangerClient), client: strangerClient },
+    both: both ? ((await factorSession(both)) as Accounts['both']) : null,
+  }
+  return coachAthleteChecks(accounts)
 }
 
 /** Two inserts of the same catalog entry for one owner: the second must hit the unique index. */
@@ -224,7 +293,7 @@ async function signedInChecks(): Promise<Check[]> {
 }
 
 const tables = await Promise.all(Object.entries(PROBE_ROWS).map(([table, row]) => tableChecks(table, row)))
-const checks = [...tables.flat(), ...(await authChecks()), ...(await signedInChecks())]
+const checks = [...tables.flat(), ...(await authChecks()), ...(await signedInChecks()), ...(await coachAthleteSection())]
 
 console.log(formatTable(checks))
 const failed = checks.filter((check) => !check.pass)

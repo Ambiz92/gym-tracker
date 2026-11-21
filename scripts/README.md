@@ -16,11 +16,27 @@ Optional signed-in checks of the exercise catalog (migration `0005_exercise_cata
 
 `RLS_TEST_OTHER_EMAIL` and `RLS_TEST_OTHER_PASSWORD`, a second throw-away user without a second factor, add the cross-owner check of the session calendar (migration `0006_scheduled_session.sql`). The script creates a plan with one session for the first user, checks that the first user can schedule that session, and that the second user scheduling the same session is refused with `23503` (the composite keys), then deletes the plan and the slots. It needs `RLS_TEST_*` too.
 
-Not covered, because it needs logged-in sessions: row ownership, and the second-factor rule of migration `0004_optional_mfa.sql` on the other tables. See the next section.
+Three-user checks of the coach/athlete tables (migrations `0007_coach_athlete.sql` and `0008_coach_read_policies.sql`) run when `RLS_TEST_COACH_*`, `RLS_TEST_ATHLETE_*` and `RLS_TEST_STRANGER_*` are set. The fixtures are three throw-away users created in the dashboard, with a password each (variables `RLS_TEST_<ROLE>_EMAIL` and `RLS_TEST_<ROLE>_PASSWORD`, never `VITE_*`):
+
+- the coach has a verified TOTP factor, and its base32 secret goes in `RLS_TEST_COACH_TOTP_SECRET`. The script computes the codes itself (RFC 6238, `scripts/totp.ts`), so it reaches aal2 without an app. Without the secret only the checks that need no aal2 run (the request and the refused accept at aal1);
+- the athlete and the stranger have no second factor;
+- optional: `RLS_TEST_BOTH_*` plus `RLS_TEST_BOTH_TOTP_SECRET`, a user with a factor who is the coach's athlete and the stranger's coach. It adds the both-roles, transitivity and mutual-link checks (T-06, T-11, T-12) and the coach-side revoke. It needs `RLS_TEST_COACH_TOTP_SECRET` too.
+
+The script seeds one row in each of the eight data tables for the athlete (and for the other users when `RLS_TEST_BOTH_*` is set), runs the checks of `workspace/security/S-A1.md` (T-02 to T-16 and the S-A1-01, -02 and -03 reproductions) and deletes the seeded rows. Every refusal is judged by its layer: a policy (`row-level security`) or a missing grant (`permission denied`), and every refused write is confirmed by reading the row again as its owner.
+
+No client can delete a `coach_athlete` row, and a revoked pair can never be requested again, so every run leaves link rows behind and the next run stops at the start. The error prints the statement to run as `postgres` in the SQL editor first:
+
+```sql
+delete from public.coach_athlete where athlete_id in ('<user ids>') or coach_id in ('<user ids>');
+```
+
+Two cases cannot be reached through the API and live in the SQL rehearsals instead (`workspace/security/rehearsal-0008`, file `3b`): a coach with no factor reading at aal1 with an active link (such a coach can never accept one), and the policy layer alone with the trigger switched off.
+
+Not covered, because it needs real sessions of the app: the second-factor rule of migration `0004_optional_mfa.sql` on the other tables. See the next section.
 
 ## Manual check with two real users (Google sign-in)
 
-The anon-only script cannot see the second-factor rule of `0004_optional_mfa.sql`, or row ownership: both need logged-in sessions. Run this section once before inviting anyone, and again after any Supabase upgrade.
+The anon-only script cannot see the second-factor rule of `0004_optional_mfa.sql`, or row ownership: both need logged-in sessions. Run this section once before inviting anyone, and again after any Supabase upgrade. For the coach/athlete tables (`coach_athlete` and the coach read policies) two users are not enough: use the three-user check at the end of the section "Checks with real sessions".
 
 ### Supabase and Google setup
 
@@ -158,6 +174,17 @@ select email, email_confirmed_at is not null as confirmed, coalesce(encrypted_pa
 
 Expected: a `google` identity with `email_verified` true, `confirmed` true, and `no_password` true (or a password nobody knows) for every friend.
 
+### Three-user check for the coach/athlete tables
+
+Needs three users: a coach with a verified TOTP factor (aal2 after the code), an athlete and a stranger, both without a factor. `npm run verify:rls` with the `RLS_TEST_COACH_*`, `RLS_TEST_ATHLETE_*` and `RLS_TEST_STRANGER_*` variables does all of this and more; by hand, with the three tokens and the athlete's row id `X`:
+
+- the athlete inserts a request (`POST /rest/v1/coach_athlete` with only `coach_id` and `athlete_label`); sending `status`, `accepted_at` or an `athlete_id` is refused with `42501 permission denied`;
+- the stranger gets `[]` from `GET /rest/v1/coach_athlete` and from every data table filtered on the athlete's `owner_id`;
+- the athlete patching their own request to `active`, or the coach patching `athlete_id`, `coach_id` or the label, is refused (`42501`) and the row is unchanged;
+- the coach at aal1 gets `[]` from the athlete's tables, and accepting at aal1 changes nothing; at aal2 the accept succeeds, `accepted_at` is set by the server, and the coach reads the athlete's rows in the eight data tables and nobody else's;
+- the coach inserting, updating, deleting or upserting a row of the athlete is refused or changes nothing (confirm as the athlete), and a `set_log` of the coach pointing at the athlete's workout fails with `23503`;
+- the athlete revokes: the coach's next read returns `[]`, setting `active` again updates no row, and a new request from the athlete to the same coach fails with `23505`.
+
 ### Rehearsing migration 0005 (exercise catalog)
 
 Same method as above: the migration's statements between `begin;` and `rollback;` (without the file's own `begin;` and `commit;`), then one of the probes below, each as its own script. Replace `<user-uuid>` with a user's id and use `<user-with-factor-uuid>` for someone with a verified factor.
@@ -178,6 +205,12 @@ rollback;
 ```
 
 The second insert must fail with `exercise_one_per_catalog_entry_per_owner`. Exercises with a null `catalog_id` are never limited. After applying the migration, run `npm run verify:rls` (with the signed-in variables if you can) and open the app once as the owner at `aal2` to check that the library still loads.
+
+### Rehearsing migrations 0007 and 0008 (coach and athlete)
+
+The two migrations have one rehearsal folder each (`workspace/security/rehearsal-0007` and `rehearsal-0008`, outside the repository, with a `LEGGIMI.md`). They follow the method of 0006: every script is one `do` block that embeds the migration, creates its own throw-away users inside the block (`insert into auth.users`, rolled back with the rest), simulates the roles and ends with an error whose text is a `check | result | expected` report. The only placeholder is your own user id, in file `3e`. The order is: `0-PRECHECK` (read only), `1-rehearsal-migration` (privileges, policies, trigger, indexes), the role simulations, `APPLICA` (one block with its own checks) and, only if needed, `ROLLBACK`. Run 0007 first and apply it before rehearsing 0008, which needs the table. `ROLLBACK-0008.sql` is also the kill switch: it removes the eight coach read policies and proves that a coach with an active link then reads nothing. `KILLSWITCH-0008.sql` does only that, for an emergency.
+
+Administration in SQL, as `postgres`: the transition trigger applies to every role, so a direct `update` of a link fails. To re-link a pair whose link was revoked, delete the old row (`delete from public.coach_athlete where id = '<link id>'`) and let the athlete send a new request. To edit a link row on purpose, wrap the update in `alter table public.coach_athlete disable trigger coach_athlete_guard;` and `enable trigger` again, inside one transaction.
 
 ### Rehearsing migration 0006 (session calendar)
 
