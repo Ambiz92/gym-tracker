@@ -12,9 +12,8 @@ export async function listExercises(): Promise<Exercise[]> {
  * used by none are absent. One query: the embedded session and plan are filtered in the database.
  */
 export async function listExerciseUsage(): Promise<Map<string, number>> {
-  const planExercises = await own('plan_exercise')
-  const rows = await readAllRows<{ exercise_id: string; plan_session: { plan_id: string } }>((from, to) =>
-    planExercises
+  const rows = await readAllRows<{ exercise_id: string; plan_session: { plan_id: string } }>(async (from, to) =>
+    (await own('plan_exercise'))
       .select('exercise_id, plan_session!inner(plan_id, plan!inner(archived))')
       .eq('plan_session.archived', false)
       .eq('plan_session.plan.archived', false)
@@ -60,9 +59,8 @@ export async function deleteExercise(id: string): Promise<void> {
 
 /** Catalog entries the user has a copy of, archived copies included (a second copy would be refused). */
 export async function listAdoptedCatalogIds(): Promise<Set<string>> {
-  const exercises = await own('exercise')
-  const rows = await readAllRows<Pick<Exercise, 'catalog_id'>>((from, to) =>
-    exercises.select('catalog_id').order('id').range(from, to),
+  const rows = await readAllRows<Pick<Exercise, 'catalog_id'>>(async (from, to) =>
+    (await own('exercise')).select('catalog_id').order('id').range(from, to),
   )
   return new Set(rows.flatMap(({ catalog_id }) => (catalog_id === null ? [] : [catalog_id])))
 }

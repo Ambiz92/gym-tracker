@@ -38,9 +38,8 @@ export async function getHistoryExercise(id: string): Promise<HistoryExercise | 
 
 /** Exercise, weight and workout date of every logged set, however many there are. */
 export async function listLoggedSets(): Promise<LoggedSet[]> {
-  const setLogs = await own('set_log')
-  const rows = await readAllRows<Pick<SetLog, 'exercise_id' | 'weight_kg'> & { workout: { date: string } }>((from, to) =>
-    setLogs.select('exercise_id, weight_kg, workout!inner(date)').order('id').range(from, to),
+  const rows = await readAllRows<Pick<SetLog, 'exercise_id' | 'weight_kg'> & { workout: { date: string } }>(
+    async (from, to) => (await own('set_log')).select('exercise_id, weight_kg, workout!inner(date)').order('id').range(from, to),
   )
   return rows.map(({ workout, ...set }) => ({ ...set, date: workout.date }))
 }

@@ -17,8 +17,7 @@ export type ExportTables = { [Table in TableName]: TableRows[Table][] }
 
 // `id` is unique, so the page boundaries never overlap or skip rows.
 async function readTable<Table extends TableName>(table: Table): Promise<TableRows[Table][]> {
-  const rows = await own(table)
-  return readAllRows((from, to) => rows.select().order('id').range(from, to))
+  return readAllRows(async (from, to) => (await own(table)).select().order('id').range(from, to))
 }
 
 /** Every row of every table, archived ones included, read page by page so nothing is cut at 1000. */
