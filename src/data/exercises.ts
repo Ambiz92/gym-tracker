@@ -1,10 +1,10 @@
 import type { Exercise, ExerciseInsert, ExerciseUpdate } from '../types/db'
-import { DataError, ensureAffected, ensureOk, inUseError, isReferenced, supabase, unwrap } from './client'
+import { DataError, ensureAffected, ensureOk, inUseError, isReferenced, own, unwrap } from './client'
 import { readAllRows } from './paging'
 
 /** Exercises of the library that are not archived, by name. */
 export async function listExercises(): Promise<Exercise[]> {
-  return unwrap<Exercise[]>(await supabase.from('exercise').select().eq('archived', false).order('name'))
+  return unwrap<Exercise[]>(await (await own('exercise')).select().eq('archived', false).order('name'))
 }
 
 /**
@@ -12,9 +12,9 @@ export async function listExercises(): Promise<Exercise[]> {
  * used by none are absent. One query: the embedded session and plan are filtered in the database.
  */
 export async function listExerciseUsage(): Promise<Map<string, number>> {
+  const planExercises = await own('plan_exercise')
   const rows = await readAllRows<{ exercise_id: string; plan_session: { plan_id: string } }>((from, to) =>
-    supabase
-      .from('plan_exercise')
+    planExercises
       .select('exercise_id, plan_session!inner(plan_id, plan!inner(archived))')
       .eq('plan_session.archived', false)
       .eq('plan_session.plan.archived', false)
@@ -30,16 +30,16 @@ export async function listExerciseUsage(): Promise<Map<string, number>> {
 }
 
 export async function createExercise(exercise: ExerciseInsert): Promise<Exercise> {
-  return unwrap<Exercise>(await supabase.from('exercise').insert(exercise).select().single())
+  return unwrap<Exercise>(await (await own('exercise')).insert(exercise).select().single())
 }
 
 export async function updateExercise(id: string, changes: ExerciseUpdate): Promise<Exercise> {
-  return unwrap<Exercise>(await supabase.from('exercise').update(changes).eq('id', id).select().single())
+  return unwrap<Exercise>(await (await own('exercise')).update(changes).eq('id', id).select().single())
 }
 
 /** Hides the exercise from the library; logged history keeps pointing at it. */
 export async function archiveExercise(id: string): Promise<void> {
-  ensureAffected(await supabase.from('exercise').update({ archived: true }).eq('id', id).select('id'))
+  ensureAffected(await (await own('exercise')).update({ archived: true }).eq('id', id).select('id'))
 }
 
 const FOREIGN_KEY_VIOLATION = '23503'
@@ -51,7 +51,7 @@ const FOREIGN_KEY_VIOLATION = '23503'
 export async function deleteExercise(id: string): Promise<void> {
   if (await isReferenced('set_log', 'exercise_id', [id])) throw inUseError('The exercise')
   try {
-    ensureOk(await supabase.from('exercise').delete().eq('id', id))
+    ensureOk(await (await own('exercise')).delete().eq('id', id))
   } catch (error) {
     if (error instanceof DataError && error.code === FOREIGN_KEY_VIOLATION) throw inUseError('The exercise')
     throw error
@@ -60,8 +60,9 @@ export async function deleteExercise(id: string): Promise<void> {
 
 /** Catalog entries the user has a copy of, archived copies included (a second copy would be refused). */
 export async function listAdoptedCatalogIds(): Promise<Set<string>> {
+  const exercises = await own('exercise')
   const rows = await readAllRows<Pick<Exercise, 'catalog_id'>>((from, to) =>
-    supabase.from('exercise').select('catalog_id').order('id').range(from, to),
+    exercises.select('catalog_id').order('id').range(from, to),
   )
   return new Set(rows.flatMap(({ catalog_id }) => (catalog_id === null ? [] : [catalog_id])))
 }

@@ -1,4 +1,4 @@
-import { ensureAffected, ensureOk, supabase, unwrap } from './client'
+import { ensureAffected, ensureOk, own, unwrap } from './client'
 
 /**
  * Date of the latest workout that has at least one set, per session id (sessions never done are
@@ -8,8 +8,7 @@ export async function getLastWorkoutDates(sessionIds: readonly string[]): Promis
   const latest = await Promise.all(
     sessionIds.map(async (sessionId) => {
       const [workout] = unwrap<{ date: string }[]>(
-        await supabase
-          .from('workout')
+        await (await own('workout'))
           .select('date, set_log!inner(id)')
           .eq('session_id', sessionId)
           .order('date', { ascending: false })
@@ -23,10 +22,10 @@ export async function getLastWorkoutDates(sessionIds: readonly string[]): Promis
 
 /** Stores the note of the closed session; retrying overwrites with the same text. */
 export async function saveWorkoutNotes(workoutId: string, notes: string): Promise<void> {
-  ensureAffected(await supabase.from('workout').update({ notes }).eq('id', workoutId).select('id'))
+  ensureAffected(await (await own('workout')).update({ notes }).eq('id', workoutId).select('id'))
 }
 
 /** Removes a workout and, by cascade, its sets; deleting one that is already gone is not an error. */
 export async function deleteWorkout(workoutId: string): Promise<void> {
-  ensureOk(await supabase.from('workout').delete().eq('id', workoutId))
+  ensureOk(await (await own('workout')).delete().eq('id', workoutId))
 }

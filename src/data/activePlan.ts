@@ -1,5 +1,5 @@
 import type { Exercise, Plan, PlanExercise, PlanSession, WarmupItem } from '../types/db'
-import { supabase, unwrapOrNull } from './client'
+import { own, unwrapOrNull } from './client'
 
 export interface PlanExerciseDetail extends PlanExercise {
   exercise: Exercise
@@ -46,12 +46,12 @@ function shapePlan({ plan_session, ...plan }: RawPlan): EditablePlan {
 
 /** The active plan with sessions, exercises and warm-ups ordered by position; null when none is active. */
 export async function getActivePlan(): Promise<PlanDetail | null> {
-  const raw = unwrapOrNull<RawPlan>(await supabase.from('plan').select(PLAN_TREE).eq('is_active', true).maybeSingle())
+  const raw = unwrapOrNull<RawPlan>(await (await own('plan')).select(PLAN_TREE).eq('is_active', true).maybeSingle())
   return raw && shapePlan(raw)
 }
 
 /** Any plan (archived included) with its archived sessions listed apart; null when it does not exist. */
 export async function getPlanById(id: string): Promise<EditablePlan | null> {
-  const raw = unwrapOrNull<RawPlan>(await supabase.from('plan').select(PLAN_TREE).eq('id', id).maybeSingle())
+  const raw = unwrapOrNull<RawPlan>(await (await own('plan')).select(PLAN_TREE).eq('id', id).maybeSingle())
   return raw && shapePlan(raw)
 }

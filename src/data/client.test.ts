@@ -1,7 +1,7 @@
 import type { PostgrestError } from '@supabase/supabase-js'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { DataError, ensureAffected, ensureOk, inUseError, isReferenced, unwrap, unwrapOrNull } from './client'
-import { fakeSupabase } from './fakeSupabase'
+import { DataError, ensureAffected, ensureOk, inUseError, isReferenced, own, unwrap, unwrapOrNull } from './client'
+import { FAKE_USER_ID, fakeSupabase } from './fakeSupabase'
 
 vi.mock('../lib/supabase', async () => ({ supabase: (await import('./fakeSupabase')).fakeSupabase }))
 
@@ -68,6 +68,47 @@ describe('error code normalization', () => {
   })
 })
 
+describe('own', () => {
+  test('scopes select, update and delete to the signed-in owner, next to the caller filters', async () => {
+    const plans = await own('plan')
+    await plans.select('id').eq('id', 'p1')
+    await plans.update({ name: 'New' }).eq('id', 'p1')
+    await plans.delete().eq('id', 'p1')
+    expect(fakeSupabase.calls).toMatchObject([
+      { table: 'plan', op: 'select', ownerId: FAKE_USER_ID, filters: [['eq', 'id', 'p1']] },
+      { table: 'plan', op: 'update', ownerId: FAKE_USER_ID, filters: [['eq', 'id', 'p1']] },
+      { table: 'plan', op: 'delete', ownerId: FAKE_USER_ID, filters: [['eq', 'id', 'p1']] },
+    ])
+  })
+
+  test('leaves insert and upsert to the database default and the policies', async () => {
+    const plans = await own('plan')
+    await plans.insert({ name: 'New' })
+    await plans.upsert({ id: 'p1', name: 'New' }, { onConflict: 'id' })
+    expect(fakeSupabase.calls.map((call) => [call.op, call.ownerId])).toEqual([
+      ['insert', undefined],
+      ['upsert', undefined],
+    ])
+  })
+
+  test('filters by the user the session belongs to when the account changes', async () => {
+    fakeSupabase.userId = 'user-2'
+    await (await own('workout')).select()
+    expect(fakeSupabase.calls[0]).toMatchObject({ ownerId: 'user-2' })
+  })
+
+  test('refuses without a session', async () => {
+    fakeSupabase.userId = null
+    await expect(own('plan')).rejects.toMatchObject({ name: 'DataError', code: 'not_signed_in' })
+    expect(fakeSupabase.calls).toHaveLength(0)
+  })
+
+  test('surfaces a session read failure as a DataError', async () => {
+    fakeSupabase.sessionError = { message: 'storage unavailable', code: 'session_not_found' }
+    await expect(own('plan')).rejects.toMatchObject({ name: 'DataError', code: 'session_not_found', message: 'storage unavailable' })
+  })
+})
+
 describe('isReferenced', () => {
   test('is false without querying when there are no ids', async () => {
     expect(await isReferenced('workout', 'session_id', [])).toBe(false)
@@ -80,6 +121,7 @@ describe('isReferenced', () => {
     expect(fakeSupabase.calls[0]).toMatchObject({
       table: 'workout',
       op: 'select',
+      ownerId: FAKE_USER_ID,
       filters: [['in', 'session_id', ['s1', 's2']]],
       limit: 1,
     })

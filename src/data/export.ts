@@ -1,5 +1,5 @@
 import type { Exercise, Plan, PlanExercise, PlanSession, ScheduledSession, SetLog, TableName, WarmupItem, Workout } from '../types/db'
-import { supabase } from './client'
+import { own } from './client'
 import { readAllRows } from './paging'
 
 export interface TableRows {
@@ -16,8 +16,9 @@ export interface TableRows {
 export type ExportTables = { [Table in TableName]: TableRows[Table][] }
 
 // `id` is unique, so the page boundaries never overlap or skip rows.
-function readTable<Table extends TableName>(table: Table): Promise<TableRows[Table][]> {
-  return readAllRows((from, to) => supabase.from(table).select().order('id').range(from, to))
+async function readTable<Table extends TableName>(table: Table): Promise<TableRows[Table][]> {
+  const rows = await own(table)
+  return readAllRows((from, to) => rows.select().order('id').range(from, to))
 }
 
 /** Every row of every table, archived ones included, read page by page so nothing is cut at 1000. */
