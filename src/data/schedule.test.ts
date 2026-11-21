@@ -3,6 +3,7 @@ import { fakeSupabase } from './fakeSupabase'
 import {
   deleteFuturePlannedSlots,
   deleteSlot,
+  getSlot,
   linkWorkout,
   listSlots,
   moveSlot,
@@ -24,6 +25,19 @@ beforeEach(() => {
   vi.setSystemTime(new Date(2026, 10, 21, 23, 30))
 })
 afterEach(() => vi.useRealTimers())
+
+describe('getSlot', () => {
+  test('reads one slot by id', async () => {
+    fakeSupabase.reset(() => ({ data: slot }))
+    expect(await getSlot('x1')).toEqual(slot)
+    expect(fakeSupabase.calls[0]).toMatchObject({ table: 'scheduled_session', op: 'select', filters: [['eq', 'id', 'x1']], mode: 'maybeSingle' })
+  })
+
+  test('is null for an unknown id', async () => {
+    fakeSupabase.reset(() => ({ data: null }))
+    expect(await getSlot('nope')).toBeNull()
+  })
+})
 
 describe('listSlots', () => {
   test('reads the inclusive date range ordered by date', async () => {

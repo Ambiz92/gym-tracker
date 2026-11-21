@@ -22,6 +22,7 @@ function memoryStorage(): StorageLike & { data: Record<string, string> } {
 interface Fake {
   api: { [K in keyof SessionApi]: ReturnType<typeof vi.fn> }
   storage: ReturnType<typeof memoryStorage>
+  onLinkError: ReturnType<typeof vi.fn>
   env: StoreEnv
 }
 
@@ -32,7 +33,9 @@ function fake(): Fake {
     deleteSet: vi.fn(() => Promise.resolve()),
     saveNotes: vi.fn(() => Promise.resolve()),
     deleteWorkout: vi.fn(() => Promise.resolve()),
+    linkSlot: vi.fn(() => Promise.resolve()),
   }
+  const onLinkError = vi.fn()
   const storage = memoryStorage()
   let counter = 0
   const env: StoreEnv = {
@@ -41,8 +44,9 @@ function fake(): Fake {
     uuid: () => `id-${++counter}`,
     today: () => '2026-11-17',
     now: () => 5000,
+    onLinkError,
   }
-  return { api, storage, env }
+  return { api, storage, onLinkError, env }
 }
 
 const offline = () => Promise.reject(new Error('offline'))
@@ -50,6 +54,97 @@ const offline = () => Promise.reject(new Error('offline'))
 let f: Fake
 beforeEach(() => {
   f = fake()
+})
+
+describe('linking the calendar slot', () => {
+  const slotSession = { ...session, scheduledId: 'slot-1' }
+
+  it('links the slot once, after the workout row is on the server', async () => {
+    const store = new SessionStore(f.env)
+    store.confirmSet(slotSession, input())
+    store.confirmSet(slotSession, input())
+    await store.flush()
+
+    expect(f.api.linkSlot).toHaveBeenCalledTimes(1)
+    expect(f.api.linkSlot).toHaveBeenCalledWith('slot-1', 'id-1')
+    expect(f.api.linkSlot.mock.invocationCallOrder[0]).toBeGreaterThan(f.api.createWorkout.mock.invocationCallOrder[0])
+    expect(store.getSnapshot().draft?.scheduledId).toBe('slot-1')
+    expect(JSON.parse(f.storage.data[DRAFT_STORAGE_KEY]).scheduledId).toBe('slot-1')
+  })
+
+  it('does not link without a slot', async () => {
+    const store = new SessionStore(f.env)
+    store.confirmSet(session, input())
+    await store.flush()
+    expect(f.api.linkSlot).not.toHaveBeenCalled()
+  })
+
+  it('keeps the slot of the draft opened first', async () => {
+    const store = new SessionStore(f.env)
+    store.confirmSet(session, input())
+    store.confirmSet(slotSession, input())
+    await store.flush()
+    expect(f.api.linkSlot).not.toHaveBeenCalled()
+  })
+
+  it('does not link while the workout row cannot be created, and links once it can', async () => {
+    f.api.createWorkout.mockImplementationOnce(offline)
+    const store = new SessionStore(f.env)
+    store.confirmSet(slotSession, input())
+    expect(await store.flush()).toBe(false)
+    expect(f.api.linkSlot).not.toHaveBeenCalled()
+
+    expect(await store.flush()).toBe(true)
+    expect(f.api.linkSlot).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    ['rejects', () => Promise.reject(new Error('offline'))],
+    ['throws', () => {
+      throw new Error('boom')
+    }],
+  ])('saves every set when the link %s, and reports it', async (_label, failure) => {
+    f.api.linkSlot.mockImplementation(failure)
+    const store = new SessionStore(f.env)
+    store.confirmSet(slotSession, input())
+    store.confirmSet(slotSession, input('e2'))
+
+    expect(await store.flush()).toBe(true)
+    await vi.waitFor(() => expect(f.onLinkError).toHaveBeenCalledTimes(1))
+    expect(store.getSnapshot().failed).toBe(false)
+    expect(store.getSnapshot().draft?.sets.map((set) => set.sync)).toEqual(['synced', 'synced'])
+    expect(f.api.logSet).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not wait for a link that never settles', async () => {
+    f.api.linkSlot.mockImplementation(() => new Promise(() => undefined))
+    const store = new SessionStore(f.env)
+    store.confirmSet(slotSession, input())
+    expect(await store.flush()).toBe(true)
+    expect(store.getSnapshot().draft?.sets[0]?.sync).toBe('synced')
+  })
+
+  it('resumes a draft saved before the calendar existed, without linking', async () => {
+    const old = {
+      workoutId: 'w-old',
+      workoutSynced: false,
+      date: '2026-11-10',
+      sessionId: 's1',
+      sessionName: 'Upper',
+      startedAt: 1,
+      currentExerciseId: null,
+      sets: [{ id: 'a', exerciseId: 'e1', setNumber: 1, reps: 8, weightKg: 20, equipment: 'barbell', sync: 'pending' }],
+    }
+    f.storage.data[DRAFT_STORAGE_KEY] = JSON.stringify(old)
+
+    const store = new SessionStore(f.env)
+    expect(store.getSnapshot().draft?.scheduledId).toBeUndefined()
+    store.confirmSet(session, input('e2'))
+    expect(await store.flush()).toBe(true)
+    expect(f.api.createWorkout).toHaveBeenCalledWith({ id: 'w-old', date: '2026-11-10', sessionId: 's1', sessionName: 'Upper' })
+    expect(f.api.logSet).toHaveBeenCalledTimes(2)
+    expect(f.api.linkSlot).not.toHaveBeenCalled()
+  })
 })
 
 describe('confirming sets', () => {
