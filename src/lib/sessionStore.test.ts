@@ -34,6 +34,7 @@ function fake(): Fake {
     saveNotes: vi.fn(() => Promise.resolve()),
     deleteWorkout: vi.fn(() => Promise.resolve()),
     linkSlot: vi.fn(() => Promise.resolve()),
+    unlinkSlot: vi.fn(() => Promise.resolve()),
   }
   const onLinkError = vi.fn()
   const storage = memoryStorage()
@@ -114,6 +115,26 @@ describe('linking the calendar slot', () => {
     expect(store.getSnapshot().failed).toBe(false)
     expect(store.getSnapshot().draft?.sets.map((set) => set.sync)).toEqual(['synced', 'synced'])
     expect(f.api.logSet).toHaveBeenCalledTimes(2)
+  })
+
+  it('a throwing error handler cannot turn a failed link into an unhandled rejection', async () => {
+    const unhandled = vi.fn()
+    process.on('unhandledRejection', unhandled)
+    try {
+      f.api.linkSlot.mockImplementation(offline)
+      f.onLinkError.mockImplementation(() => {
+        throw new Error('handler broke')
+      })
+      const store = new SessionStore(f.env)
+      store.confirmSet(slotSession, input())
+      expect(await store.flush()).toBe(true)
+      await vi.waitFor(() => expect(f.onLinkError).toHaveBeenCalledTimes(1))
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      expect(unhandled).not.toHaveBeenCalled()
+      expect(store.getSnapshot().failed).toBe(false)
+    } finally {
+      process.off('unhandledRejection', unhandled)
+    }
   })
 
   it('does not wait for a link that never settles', async () => {
@@ -366,6 +387,55 @@ describe('finish', () => {
     expect(await store.finish('x')).toBe(true)
     expect(f.api.deleteWorkout).toHaveBeenCalledWith('id-1')
     expect(f.api.saveNotes).not.toHaveBeenCalled()
+  })
+
+  describe('when every set was undone and the session came from a slot', () => {
+    const slotSession = { ...session, scheduledId: 'slot-1' }
+
+    async function undoAll() {
+      const store = new SessionStore(f.env)
+      const set = store.confirmSet(slotSession, input())
+      await store.flush()
+      store.undoSet(set.id)
+      return store
+    }
+
+    it('reopens the slot of that workout before deleting the workout', async () => {
+      const store = await undoAll()
+      expect(await store.finish('')).toBe(true)
+      expect(f.api.unlinkSlot).toHaveBeenCalledWith('slot-1', 'id-1')
+      expect(f.api.unlinkSlot.mock.invocationCallOrder[0]).toBeLessThan(f.api.deleteWorkout.mock.invocationCallOrder[0])
+    })
+
+    it.each([
+      ['rejects', offline],
+      ['throws', () => {
+        throw new Error('boom')
+      }],
+    ])('still deletes the workout when reopening the slot %s', async (_label, failure) => {
+      f.api.unlinkSlot.mockImplementation(failure)
+      const store = await undoAll()
+      expect(await store.finish('')).toBe(true)
+      expect(f.api.deleteWorkout).toHaveBeenCalledWith('id-1')
+      expect(f.onLinkError).toHaveBeenCalledTimes(1)
+      expect(store.getSnapshot().draft).toBeNull()
+    })
+
+    it('does not reopen anything when the session has sets, or did not come from a slot', async () => {
+      const kept = new SessionStore(f.env)
+      kept.confirmSet(slotSession, input())
+      await kept.finish('ok')
+      expect(f.api.unlinkSlot).not.toHaveBeenCalled()
+
+      const other = fake()
+      const plain = new SessionStore(other.env)
+      const set = plain.confirmSet(session, input())
+      await plain.flush()
+      plain.undoSet(set.id)
+      await plain.finish('')
+      expect(other.api.deleteWorkout).toHaveBeenCalled()
+      expect(other.api.unlinkSlot).not.toHaveBeenCalled()
+    })
   })
 
   it('is a no-op without a draft', async () => {

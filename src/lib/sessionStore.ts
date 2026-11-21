@@ -28,6 +28,8 @@ export interface SessionApi {
   deleteWorkout(workoutId: string): Promise<void>
   /** Marks the calendar slot done once its workout exists; may reject, the store never waits for it. */
   linkSlot(slotId: string, workoutId: string): Promise<unknown>
+  /** Puts the slot back to planned when its workout is discarded; must run before the workout is deleted. May reject, the store tolerates it. */
+  unlinkSlot(slotId: string, workoutId: string): Promise<unknown>
 }
 
 export interface StoreEnv {
@@ -37,7 +39,7 @@ export interface StoreEnv {
   /** Local calendar date YYYY-MM-DD. */
   today(): string
   now(): number
-  /** A failed slot link: reading reconciles it (same session and date), so this is only for diagnostics. */
+  /** A failed slot link or unlink: reading reconciles it (same session and date), so this is only for diagnostics. */
   onLinkError(error: unknown): void
 }
 
@@ -147,7 +149,11 @@ export class SessionStore {
 
     try {
       if (activeSets(draft).length === 0) {
-        if (draft.workoutSynced) await this.env.api.deleteWorkout(draft.workoutId)
+        const { scheduledId, workoutId } = draft
+        if (draft.workoutSynced) {
+          if (scheduledId) await this.tolerate(() => this.env.api.unlinkSlot(scheduledId, workoutId))
+          await this.env.api.deleteWorkout(workoutId)
+        }
       } else if (notes.trim()) {
         await this.env.api.saveNotes(draft.workoutId, notes.trim())
       }
@@ -218,9 +224,20 @@ export class SessionStore {
 
   /** Fire and forget: saving sets never waits for, or fails because of, the calendar. */
   private linkSlot(slotId: string, workoutId: string): void {
-    Promise.resolve()
-      .then(() => this.env.api.linkSlot(slotId, workoutId))
-      .catch((error: unknown) => this.env.onLinkError(error))
+    void this.tolerate(() => this.env.api.linkSlot(slotId, workoutId))
+  }
+
+  /** Runs a calendar call whose failure must not matter: it is only reported, and a throwing handler is ignored too. */
+  private async tolerate(call: () => Promise<unknown>): Promise<void> {
+    try {
+      await call()
+    } catch (error) {
+      try {
+        this.env.onLinkError(error)
+      } catch {
+        // Diagnostics must never break saving.
+      }
+    }
   }
 
   /** Applies an acknowledgement to the draft it belongs to; a draft closed meanwhile is left alone. */

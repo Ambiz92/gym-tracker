@@ -11,6 +11,7 @@ import {
   listSlots,
   moveSlot,
   moveSlotToToday,
+  reopenSlot,
   scheduleRepeating,
   scheduleSession,
   skipSlot,
@@ -291,6 +292,24 @@ describe('healReconciledSlots', () => {
     await expect(healReconciledSlots([planned], [workout])).resolves.toBeUndefined()
     fakeSupabase.reset(() => ({ data: [] }))
     await expect(healReconciledSlots([planned], [workout])).resolves.toBeUndefined()
+  })
+})
+
+describe('reopenSlot', () => {
+  test('puts back to planned only a done slot linked to that workout', async () => {
+    await reopenSlot('x1', 'w1')
+    expect(fakeSupabase.calls).toHaveLength(1)
+    expect(fakeSupabase.calls[0]).toMatchObject({
+      table: 'scheduled_session',
+      op: 'update',
+      payload: { status: 'planned', workout_id: null },
+      filters: [['eq', 'id', 'x1'], ['eq', 'status', 'done'], ['eq', 'workout_id', 'w1']],
+    })
+  })
+
+  test('a failure is silent', async () => {
+    fakeSupabase.reset(() => ({ error: { message: 'boom', code: 'XX000' } }))
+    await expect(reopenSlot('x1', 'w1')).resolves.toBeUndefined()
   })
 })
 

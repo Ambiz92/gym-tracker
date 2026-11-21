@@ -151,6 +151,26 @@ export async function healReconciledSlots(slots: readonly ScheduledSession[], wo
 }
 
 /**
+ * Puts a slot back to `planned` when its workout was discarded (every set undone). Only a slot that
+ * is done AND linked to that very workout changes, so it must run before the workout is deleted
+ * (deleting it nulls the link). Best effort: it never rejects.
+ */
+export async function reopenSlot(slotId: string, workoutId: string): Promise<void> {
+  try {
+    ensureOk(
+      await supabase
+        .from(TABLE)
+        .update({ status: 'planned', workout_id: null })
+        .eq('id', slotId)
+        .eq('status', 'done')
+        .eq('workout_id', workoutId),
+    )
+  } catch {
+    // Reading reconciles with the workout that is about to go; nothing else depends on this.
+  }
+}
+
+/**
  * Deletes the slots of `planSessionIds` that are still to do: `planned`, dated today or later and
  * without a workout, and not completed by one either (a workout of the same session and day whose
  * link failed). Workouts, sets and any done, skipped or past slot are out of its reach.

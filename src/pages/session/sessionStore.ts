@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useSyncExternalStore } from 'react'
 import { DataError } from '../../data/client'
-import { linkWorkout } from '../../data/schedule'
+import { linkWorkout, reopenSlot } from '../../data/schedule'
 import { createWorkout, deleteSet, logSet } from '../../data/workouts'
 import { deleteWorkout, saveWorkoutNotes } from '../../data/sessionLog'
 import { localDateString } from '../../lib/localDate'
@@ -16,7 +16,7 @@ function reportLinkError(error: unknown): void {
 
 /** The one open session of the app, shared by Home and Session. */
 export const sessionStore = new SessionStore({
-  api: { createWorkout, logSet, deleteSet, saveNotes: saveWorkoutNotes, deleteWorkout, linkSlot: linkWorkout },
+  api: { createWorkout, logSet, deleteSet, saveNotes: saveWorkoutNotes, deleteWorkout, linkSlot: linkWorkout, unlinkSlot: reopenSlot },
   storage: browserStorage(),
   uuid: newUuid,
   today: () => localDateString(new Date()),
