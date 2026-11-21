@@ -39,9 +39,13 @@ describe('without links', () => {
     expect(html).toContain('Copia il codice')
     expect(html).toContain('Chiedi a un allenatore')
     expect(html).toContain('Testo provvisorio')
-    expect(html).not.toContain('Il mio allenatore')
+    expect(html).not.toContain('Il tuo allenatore')
     expect(html).not.toContain('I miei atleti')
     expect(html).not.toContain('Richieste in arrivo')
+  })
+
+  test('the copy confirmation is a live region that takes no space until it has a message', () => {
+    expect(render()).toContain('<p role="status" class="visually-hidden"></p>')
   })
 
   test('the request cannot be sent before the consent box is ticked', () => {
@@ -52,7 +56,8 @@ describe('without links', () => {
 describe('as an athlete', () => {
   test('a pending request shows its state and the withdraw action instead of the form', () => {
     const html = render({ asAthlete: [makeLink()] })
-    expect(html).toContain('Il mio allenatore')
+    expect(html).toContain('Il tuo allenatore')
+    expect(html).toContain('codice 9a7b0c1d…')
     expect(html).toContain('In attesa di risposta')
     expect(html).toContain('Ritira la richiesta')
     expect(html).toContain('<bdi>Marta</bdi>')
@@ -68,7 +73,7 @@ describe('as an athlete', () => {
   test('a revoked link is over: the request form is back', () => {
     const html = render({ asAthlete: [makeLink({ status: 'revoked', revoked_at: '2026-11-21T09:00:00Z', revoked_by: ME })] })
     expect(html).toContain('Chiedi a un allenatore')
-    expect(html).not.toContain('Il mio allenatore')
+    expect(html).not.toContain('Il tuo allenatore')
   })
 })
 

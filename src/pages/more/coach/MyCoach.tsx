@@ -7,10 +7,9 @@ import { LinkActions } from './LinkActions'
 export function MyCoach({ link, aal2, onChanged }: { link: CoachLink; aal2: boolean | null; onChanged: () => void }) {
   return (
     <div>
-      <h3 className="coach-subhead">Il mio allenatore</h3>
-      <p className="coach-link__title">Codice {link.coach_id.slice(0, 8)}…</p>
+      <h3 className="coach-subhead">Il tuo allenatore</h3>
       <p className="history-note">
-        {linkStatusLabel('athlete', link.status)} · richiesta del {linkDay(link.created_at)} · visto come <bdi>{athleteName(link)}</bdi>
+        {linkStatusLabel('athlete', link.status)} · richiesta del {linkDay(link.created_at)} · visto come <bdi>{athleteName(link)}</bdi> · codice {link.coach_id.slice(0, 8)}…
       </p>
       <details className="coach-shared">
         <summary>Cosa vede il tuo allenatore</summary>

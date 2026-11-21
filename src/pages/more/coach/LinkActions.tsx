@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { FormError } from '../../../auth/FormParts'
 import { PrimaryButton } from '../../../components/PrimaryButton'
 import { acceptLink, revokeLink } from '../../../data/coachLinks'
@@ -25,7 +26,11 @@ interface LinkActionsProps {
 export function LinkActions({ link, role, aal2, onChanged }: LinkActionsProps) {
   const { busy, error, run } = useAction(describeCoachLinkError)
 
+  // useAction's busy covers the whole row; only the pressed button announces it.
+  const [pressed, setPressed] = useState<LinkAction | null>(null)
+
   async function perform(action: LinkAction) {
+    setPressed(action)
     const change = action === 'accept' ? () => acceptLink(link.id) : () => revokeLink(link.id)
     if (await run(change, FAILURES[action])) onChanged()
   }
@@ -36,8 +41,8 @@ export function LinkActions({ link, role, aal2, onChanged }: LinkActionsProps) {
         <PrimaryButton
           key={action}
           variant={action === 'accept' ? 'solid' : 'outline'}
-          busy={busy}
-          disabled={needsSecondFactor(action) && aal2 !== true}
+          busy={busy && pressed === action}
+          disabled={busy || (needsSecondFactor(action) && aal2 !== true)}
           onClick={() => void perform(action)}
         >
           {actionLabel(action, role, link.status)}

@@ -96,7 +96,7 @@ describe('buildPlanViews', () => {
     expect(views[0]!.sessions[0]!.exercises.map(({ name, target }) => [name, target])).toEqual([
       ['Panca', '4×8'],
       ['Squat', '3×5'],
-      ['Esercizio', '2×30 s'],
+      ['Esercizio sconosciuto', '2×30 s'],
     ])
     expect(views[0]!.sessions[1]!.optional).toBe(true)
   })

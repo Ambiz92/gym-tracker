@@ -67,7 +67,7 @@ export function buildPlanViews(plans: readonly AthletePlan[], exercises: readonl
           .sort((a, b) => a.position - b.position)
           .map((entry) => ({
             key: `${session.id}:${entry.position}`,
-            name: names.get(entry.exercise_id) ?? 'Esercizio',
+            name: names.get(entry.exercise_id) ?? 'Esercizio sconosciuto',
             target: targetLabel(entry),
           })),
       })),

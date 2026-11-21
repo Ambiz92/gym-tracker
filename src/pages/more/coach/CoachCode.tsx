@@ -32,7 +32,8 @@ export function CoachCode({ code }: { code: string }) {
       <PrimaryButton variant="outline" onClick={() => void copyCode()}>
         Copia il codice
       </PrimaryButton>
-      <p role="status" className="history-note">
+      {/* Always mounted so a screen reader announces the change; out of the layout until there is something to say. */}
+      <p role="status" className={copy === 'idle' ? 'visually-hidden' : 'history-note'}>
         {COPY_MESSAGES[copy]}
       </p>
     </div>
