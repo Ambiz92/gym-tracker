@@ -2,7 +2,7 @@ import { weeklyDates } from '../lib/calendar'
 import { localDateString } from '../lib/localDate'
 import { newUuid } from '../lib/uuid'
 import type { ScheduledSession, ScheduledSessionUpdate } from '../types/db'
-import { DataError, ensureOk, supabase, unwrap } from './client'
+import { DataError, ensureOk, supabase, unwrap, unwrapOrNull } from './client'
 
 const TABLE = 'scheduled_session'
 const UNIQUE_VIOLATION = '23505'
@@ -37,6 +37,11 @@ export async function listSlots(from: string, to: string): Promise<ScheduledSess
       .order('date')
       .order('created_at'),
   )
+}
+
+/** One slot by id, or null when it does not exist. */
+export async function getSlot(id: string): Promise<ScheduledSession | null> {
+  return unwrapOrNull<ScheduledSession>(await supabase.from(TABLE).select().eq('id', id).maybeSingle())
 }
 
 /** Plans `planSessionId` on `date`; `sessionName` is the snapshot that outlives the session. */
