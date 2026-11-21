@@ -12,6 +12,7 @@ export type TableName =
   | 'warmup_item'
   | 'workout'
   | 'set_log'
+  | 'scheduled_session'
 
 // owner_id is never sent: the database fills it with auth.uid().
 type Insert<Row, Optional extends keyof Row> = Omit<Row, Optional | 'owner_id'> & Partial<Pick<Row, Optional>>
@@ -125,6 +126,26 @@ export interface SetLog {
   rpe: number | null
 }
 export type SetLogInsert = Insert<SetLog, 'id' | 'rpe'>
+
+/** Stored status of a planned slot; "to recover" and the reconciled "done" are derived on read. */
+export type ScheduleStatus = 'planned' | 'done' | 'skipped'
+
+/** A plan session scheduled on a calendar day (a date only, no time or time zone). */
+export interface ScheduledSession {
+  id: string
+  owner_id: string
+  /** Null once the session was deleted; `session_name` keeps the snapshot. */
+  plan_session_id: string | null
+  session_name: string
+  date: string // YYYY-MM-DD
+  status: ScheduleStatus
+  workout_id: string | null
+  /** Shared by the slots generated together by "repeat for N weeks". */
+  series_id: string | null
+  created_at: string // ISO timestamp
+}
+export type ScheduledSessionInsert = Insert<ScheduledSession, 'id' | 'status' | 'workout_id' | 'series_id' | 'created_at'>
+export type ScheduledSessionUpdate = Update<ScheduledSession>
 
 /** The part of a logged set that prefill and progression read. */
 export type LastSet = Pick<SetLog, 'set_number' | 'reps' | 'weight_kg' | 'equipment_used'>

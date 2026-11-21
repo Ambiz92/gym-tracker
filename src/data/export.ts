@@ -12,10 +12,13 @@ export interface TableRows {
   set_log: SetLog
 }
 
-export type ExportTables = { [Table in TableName]: TableRows[Table][] }
+// The scheduled_session table joins the export in the data/export wiring task.
+export type ExportedTable = Exclude<TableName, 'scheduled_session'>
+
+export type ExportTables = { [Table in ExportedTable]: TableRows[Table][] }
 
 // `id` is unique, so the page boundaries never overlap or skip rows.
-function readTable<Table extends TableName>(table: Table): Promise<TableRows[Table][]> {
+function readTable<Table extends ExportedTable>(table: Table): Promise<TableRows[Table][]> {
   return readAllRows((from, to) => supabase.from(table).select().order('id').range(from, to))
 }
 
