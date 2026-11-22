@@ -61,11 +61,6 @@
   padding-left: var(--ds-space-4);
 }
 
-.coach-consent__notice {
-  color: var(--ds-color-danger);
-  font-weight: var(--ds-weight-black);
-}
-
 .coach-shared summary {
   min-height: var(--ds-size-touch);
   display: flex;
