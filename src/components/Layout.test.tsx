@@ -10,7 +10,7 @@ function render(ui: ReactElement, email: string | null = null) {
   const unused = () => Promise.reject(new Error('not used when rendering'))
   return renderToStaticMarkup(
     <AuthContext.Provider
-      value={{ status: 'signed_in', email, oauthError: null, clearOauthError: () => undefined, signIn: unused, signInWithGoogle: unused, verifyCode: unused, startEnrollment: unused, verifyEnrollment: unused, signOut: unused }}
+      value={{ status: 'signed_in', email, oauthError: null, clearOauthError: () => undefined, signIn: unused, signInWithGoogle: unused, verifyCode: unused, startEnrollment: unused, verifyEnrollment: unused, signOut: unused, isAal2: unused }}
     >
       <MemoryRouter>{ui}</MemoryRouter>
     </AuthContext.Provider>,
@@ -53,4 +53,9 @@ test('AuthLayout has a focusable main landmark and no navigation', () => {
   )
   expect(html).toContain('<main class="app__content" tabindex="-1"><h1>Accesso</h1></main>')
   expect(html).not.toContain('<nav')
+})
+
+test('Layout adds the Atleti tab to the navigation only when told the user has athletes', () => {
+  expect(render(<Layout>Pagina</Layout>)).not.toContain('>Atleti<')
+  expect(render(<Layout hasAthletes>Pagina</Layout>)).toContain('>Atleti<')
 })

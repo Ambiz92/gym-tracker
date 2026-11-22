@@ -1,7 +1,10 @@
 import { DataError } from '../../data/client'
+import { describeCommonDataError } from '../dataErrors'
 
 /** Italian message for a failed calendar action; `fallback` covers anything without a specific wording. */
 export function describeScheduleError(cause: unknown, fallback: string): string {
+  const common = describeCommonDataError(cause)
+  if (common) return common
   if (cause instanceof DataError) {
     if (cause.code === 'already_scheduled') return 'Questa sessione è già in programma in uno dei giorni scelti.'
     if (cause.code === 'not_planned') {

@@ -6,7 +6,8 @@ const PAGE_SIZE = 1000
 
 /**
  * Reads every row of a query, page by page. `fetchPage` receives an inclusive range and its query
- * must have a total, unique ordering so pages never overlap or skip rows. As with `unwrap<T>`,
+ * must have a total, unique ordering so pages never overlap or skip rows, and should call `own()`
+ * itself so every page is scoped to whoever is signed in at that moment. As with `unwrap<T>`,
  * the caller vouches for the row shape: the untyped client infers embedded rows wrongly.
  */
 export async function readAllRows<Row>(

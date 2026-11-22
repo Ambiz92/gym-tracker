@@ -1,7 +1,7 @@
 import { beforeEach, expect, test, vi } from 'vitest'
 import type { CatalogExercise } from '../types/db'
 import { adoptCatalogExercise, listCatalog } from './catalog'
-import { fakeSupabase } from './fakeSupabase'
+import { FAKE_USER_ID, fakeSupabase } from './fakeSupabase'
 
 vi.mock('../lib/supabase', async () => ({ supabase: (await import('./fakeSupabase')).fakeSupabase }))
 
@@ -33,6 +33,12 @@ test('listCatalog reads the catalog ordered by Italian name', async () => {
   })
 })
 
+test('the catalog is shared reference data: no owner filter', async () => {
+  fakeSupabase.reset(() => ({ data: [] }))
+  await listCatalog()
+  expect(fakeSupabase.calls[0].ownerId).toBeUndefined()
+})
+
 test('listCatalog surfaces a database error', async () => {
   fakeSupabase.reset(() => ({ error: { message: 'denied', code: '42501' } }))
   await expect(listCatalog()).rejects.toMatchObject({ name: 'DataError', code: '42501' })
@@ -61,7 +67,7 @@ test('adopting an entry already adopted returns the existing copy untouched', as
   fakeSupabase.reset((call) => (call.op === 'insert' ? { error: UNIQUE_VIOLATION } : { data: existing }))
   expect(await adoptCatalogExercise(entry)).toEqual(existing)
   expect(fakeSupabase.calls.map((call) => call.op)).toEqual(['insert', 'select'])
-  expect(fakeSupabase.calls[1]).toMatchObject({ table: 'exercise', filters: [['eq', 'catalog_id', 'c1']] })
+  expect(fakeSupabase.calls[1]).toMatchObject({ table: 'exercise', ownerId: FAKE_USER_ID, filters: [['eq', 'catalog_id', 'c1']] })
 })
 
 test('adopting an entry whose copy is archived restores that same row', async () => {

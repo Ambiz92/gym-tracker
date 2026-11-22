@@ -154,3 +154,20 @@ export type LastSet = Pick<SetLog, 'set_number' | 'reps' | 'weight_kg' | 'equipm
 export interface HistorySet extends SetLog {
   date: string
 }
+
+export type CoachLinkStatus = 'pending' | 'active' | 'revoked'
+
+/** A coach/athlete link (migration 0007). It belongs to both parties and has no owner_id, so it stays out of TableName and own(). */
+export interface CoachLink {
+  id: string
+  coach_id: string
+  athlete_id: string
+  status: CoachLinkStatus
+  /** The name the athlete chose for themselves; the coach sees nothing else about them. */
+  athlete_label: string | null
+  consent_version: string
+  created_at: string // ISO timestamp
+  accepted_at: string | null
+  revoked_at: string | null
+  revoked_by: string | null
+}

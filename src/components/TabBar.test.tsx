@@ -3,10 +3,10 @@ import { MemoryRouter } from 'react-router-dom'
 import { expect, test } from 'vitest'
 import { TabBar } from './TabBar'
 
-function renderAt(path: string) {
+function renderAt(path: string, hasAthletes = false) {
   return renderToStaticMarkup(
     <MemoryRouter initialEntries={[path]}>
-      <TabBar />
+      <TabBar hasAthletes={hasAthletes} />
     </MemoryRouter>,
   )
 }
@@ -43,4 +43,19 @@ test('Schede stays current on the exercise library and on a plan', () => {
 
 test('a route that only starts with a tab path does not light it up', () => {
   expect(renderAt('/plansible')).not.toContain('aria-current')
+})
+
+test('the Atleti tab is hidden unless the user has an active athlete', () => {
+  expect(renderAt('/')).not.toContain('Atleti')
+  expect(renderAt('/', false)).not.toContain('Atleti')
+})
+
+test('with an active athlete the Atleti tab sits before Altro and is lit on its routes only', () => {
+  const html = renderAt('/athletes/abc', true)
+  expect(html).toContain('href="/athletes"')
+  expect(html.indexOf('>Storico<')).toBeLessThan(html.indexOf('>Atleti<'))
+  expect(html.indexOf('>Atleti<')).toBeLessThan(html.indexOf('>Altro<'))
+  expect(html).toMatch(/aria-current="page"[^>]*>Atleti</)
+  expect(html.match(/aria-current="page"/g)).toHaveLength(1)
+  expect(renderAt('/more', true)).not.toMatch(/aria-current="page"[^>]*>Atleti</)
 })

@@ -64,6 +64,32 @@ test('listLoggedSets flattens the workout date onto each set and pages on a uniq
   expect(fakeSupabase.calls[0]).toMatchObject({ table: 'set_log', orders: [{ column: 'id' }], range: [0, 999] })
 })
 
+describe('listLoggedSets across pages', () => {
+  const page = (count: number) =>
+    Array.from({ length: count }, () => ({ exercise_id: 'e1', weight_kg: 20, workout: { date: '2026-11-17' } }))
+
+  test('scopes every page to whoever is signed in when it is read', async () => {
+    fakeSupabase.reset((call) => {
+      if (call.range![0] === 0) {
+        fakeSupabase.userId = 'user-2'
+        return { data: page(1000) }
+      }
+      return { data: page(1) }
+    })
+    expect(await listLoggedSets()).toHaveLength(1001)
+    expect(fakeSupabase.calls.map((call) => call.ownerId)).toEqual(['user-1', 'user-2'])
+  })
+
+  test('rejects when the session is gone before a later page', async () => {
+    fakeSupabase.reset(() => {
+      fakeSupabase.userId = null
+      return { data: page(1000) }
+    })
+    await expect(listLoggedSets()).rejects.toMatchObject({ name: 'DataError', code: 'not_signed_in' })
+    expect(fakeSupabase.calls).toHaveLength(1)
+  })
+})
+
 test('listRecentWorkouts asks for the newest workouts first', async () => {
   fakeSupabase.reset(() => ({ data: [] }))
   await listRecentWorkouts(10)

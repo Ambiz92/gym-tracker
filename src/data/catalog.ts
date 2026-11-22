@@ -1,6 +1,6 @@
 import { exerciseFromCatalog } from '../lib/exerciseList'
 import type { CatalogExercise, Exercise } from '../types/db'
-import { DataError, supabase, unwrap } from './client'
+import { DataError, own, supabase, unwrap } from './client'
 import { createExercise, updateExercise } from './exercises'
 import { readAllRows } from './paging'
 
@@ -23,6 +23,6 @@ export async function adoptCatalogExercise(entry: CatalogExercise): Promise<Exer
   } catch (error) {
     if (!(error instanceof DataError) || error.code !== UNIQUE_VIOLATION) throw error
   }
-  const existing = unwrap<Exercise>(await supabase.from('exercise').select().eq('catalog_id', entry.id).single())
+  const existing = unwrap<Exercise>(await (await own('exercise')).select().eq('catalog_id', entry.id).single())
   return existing.archived ? updateExercise(existing.id, { archived: false }) : existing
 }

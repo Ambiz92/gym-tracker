@@ -4,6 +4,7 @@ import {
   type AuthStatus,
   completeOAuthReturn,
   currentEmail,
+  isAal2,
   normalizeCode,
   resolveStatus,
   signIn,
@@ -93,6 +94,28 @@ describe('currentEmail', () => {
     const { api, state } = createFakeAuth()
     state.crash.add('getSession')
     expect(await currentEmail(api)).toBeNull()
+  })
+})
+
+describe('isAal2', () => {
+  test('is false without a session and at aal1, true once the code is verified', async () => {
+    const fake = createFakeAuth({ enrolled: true })
+    expect(await isAal2(fake.api)).toBe(false)
+    await signIn(fake.api, EMAIL, PASSWORD)
+    expect(await isAal2(fake.api)).toBe(false)
+    await verifyCode(fake.api, CODE)
+    expect(await isAal2(fake.api)).toBe(true)
+  })
+
+  test('is unknown (null), not false, when the level cannot be read', async () => {
+    const fake = createFakeAuth({ enrolled: true })
+    await signIn(fake.api, EMAIL, PASSWORD)
+    await verifyCode(fake.api, CODE)
+    fake.state.fail.getAuthenticatorAssuranceLevel = { message: 'x', name: 'AuthRetryableFetchError', status: 0 }
+    expect(await isAal2(fake.api)).toBeNull()
+    fake.state.fail.getAuthenticatorAssuranceLevel = undefined
+    fake.state.crash.add('getAuthenticatorAssuranceLevel')
+    expect(await isAal2(fake.api)).toBeNull()
   })
 })
 

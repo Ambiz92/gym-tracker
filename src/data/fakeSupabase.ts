@@ -3,6 +3,9 @@
 export type Op = 'select' | 'insert' | 'update' | 'delete' | 'upsert'
 export type Filter = [method: string, column: string, value: unknown]
 
+/** The user every fake session belongs to. */
+export const FAKE_USER_ID = 'user-1'
+
 export interface Call {
   table: string
   op: Op
@@ -10,6 +13,8 @@ export interface Call {
   options?: unknown
   columns?: string
   filters: Filter[]
+  /** Value of the `owner_id` equality filter, kept apart from `filters` so tests state only what they add; undefined when the query is not scoped. */
+  ownerId?: unknown
   orders: { column: string; ascending: boolean }[]
   limit?: number
   range?: [from: number, to: number]
@@ -59,6 +64,10 @@ class FakeBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
   }
 
   eq(column: string, value: unknown) {
+    if (column === 'owner_id') {
+      this.call.ownerId = value
+      return this
+    }
     return this.filter('eq', column, value)
   }
 
@@ -132,10 +141,23 @@ class FakeBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
 export const fakeSupabase = {
   calls: [] as Call[],
   handler: (() => undefined) as Handler,
+  /** Who is signed in; null makes `auth.getSession` report no session. */
+  userId: FAKE_USER_ID as string | null,
+  sessionError: null as { message: string; code?: string } | null,
 
   reset(handler: Handler = () => undefined) {
     this.calls = []
     this.handler = handler
+    this.userId = FAKE_USER_ID
+    this.sessionError = null
+  },
+
+  auth: {
+    async getSession() {
+      const { userId, sessionError } = fakeSupabase
+      if (sessionError) return { data: { session: null }, error: sessionError }
+      return { data: { session: userId ? { user: { id: userId } } : null }, error: null }
+    },
   },
 
   from(table: string) {

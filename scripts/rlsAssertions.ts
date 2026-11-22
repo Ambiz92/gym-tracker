@@ -68,6 +68,81 @@ export function judgeForeignKey({ data, error }: Outcome): Verdict {
   return { pass: false, detail: `cross-owner reference accepted: ${JSON.stringify(data)}` }
 }
 
+/** A cross-owner write must be refused by a policy (WITH CHECK or USING), not by a missing grant or a constraint. */
+export function judgeRlsRefusal({ data, error }: Outcome): Verdict {
+  if (!error) return { pass: false, detail: `not refused, response data: ${JSON.stringify(data)}` }
+  const byPolicy = error.code === PERMISSION_DENIED && /row-level security/i.test(error.message)
+  return { pass: byPolicy, detail: describeError(error) }
+}
+
+/** A column or table the role has no grant on: same 42501, but refused by the privilege layer, before any policy. */
+export function judgePermissionDenied({ data, error }: Outcome): Verdict {
+  if (!error) return { pass: false, detail: `not refused, response data: ${JSON.stringify(data)}` }
+  const byGrant = error.code === PERMISSION_DENIED && /^permission denied/i.test(error.message)
+  return { pass: byGrant, detail: describeError(error) }
+}
+
+/** An update or delete that RLS filters out returns no rows and no error, so only an empty array proves it. */
+export function judgeNoRowsWritten({ data, error }: Outcome): Verdict {
+  if (error) return { pass: false, detail: describeError(error) }
+  if (Array.isArray(data) && data.length === 0) return { pass: true, detail: 'no rows written' }
+  return { pass: false, detail: `rows written: ${JSON.stringify(data)}` }
+}
+
+/** Every visible row must belong to the expected owner, and there must be exactly the expected number of them. */
+export function judgeVisibleRows({ data, error }: Outcome, ownerId: string, expectedRows: number): Verdict {
+  if (error) return { pass: false, detail: describeError(error) }
+  if (!Array.isArray(data)) return { pass: false, detail: `unexpected response: ${JSON.stringify(data)}` }
+  const foreign = data.filter((row) => (row as { owner_id?: unknown }).owner_id !== ownerId)
+  if (foreign.length > 0) return { pass: false, detail: `${foreign.length} rows of another owner: ${JSON.stringify(foreign)}` }
+  return { pass: data.length === expectedRows, detail: `${data.length} rows, expected ${expectedRows}` }
+}
+
+/** Rows may belong only to the listed owners (a coach sees the coach and the linked athletes, nobody else). */
+export function judgeOnlyOwners({ data, error }: Outcome, owners: string[]): Verdict {
+  if (error) return { pass: false, detail: describeError(error) }
+  if (!Array.isArray(data)) return { pass: false, detail: `unexpected response: ${JSON.stringify(data)}` }
+  const foreign = data.filter((row) => !owners.includes((row as { owner_id?: string }).owner_id ?? ''))
+  return { pass: foreign.length === 0, detail: foreign.length === 0 ? `${data.length} rows, all expected owners` : `${foreign.length} rows of other owners: ${JSON.stringify(foreign)}` }
+}
+
+/** The rows returned must be exactly the ones with the expected ids (rows without an owner column, such as links). */
+export function judgeRowIds({ data, error }: Outcome, expectedIds: string[]): Verdict {
+  if (error) return { pass: false, detail: describeError(error) }
+  if (!Array.isArray(data)) return { pass: false, detail: `unexpected response: ${JSON.stringify(data)}` }
+  const ids = data.map((row) => (row as { id?: string }).id).sort()
+  const expected = [...expectedIds].sort()
+  const same = ids.length === expected.length && ids.every((id, index) => id === expected[index])
+  return { pass: same, detail: `${ids.length} rows, expected ${expected.length}` }
+}
+
+/** A write that must succeed (the legitimate path) and return exactly `rows` rows. */
+export function judgeAccepted({ data, error }: Outcome, rows = 1): Verdict {
+  if (error) return { pass: false, detail: describeError(error) }
+  const count = Array.isArray(data) ? data.length : 0
+  return { pass: count === rows, detail: `${count} rows written, expected ${rows}` }
+}
+
+/** The row read back by its owner after a refused write must equal the row read before it. */
+export function judgeRowUnchanged(before: unknown, after: unknown): Verdict {
+  const same = JSON.stringify(before) === JSON.stringify(after)
+  return { pass: same, detail: same ? 'row unchanged' : `row changed: ${JSON.stringify(before)} became ${JSON.stringify(after)}` }
+}
+
+/**
+ * A forbidden status change must be refused (42501 from a policy or the transition trigger) or filtered out
+ * (no row), and the status read back afterwards must be the one from before.
+ */
+export function judgeRefusedTransition(update: Outcome, statusBefore: string, statusAfter: string | undefined): Verdict {
+  if (statusAfter !== statusBefore) return { pass: false, detail: `status moved from ${statusBefore} to ${statusAfter}` }
+  if (update.error) {
+    const refused = update.error.code === PERMISSION_DENIED
+    return { pass: refused, detail: describeError(update.error) }
+  }
+  if (Array.isArray(update.data) && update.data.length === 0) return { pass: true, detail: 'no rows updated' }
+  return { pass: false, detail: `update returned rows: ${JSON.stringify(update.data)}` }
+}
+
 /** Sign-ups must be refused by the project, not by an email validator. */
 export function judgeSignUp({ data, error }: Outcome): Verdict {
   if (!error) return { pass: false, detail: `sign-up accepted: ${JSON.stringify(data)}` }
@@ -79,6 +154,23 @@ export function judgeOtp({ data, error }: Outcome): Verdict {
   const session = (data as { session?: unknown } | null)?.session ?? null
   const reply = error ? describeError(error) : 'no error (reply does not reveal whether the user exists)'
   return { pass: session === null, detail: reply }
+}
+
+export interface LinkEnds {
+  coach_id: string
+  athlete_id: string
+  athlete_label: string | null
+}
+
+/** A link the check script creates: both ends are fixture users and it carries the script's label. */
+export function isTestLink(row: LinkEnds, userIds: string[], label: string): boolean {
+  return userIds.includes(row.coach_id) && userIds.includes(row.athlete_id) && row.athlete_label === label
+}
+
+/** The statement for postgres that deletes only the rows `isTestLink` accepts. */
+export function testLinkCleanupStatement(userIds: string[], label: string): string {
+  const list = userIds.map((id) => `'${id}'`).join(', ')
+  return `delete from public.coach_athlete where athlete_id in (${list}) and coach_id in (${list}) and athlete_label = '${label}';`
 }
 
 /** True for keys that bypass RLS: running the check with one would prove nothing. */

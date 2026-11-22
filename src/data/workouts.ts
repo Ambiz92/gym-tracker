@@ -1,5 +1,5 @@
 import type { HistorySet, SetLog, SetLogInsert, Workout } from '../types/db'
-import { ensureOk, supabase, unwrap } from './client'
+import { ensureOk, own, unwrap } from './client'
 
 export interface NewWorkout {
   /** Client-generated uuid: lets a retry of the same draft hit the same row. */
@@ -17,8 +17,7 @@ export interface NewWorkout {
  */
 export async function createWorkout({ id, date, sessionId, sessionName }: NewWorkout): Promise<Workout> {
   return unwrap<Workout>(
-    await supabase
-      .from('workout')
+    await (await own('workout'))
       .upsert({ id, date, session_id: sessionId, session_name: sessionName }, { onConflict: 'id' })
       .select()
       .single(),
@@ -32,8 +31,7 @@ export async function createWorkout({ id, date, sessionId, sessionName }: NewWor
  */
 export async function logSet(set: SetLogInsert): Promise<SetLog> {
   return unwrap<SetLog>(
-    await supabase
-      .from('set_log')
+    await (await own('set_log'))
       .upsert(set, { onConflict: 'workout_id,exercise_id,set_number' })
       .select()
       .single(),
@@ -42,7 +40,7 @@ export async function logSet(set: SetLogInsert): Promise<SetLog> {
 
 /** Undo of a confirmed set. */
 export async function deleteSet(setId: string): Promise<void> {
-  ensureOk(await supabase.from('set_log').delete().eq('id', setId))
+  ensureOk(await (await own('set_log')).delete().eq('id', setId))
 }
 
 export interface PastWorkout {
@@ -56,8 +54,7 @@ export interface PastWorkout {
  * One request: the inner join keeps only the exercise's rows inside each workout.
  */
 export async function getLastWorkoutsSets(exerciseId: string, count: number, excludeWorkoutId?: string): Promise<PastWorkout[]> {
-  let query = supabase
-    .from('workout')
+  let query = (await own('workout'))
     .select('id, date, set_log!inner(*)')
     .eq('set_log.exercise_id', exerciseId)
     .order('date', { ascending: false })
@@ -78,8 +75,7 @@ export async function getExerciseHistory(exerciseId: string): Promise<HistorySet
   for (let from = 0; ; from += HISTORY_PAGE_SIZE) {
     // workout_id breaks ties between workouts on the same day, so pages never overlap or skip rows.
     const page = unwrap<(SetLog & { workout: { date: string } })[]>(
-      await supabase
-        .from('set_log')
+      await (await own('set_log'))
         .select('*, workout!inner(date)')
         .eq('exercise_id', exerciseId)
         .order('workout(date)')
