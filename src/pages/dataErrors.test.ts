@@ -1,6 +1,6 @@
-import { expect, test } from 'vitest'
+import { describe, expect, test } from 'vitest'
 import { DataError } from '../data/client'
-import { describeCommonDataError } from './dataErrors'
+import { describeCoachLinkError, describeCommonDataError } from './dataErrors'
 import { describeError } from './exercises/errors'
 import { describeScheduleError } from './calendar/errors'
 import { describePlanError } from './plans/errors'
@@ -19,6 +19,32 @@ test.each([
   ['describePlanError', describePlanError],
   ['describeScheduleError', describeScheduleError],
   ['describeError', describeError],
+  ['describeCoachLinkError', describeCoachLinkError],
 ])('%s reports an expired session instead of its fallback', (_name, describe) => {
   expect(describe(new DataError('Not signed in', 'not_signed_in'), 'Riprova.')).toBe('Sessione scaduta. Accedi di nuovo.')
+})
+
+describe('describeCoachLinkError', () => {
+  test.each([
+    ['unknown_coach', 'Nessun allenatore ha questo codice'],
+    ['invalid_code', 'Il codice non è valido'],
+    ['already_has_coach', 'Hai già un allenatore'],
+    ['link_exists', 'anche se revocato'],
+    ['self_link', 'Questo è il tuo codice'],
+    ['invalid_label', 'Il nome non è accettato'],
+    ['not_allowed', 'secondo fattore'],
+    ['not_found', 'non è più disponibile'],
+    ['not_found', 'manca il secondo fattore'],
+    ['not_linked', 'collegamento non è attivo'],
+    ['not_linked', 'secondo fattore non è stato verificato'],
+    ['invalid_athlete', 'Atleta non trovato'],
+  ])('words %s in Italian', (code, text) => {
+    expect(describeCoachLinkError(new DataError('x', code), 'Riprova.')).toContain(text)
+  })
+
+  test('uses the fallback for other failures and for non-data errors', () => {
+    expect(describeCoachLinkError(new DataError('boom', 'XX000'), 'Riprova.')).toBe('Riprova.')
+    expect(describeCoachLinkError(new DataError('no code'), 'Riprova.')).toBe('Riprova.')
+    expect(describeCoachLinkError(new Error('unknown_coach'), 'Riprova.')).toBe('Riprova.')
+  })
 })

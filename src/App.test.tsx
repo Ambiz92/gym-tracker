@@ -12,7 +12,7 @@ function renderAt(path: string, status: AuthStatus = 'signed_in') {
   const unused = () => Promise.reject(new Error('not used when rendering'))
   return renderToStaticMarkup(
     <AuthContext.Provider
-      value={{ status, email: null, oauthError: null, clearOauthError: () => undefined, signIn: unused, signInWithGoogle: unused, verifyCode: unused, startEnrollment: unused, verifyEnrollment: unused, signOut: unused }}
+      value={{ status, email: null, oauthError: null, clearOauthError: () => undefined, signIn: unused, signInWithGoogle: unused, verifyCode: unused, startEnrollment: unused, verifyEnrollment: unused, signOut: unused, isAal2: unused }}
     >
       <MemoryRouter initialEntries={[path]}>
         <AppRoutes />
@@ -79,4 +79,11 @@ test('an unknown path renders the not-found page inside the layout with a link b
   expect(html).toContain('<nav')
   expect(html).toContain('href="/"')
   expect(html).toContain('Torna a Oggi')
+})
+
+test.each(['/athletes', '/athletes/3f2b8c1e-5d4a-4e6f-9a7b-0c1d2e3f4a5b'])('%s is inside the app layout, and only for a signed-in session', (path) => {
+  expect(renderAt(path)).toContain('<nav')
+  const html = renderAt(path, 'signed_out')
+  expect(html).not.toContain('<nav')
+  expect(html).not.toContain('<main')
 })

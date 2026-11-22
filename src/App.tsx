@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { HashRouter, Outlet, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
 import type { OAuthReturn } from './auth/oauthReturn'
@@ -5,8 +6,12 @@ import { AuthStep, RequireAuth } from './auth/RequireAuth'
 import { AuthLayout } from './components/AuthLayout'
 import { Layout } from './components/Layout'
 import { RouteAnnouncer } from './components/RouteAnnouncer'
+import { activeAthletes } from './lib/coachLink'
 import { supabase } from './lib/supabase'
+import { AthleteView } from './pages/AthleteView'
+import { Athletes } from './pages/Athletes'
 import { Calendar } from './pages/Calendar'
+import { CoachLinksProvider, useCoachLinks } from './pages/coach/CoachLinksProvider'
 import { PlansSplit } from './pages/desktop/PlansSplit'
 import { Exercises } from './pages/Exercises'
 import { History } from './pages/History'
@@ -19,6 +24,24 @@ import { NotFound } from './pages/NotFound'
 import { PlanEdit } from './pages/PlanEdit'
 import { PlanSessionEdit } from './pages/PlanSessionEdit'
 import { Session } from './pages/Session'
+
+/** The app frame; the Atleti tab shows once the links have loaded and one of them is an active athlete. */
+function AppLayout() {
+  const links = useCoachLinks()
+  const hasAthletes = useLastKnown(links.status === 'ready' ? activeAthletes(links.data.asCoach).length > 0 : null)
+  return (
+    <Layout hasAthletes={hasAthletes}>
+      <Outlet />
+    </Layout>
+  )
+}
+
+/** The latest non-null `value`: while the links reload or fail, the tab bar keeps what it last knew instead of dropping the tab. */
+function useLastKnown(value: boolean | null): boolean {
+  const [last, setLast] = useState(false)
+  if (value !== null && value !== last) setLast(value)
+  return value ?? last
+}
 
 export function AppRoutes() {
   return (
@@ -62,9 +85,9 @@ export function AppRoutes() {
           </Route>
           <Route
             element={
-              <Layout>
-                <Outlet />
-              </Layout>
+              <CoachLinksProvider>
+                <AppLayout />
+              </CoachLinksProvider>
             }
           >
             <Route path="/" element={<Home />} />
@@ -78,6 +101,8 @@ export function AppRoutes() {
             <Route path="/exercises" element={<Exercises />} />
             <Route path="/history" element={<History />} />
             <Route path="/history/:exerciseId" element={<History />} />
+            <Route path="/athletes" element={<Athletes />} />
+            <Route path="/athletes/:athleteId" element={<AthleteView />} />
             <Route path="/more" element={<More />} />
             <Route path="*" element={<NotFound />} />
           </Route>

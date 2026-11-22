@@ -6,6 +6,7 @@ import * as PrimaryButtonModule from '../components/PrimaryButton'
 import { Login } from '../pages/Login'
 import { MfaChallenge } from '../pages/MfaChallenge'
 import { MfaEnroll } from '../pages/MfaEnroll'
+import { LinksStub } from '../pages/coach/fakeLinks'
 import { More } from '../pages/More'
 import { AuthContext, type AuthContextValue } from './AuthProvider'
 import { CodeForm } from './CodeForm'
@@ -26,6 +27,7 @@ function render(ui: ReactElement, overrides: Partial<AuthContextValue> = {}) {
         startEnrollment: unused,
         verifyEnrollment: unused,
         signOut: unused,
+        isAal2: unused,
         ...overrides,
       }}
     >
@@ -111,5 +113,9 @@ test('the enrollment starts with a button, creating nothing until it is tapped, 
 })
 
 test('the Altro page carries the logout button', () => {
-  expect(render(<More />)).toContain('Esci')
+  expect(render(
+    <LinksStub>
+      <More />
+    </LinksStub>,
+  )).toContain('Esci')
 })

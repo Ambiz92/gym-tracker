@@ -4,11 +4,11 @@ import { useFormAction } from '../auth/useFormAction'
 import { TabBar } from './TabBar'
 
 /** Desktop navigation: brand above the main links, the account below. Below the desktop breakpoint only the tab bar shows. */
-export function Sidebar() {
+export function Sidebar({ hasAthletes }: { hasAthletes: boolean }) {
   return (
     <div className="sidebar">
       <p className="sidebar__brand">Gym Tracker</p>
-      <TabBar />
+      <TabBar hasAthletes={hasAthletes} />
       <SidebarAccount />
     </div>
   )
