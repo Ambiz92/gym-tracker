@@ -1,17 +1,20 @@
 /**
  * Signed-in checks of the coach/athlete tables (migrations 0007, 0008 and 0009), with throw-away users:
- * a coach, a linked athlete and a stranger, none of them with a second factor (a coach needs only a password
- * session, aal1, since 0009), plus optionally a user who is both (T-06, T-11, T-12) and a coach WITH a verified
- * factor (the restrictive policies still ask it for aal2). Ids of the checks (T-xx) are those of workspace/security/S-A1.md.
+ * a coach, a linked athlete and a stranger, none of them with a second factor (since 0009 the athlete creates the
+ * link already active, the coach does nothing and reads with a password session, aal1), plus optionally a user who is
+ * both (T-06, T-11, T-12) and a coach WITH a verified factor (the restrictive policies still ask it for aal2).
+ * Ids of the checks (T-xx) are those of workspace/security/S-A1.md.
  *
  * coach_athlete rows cannot be deleted by any client (the row is the consent record), and a revoked pair
- * can never be requested again. A run therefore leaves link rows behind, and the next run refuses to
+ * can never be linked again. A run therefore leaves link rows behind, and the next run refuses to
  * start until they are removed as postgres: the error message prints a statement limited to the rows it created.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   type Check,
   judgeAccepted,
+  judgeActiveLink,
+  judgeCheckViolation,
   judgeDuplicate,
   judgeForeignKey,
   judgeHiddenByPolicy,
@@ -43,13 +46,13 @@ export interface FactorSession {
 }
 
 export interface Accounts {
-  /** A coach without a second factor: its password session (aal1) is all it ever has. */
+  /** A coach without a second factor: its password session (aal1) is all it ever has, and all it needs. */
   coach: Session
   athlete: Session
   stranger: Session
   /** Both roles at once (athlete of the coach, coach of the stranger), without a second factor. */
   both: Session | null
-  /** A coach WITH a verified factor: at aal1 the restrictive policies hide everything, at aal2 it reads and accepts. */
+  /** A coach WITH a verified factor: at aal1 the restrictive policies hide everything, at aal2 it reads and revokes. */
   factorCoach: FactorSession | null
 }
 
@@ -115,6 +118,7 @@ interface LinkRow {
   athlete_id: string
   status: string
   accepted_at: string | null
+  revoked_at: string | null
 }
 
 async function readLinks(client: SupabaseClient, filter: Partial<Pick<LinkRow, 'coach_id' | 'athlete_id'>>): Promise<LinkRow[]> {
@@ -196,10 +200,8 @@ export async function coachAthleteChecks(accounts: Accounts): Promise<Check[]> {
     checks.push(await onEveryTable('T-02 unlinked coach reads the athlete', hidden(coach.client, athlete.id)))
     checks.push(await onEveryTable('T-02 stranger reads the athlete', hidden(stranger.client, athlete.id)))
 
-    const link = await request()
+    const link = await createLink()
     await strangerAndAthleteAttacks(link)
-    await coachBeforeAccept(link)
-    await accept(link)
     await coachReadsAndWrites(ids, link)
     await athleteRevokes(link)
     if (factorCoach) await coachWithFactor(factorCoach)
@@ -207,28 +209,30 @@ export async function coachAthleteChecks(accounts: Accounts): Promise<Check[]> {
     if (both) await bothRoles(both)
   }
 
-  /** T-03: the athlete asks the coach; extra columns and a second open request are refused. */
-  async function request(): Promise<LinkRow> {
-    const link = await requestFrom(athlete.client, athlete.id, coach.id, 'T-03 athlete')
-    add('coach_athlete', 'request starts pending, without dates', { pass: link.status === 'pending' && link.accepted_at === null, detail: `status ${link.status}, accepted_at ${link.accepted_at}` })
-    add('coach_athlete', 'T-03 second open request to anyone', judgeDuplicate(await athlete.client.from('coach_athlete').insert({ coach_id: stranger.id }).select()))
+  /** T-03 and T-16: the athlete creates the link in one step and it is active at once; forged and second links are refused. */
+  async function createLink(): Promise<LinkRow> {
+    const link = await linkFrom(athlete.client, athlete.id, coach.id, 'T-03 athlete')
+    add('coach_athlete', 'T-16 the link is active at once, accepted_at set by the server', judgeActiveLink(link))
+    add('coach_athlete', 'T-15 second open link to anyone', judgeDuplicate(await athlete.client.from('coach_athlete').insert({ coach_id: stranger.id }).select()))
+    add('coach_athlete', 'athlete links to self', judgeCheckViolation(await athlete.client.from('coach_athlete').insert({ coach_id: athlete.id }).select()))
     const forged: [string, Record<string, unknown>][] = [
       ['with status active', { coach_id: stranger.id, status: 'active' }],
+      ['with status pending', { coach_id: stranger.id, status: 'pending' }],
       ['with accepted_at', { coach_id: stranger.id, accepted_at: new Date().toISOString() }],
       ['with another athlete_id', { coach_id: coach.id, athlete_id: stranger.id }],
     ]
     for (const [name, row] of forged) {
-      add('coach_athlete', `T-03 athlete inserts a request ${name}`, judgePermissionDenied(await athlete.client.from('coach_athlete').insert(row).select()))
+      add('coach_athlete', `T-03 athlete inserts a link ${name}`, judgePermissionDenied(await athlete.client.from('coach_athlete').insert(row).select()))
     }
     return link
   }
 
-  /** Inserts a request as `client` (the athlete) and reads the new row back. */
-  async function requestFrom(client: SupabaseClient, athleteId: string, coachId: string, name: string): Promise<LinkRow> {
+  /** Inserts a link as `client` (the athlete, with only coach_id and the label) and reads the new row back. */
+  async function linkFrom(client: SupabaseClient, athleteId: string, coachId: string, name: string): Promise<LinkRow> {
     const sent = await client.from('coach_athlete').insert({ coach_id: coachId, athlete_label: LABEL }).select()
-    add('coach_athlete', `${name} requests`, judgeAccepted(sent))
+    add('coach_athlete', `${name} creates the link`, judgeAccepted(sent))
     const link = (await readLinks(client, { athlete_id: athleteId, coach_id: coachId }))[0]
-    if (!link) throw new Error(`${name}: the request row is missing, the rest of the scenario cannot run`)
+    if (!link) throw new Error(`${name}: the link row is missing, the rest of the scenario cannot run`)
     return link
   }
 
@@ -240,12 +244,12 @@ export async function coachAthleteChecks(accounts: Accounts): Promise<Check[]> {
   async function strangerAndAthleteAttacks(link: LinkRow): Promise<void> {
     const before = await readLinks(athlete.client, { athlete_id: athlete.id })
     add('coach_athlete', 'T-02 stranger lists links', judgeHiddenByPolicy(await stranger.client.from('coach_athlete').select('*')))
-    add('coach_athlete', 'stranger revokes the request', judgeNoRowsWritten(await stranger.client.from('coach_athlete').update({ status: 'revoked' }).eq('id', link.id).select()))
-    add('coach_athlete', 'T-13 stranger deletes the request', judgePermissionDenied(await stranger.client.from('coach_athlete').delete().eq('id', link.id).select()))
+    add('coach_athlete', 'stranger revokes the link', judgeNoRowsWritten(await stranger.client.from('coach_athlete').update({ status: 'revoked' }).eq('id', link.id).select()))
+    add('coach_athlete', 'T-13 stranger deletes the link', judgePermissionDenied(await stranger.client.from('coach_athlete').delete().eq('id', link.id).select()))
 
     const activate = await athlete.client.from('coach_athlete').update({ status: 'active' }).eq('id', link.id).select()
-    add('coach_athlete', 'T-04 athlete activates own request', judgeRefusedTransition(activate, 'pending', await statusOf(link.id)))
-    // S-A1-01: the athlete rewrites the request into an active link where they are the coach of someone else.
+    add('coach_athlete', 'T-04 athlete sets an active link to active again', judgeRefusedTransition(activate, 'active', await statusOf(link.id)))
+    // S-A1-01: the athlete rewrites the link into an active link where they are the coach of someone else.
     const forged = await athlete.client.from('coach_athlete').update({ coach_id: athlete.id, athlete_id: stranger.id, status: 'active' }).eq('id', link.id).select()
     add('coach_athlete', 'S-A1-01 athlete rewrites own row into an active coach row', judgePermissionDenied(forged))
     const columns: [string, Record<string, unknown>][] = [
@@ -257,42 +261,18 @@ export async function coachAthleteChecks(accounts: Accounts): Promise<Check[]> {
     for (const [column, change] of columns) {
       add('coach_athlete', `T-04 athlete changes ${column}`, judgePermissionDenied(await athlete.client.from('coach_athlete').update(change).eq('id', link.id).select()))
     }
-    add('coach_athlete', 'T-13 athlete deletes the request', judgePermissionDenied(await athlete.client.from('coach_athlete').delete().eq('id', link.id).select()))
+    add('coach_athlete', 'T-13 athlete deletes the link', judgePermissionDenied(await athlete.client.from('coach_athlete').delete().eq('id', link.id).select()))
     add('coach_athlete', 'row unchanged after the attacks', judgeRowUnchanged(before, await readLinks(athlete.client, { athlete_id: athlete.id })))
   }
 
-  /** T-05 and T-08 while the link is still pending. */
-  async function coachBeforeAccept(link: LinkRow): Promise<void> {
-    const client = coach.client
-    const before = await readLinks(athlete.client, { athlete_id: athlete.id })
-    add('coach_athlete', 'coach sees the pending request', judgeRowIds(await client.from('coach_athlete').select('id').eq('coach_id', coach.id), [link.id]))
-    const patches: [string, Record<string, unknown>][] = [
-      ['athlete_id', { athlete_id: stranger.id }],
-      ['coach_id', { coach_id: stranger.id }],
-      ['athlete_id and status', { athlete_id: stranger.id, status: 'active' }],
-      ['athlete_label', { athlete_label: 'other' }],
-      ['accepted_at', { accepted_at: '2000-01-01T00:00:00Z' }],
-    ]
-    for (const [name, patch] of patches) {
-      add('coach_athlete', `T-05 coach patches ${name}`, judgePermissionDenied(await client.from('coach_athlete').update(patch).eq('id', link.id).select()))
-    }
-    add('coach_athlete', 'T-13 coach deletes the request', judgePermissionDenied(await client.from('coach_athlete').delete().eq('id', link.id).select()))
-    add('coach_athlete', 'row unchanged after the coach attacks', judgeRowUnchanged(before, await readLinks(athlete.client, { athlete_id: athlete.id })))
-    checks.push(await onEveryTable('T-08 coach reads the athlete while pending', hidden(client, athlete.id)))
-  }
-
-  async function accept(link: LinkRow): Promise<void> {
-    add('coach_athlete', 'coach accepts at aal1', judgeAccepted(await coach.client.from('coach_athlete').update({ status: 'active' }).eq('id', link.id).select()))
-    const accepted = (await readLinks(athlete.client, { athlete_id: athlete.id }))[0]
-    add('coach_athlete', 'accept sets accepted_at', { pass: accepted?.status === 'active' && accepted.accepted_at !== null, detail: `status ${accepted?.status}, accepted_at ${accepted?.accepted_at}` })
-  }
-
-  /** T-07, T-10 and T-14 with the link active. */
+  /** T-05, T-07, T-10 and T-14 with the link active: the coach reads at once, writes nothing, and cannot edit or activate the link. */
   async function coachReadsAndWrites(ids: Ids, link: LinkRow): Promise<void> {
     const client = coach.client
     const snapshot = async () => Promise.all(DATA_TABLES.map(async (table) => (await athlete.client.from(table).select('*').eq('owner_id', athlete.id)).data))
+    const linkBefore = await readLinks(athlete.client, { athlete_id: athlete.id })
 
-    checks.push(await onEveryTable('T-07 coach reads the athlete', visible(client, athlete.id, 1)))
+    add('coach_athlete', 'coach sees the link', judgeRowIds(await client.from('coach_athlete').select('id').eq('coach_id', coach.id), [link.id]))
+    checks.push(await onEveryTable('T-07 coach reads the athlete at once, without doing anything', visible(client, athlete.id, 1)))
     checks.push(await onEveryTable('T-07 coach sees only the coach and the athlete', async (table) => judgeOnlyOwners(await client.from(table).select('id, owner_id'), [coach.id, athlete.id])))
     checks.push(await onEveryTable('T-02 stranger still reads nothing', hidden(stranger.client, athlete.id)))
     const notes = await client.from('workout').select('notes').eq('owner_id', athlete.id)
@@ -307,10 +287,27 @@ export async function coachAthleteChecks(accounts: Accounts): Promise<Check[]> {
     const pointing = { workout_id: ids.workout, exercise_id: ids.exercise, set_number: 9, reps: 1, weight_kg: 0, equipment_used: 'other' }
     add('set_log', 'T-10 coach set_log pointing at an athlete workout', judgeForeignKey(await client.from('set_log').insert(pointing).select()))
     add('data tables', 'T-10 athlete rows unchanged after every attempt', judgeRowUnchanged(before, await snapshot()))
+
+    // The coach has nothing to accept: it cannot activate, re-activate or edit the link, nor create one as the athlete of someone else.
+    const activate = await client.from('coach_athlete').update({ status: 'active' }).eq('id', link.id).select()
+    add('coach_athlete', 'T-05 coach sets an active link to active again', judgeRefusedTransition(activate, 'active', await statusOf(link.id)))
+    const patches: [string, Record<string, unknown>][] = [
+      ['athlete_id', { athlete_id: stranger.id }],
+      ['coach_id', { coach_id: stranger.id }],
+      ['athlete_id and status', { athlete_id: stranger.id, status: 'active' }],
+      ['athlete_label', { athlete_label: 'other' }],
+      ['accepted_at', { accepted_at: '2000-01-01T00:00:00Z' }],
+    ]
+    for (const [name, patch] of patches) {
+      add('coach_athlete', `T-05 coach patches ${name}`, judgePermissionDenied(await client.from('coach_athlete').update(patch).eq('id', link.id).select()))
+    }
+    add('coach_athlete', 'T-13 coach deletes the link', judgePermissionDenied(await client.from('coach_athlete').delete().eq('id', link.id).select()))
+    add('coach_athlete', 'S-A1-01 coach inserts a link naming the athlete as athlete_id', judgePermissionDenied(await client.from('coach_athlete').insert({ coach_id: stranger.id, athlete_id: athlete.id }).select()))
+    add('coach_athlete', 'row unchanged after the coach attacks', judgeRowUnchanged(linkBefore, await readLinks(athlete.client, { athlete_id: athlete.id })))
     add('coach_athlete', 'link still active after the coach attempts', { pass: (await statusOf(link.id)) === 'active', detail: `status ${await statusOf(link.id)}` })
   }
 
-  /** T-09 (athlete side) and T-15. */
+  /** T-09 (athlete side) and T-15: the revoke ends the reads at once, nobody reactivates, the same pair cannot be linked again. */
   async function athleteRevokes(link: LinkRow): Promise<void> {
     const client = coach.client
     add('coach_athlete', 'athlete revokes', judgeAccepted(await athlete.client.from('coach_athlete').update({ status: 'revoked' }).eq('id', link.id).select()))
@@ -320,28 +317,30 @@ export async function coachAthleteChecks(accounts: Accounts): Promise<Check[]> {
     checks.push(await onEveryTable('T-09 coach reads the athlete after the reactivation attempt', hidden(client, athlete.id)))
     const own = await athlete.client.from('coach_athlete').update({ status: 'active' }).eq('id', link.id).select()
     add('coach_athlete', 'athlete reactivates after the revoke', judgeRefusedTransition(own, 'revoked', await statusOf(link.id)))
-    add('coach_athlete', 'T-15 athlete requests the same coach again', judgeDuplicate(await athlete.client.from('coach_athlete').insert({ coach_id: coach.id }).select()))
+    add('coach_athlete', 'T-15 athlete links the same coach again', judgeDuplicate(await athlete.client.from('coach_athlete').insert({ coach_id: coach.id }).select()))
     checks.push(await onEveryTable('athlete still reads own rows after the revoke', visible(athlete.client, athlete.id, 1)))
   }
 
   /**
-   * A coach with a verified factor is still held to the restrictive *_mfa_if_enrolled policies: at aal1 it cannot
-   * see or accept the request and reads nothing, at aal2 it accepts and reads. The aal2 read comes first, so the empty
-   * aal1 read is known to come from the policy and not from a missing link.
+   * A coach with a verified factor is still held to the restrictive *_mfa_if_enrolled policies: at aal1 it reads nothing, sees no
+   * link and cannot revoke; at aal2 it reads and revokes. The aal2 read comes first, so the empty aal1 read is known to come from
+   * the policy and not from a missing link.
    */
   async function coachWithFactor(f: FactorSession): Promise<void> {
-    const link = await requestFrom(athlete.client, athlete.id, f.id, 'athlete to a coach with a factor')
-    const refused = await f.aal1.from('coach_athlete').update({ status: 'active' }).eq('id', link.id).select()
-    add('coach_athlete', 'T-16 coach with a factor accepts at aal1', judgeRefusedTransition(refused, 'pending', await statusOf(link.id)))
-    add('coach_athlete', 'coach with a factor accepts at aal2', judgeAccepted(await f.aal2.from('coach_athlete').update({ status: 'active' }).eq('id', link.id).select()))
-    if ((await statusOf(link.id)) !== 'active') throw new Error('The link of the coach with a factor is not active: the aal1 read cannot be judged')
+    const link = await linkFrom(athlete.client, athlete.id, f.id, 'athlete to a coach with a factor')
+    add('coach_athlete', 'the link to a coach with a factor is active at once', judgeActiveLink(link))
     checks.push(await onEveryTable('coach with a factor reads the athlete at aal2', visible(f.aal2, athlete.id, 1)))
     checks.push(await onEveryTable('T-07 coach with a factor at aal1 reads the athlete', hidden(f.aal1, athlete.id)))
+    add('coach_athlete', 'coach with a factor at aal1 sees no link', judgeHiddenByPolicy(await f.aal1.from('coach_athlete').select('id')))
+    const refused = await f.aal1.from('coach_athlete').update({ status: 'revoked' }).eq('id', link.id).select()
+    add('coach_athlete', 'coach with a factor revokes at aal1', judgeRefusedTransition(refused, 'active', await statusOf(link.id)))
+    add('coach_athlete', 'coach with a factor revokes at aal2', judgeAccepted(await f.aal2.from('coach_athlete').update({ status: 'revoked' }).eq('id', link.id).select()))
+    checks.push(await onEveryTable('coach with a factor reads the athlete after its revoke', hidden(f.aal2, athlete.id)))
   }
 
   /**
-   * A user who is both: athlete of the coach (the coach accepts), coach of the stranger (accepts), and
-   * on both sides of a mutual link with the coach. T-06, T-09 (coach side), T-11, T-12.
+   * A user who is both: athlete of the coach, coach of the stranger, and on both sides of a mutual link with the coach.
+   * Every link is created by its athlete. T-06, T-09 (coach side), T-11, T-12.
    */
   async function bothRoles(b: Session): Promise<void> {
     const client = coach.client
@@ -349,11 +348,9 @@ export async function coachAthleteChecks(accounts: Accounts): Promise<Check[]> {
     await seedData(stranger.client)
     await seedData(client)
 
-    const coachOfB = await requestFrom(b.client, b.id, coach.id, 'both-roles user (athlete)')
-    add('coach_athlete', 'coach accepts the both-roles user', judgeAccepted(await client.from('coach_athlete').update({ status: 'active' }).eq('id', coachOfB.id).select()))
-
-    const bOfStranger = await requestFrom(stranger.client, stranger.id, b.id, 'stranger (athlete of the both-roles user)')
-    add('coach_athlete', 'both-roles user accepts the stranger as athlete', judgeAccepted(await b.client.from('coach_athlete').update({ status: 'active' }).eq('id', bOfStranger.id).select()))
+    const coachOfB = await linkFrom(b.client, b.id, coach.id, 'both-roles user (athlete)')
+    const bOfStranger = await linkFrom(stranger.client, stranger.id, b.id, 'stranger (athlete of the both-roles user)')
+    add('coach_athlete', 'T-16 both links are active at once', { pass: judgeActiveLink(coachOfB).pass && judgeActiveLink(bOfStranger).pass, detail: `${coachOfB.status}, ${bOfStranger.status}` })
 
     const rewrite = await b.client.from('coach_athlete').update({ coach_id: b.id, athlete_id: athlete.id, status: 'active' }).eq('athlete_id', b.id).select()
     add('coach_athlete', 'T-06 both-roles user rewrites own athlete row into a coach row', judgePermissionDenied(rewrite))
@@ -364,8 +361,8 @@ export async function coachAthleteChecks(accounts: Accounts): Promise<Check[]> {
     checks.push(await onEveryTable('T-11 both-roles user reads the stranger', visible(b.client, stranger.id, 1)))
     checks.push(await onEveryTable('T-11 both-roles user sees only itself, the stranger and the coach', async (table) => judgeOnlyOwners(await b.client.from(table).select('id, owner_id'), [b.id, stranger.id, coach.id])))
 
-    const mutual = await requestFrom(client, coach.id, b.id, 'T-12 coach (athlete of the both-roles user)')
-    add('coach_athlete', 'T-12 both-roles user accepts', judgeAccepted(await b.client.from('coach_athlete').update({ status: 'active' }).eq('id', mutual.id).select()))
+    const mutual = await linkFrom(client, coach.id, b.id, 'T-12 coach (athlete of the both-roles user)')
+    add('coach_athlete', 'T-12 the mutual link is active at once', judgeActiveLink(mutual))
     checks.push(await onEveryTable('T-12 both-roles user reads the coach', visible(b.client, coach.id, 1)))
     checks.push(await onEveryTable('T-12 coach reads the both-roles user', visible(client, b.id, 1)))
     checks.push(await onEveryTable('T-12 coach sees only itself and the both-roles user', async (table) => judgeOnlyOwners(await client.from(table).select('id, owner_id'), [coach.id, b.id])))
@@ -380,4 +377,3 @@ export async function coachAthleteChecks(accounts: Accounts): Promise<Check[]> {
     checks.push(await onEveryTable('T-12 the reverse link survives: both-roles user still reads the coach', visible(b.client, coach.id, 1)))
   }
 }
-

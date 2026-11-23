@@ -18,10 +18,10 @@
  *
  * RLS_TEST_COACH_*, RLS_TEST_ATHLETE_* and RLS_TEST_STRANGER_* (EMAIL, PASSWORD), all WITHOUT a second factor, add the
  * three-user checks of the coach/athlete migrations (0007, 0008, 0009): see scripts/coachAthleteChecks.ts and
- * scripts/README.md. A coach reads and accepts with a password session (aal1). RLS_TEST_BOTH_* adds a user who is
- * athlete and coach at once. RLS_TEST_COACH_MFA_* with RLS_TEST_COACH_MFA_TOTP_SECRET, a coach WITH a verified TOTP
- * factor, adds the checks that it still needs aal2. The run leaves link rows behind, which only postgres can
- * delete; the next run says how.
+ * scripts/README.md. The athlete creates the link, active at once; the coach does nothing and reads with a password
+ * session (aal1). RLS_TEST_BOTH_* adds a user who is athlete and coach at once. RLS_TEST_COACH_MFA_* with
+ * RLS_TEST_COACH_MFA_TOTP_SECRET, a coach WITH a verified TOTP factor, adds the checks that it still needs aal2. The
+ * run leaves link rows behind, which only postgres can delete; the next run says how.
  *
  * What this does NOT prove (follow-up manual tests, they need a logged-in session):
  *  - the restrictive *_mfa_if_enrolled policies on the other tables: an aal1 session is refused
