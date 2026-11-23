@@ -15,6 +15,7 @@ type Verdict = Pick<Check, 'pass' | 'detail'>
 const PERMISSION_DENIED = '42501'
 const UNIQUE_VIOLATION = '23505'
 const FOREIGN_KEY_VIOLATION = '23503'
+const CHECK_VIOLATION = '23514'
 
 function describeError(error: NonNullable<Outcome['error']>): string {
   return `error ${error.code || 'none'}: ${error.message}`
@@ -60,6 +61,12 @@ export function judgeHiddenByPolicy({ data, error }: Outcome): Verdict {
 export function judgeDuplicate({ data, error }: Outcome): Verdict {
   if (error) return { pass: error.code === UNIQUE_VIOLATION, detail: describeError(error) }
   return { pass: false, detail: `duplicate accepted: ${JSON.stringify(data)}` }
+}
+
+/** A table constraint (here: a link to oneself) must refuse the row. */
+export function judgeCheckViolation({ data, error }: Outcome): Verdict {
+  if (error) return { pass: error.code === CHECK_VIOLATION, detail: describeError(error) }
+  return { pass: false, detail: `check constraint not enforced: ${JSON.stringify(data)}` }
 }
 
 /** The composite key must refuse a reference to another owner's row. */
@@ -127,6 +134,13 @@ export function judgeAccepted({ data, error }: Outcome, rows = 1): Verdict {
 export function judgeRowUnchanged(before: unknown, after: unknown): Verdict {
   const same = JSON.stringify(before) === JSON.stringify(after)
   return { pass: same, detail: same ? 'row unchanged' : `row changed: ${JSON.stringify(before)} became ${JSON.stringify(after)}` }
+}
+
+/** A link the athlete just created must be active at once, stamped by the server and not revoked. */
+export function judgeActiveLink(link: { status: string; accepted_at: string | null; revoked_at: string | null } | undefined): Verdict {
+  if (!link) return { pass: false, detail: 'the link row is missing' }
+  const active = link.status === 'active' && link.accepted_at !== null && link.revoked_at === null
+  return { pass: active, detail: `status ${link.status}, accepted_at ${link.accepted_at}, revoked_at ${link.revoked_at}` }
 }
 
 /**
