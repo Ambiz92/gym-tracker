@@ -1,6 +1,6 @@
-import { athleteName, linkDay, linkStatusLabel } from '../../../lib/coachLink'
+import { athleteName, linkSince, linkStatusLabel } from '../../../lib/coachLink'
 import type { CoachLink } from '../../../types/db'
-import { LinkActions } from './LinkActions'
+import { RevokeLink } from './RevokeLink'
 
 interface LinkListProps {
   title: string
@@ -8,7 +8,7 @@ interface LinkListProps {
   onChanged: () => void
 }
 
-/** Coach side: one row per athlete (the name they chose, shown as isolated text) with the actions the status allows. */
+/** Coach side: one row per athlete (the name they chose, shown as isolated text) with the revoke. */
 export function LinkList({ title, links, onChanged }: LinkListProps) {
   if (links.length === 0) return null
   return (
@@ -21,9 +21,9 @@ export function LinkList({ title, links, onChanged }: LinkListProps) {
               <bdi>{athleteName(link)}</bdi>
             </p>
             <p className="history-note">
-              {linkStatusLabel('coach', link.status)} · dal {linkDay(link.accepted_at ?? link.created_at)}
+              {linkStatusLabel(link.status)} · dal {linkSince(link)}
             </p>
-            <LinkActions link={link} role="coach" onChanged={onChanged} />
+            <RevokeLink link={link} onChanged={onChanged} />
           </li>
         ))}
       </ul>

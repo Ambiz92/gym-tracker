@@ -3,42 +3,28 @@ import { dayMonthName } from './formatDate'
 import { localDateString } from './localDate'
 import { isUuid } from './uuid'
 
-/** Which side of a link the signed-in user is on. */
-export type LinkRole = 'athlete' | 'coach'
-
-/** What the user can do to a link; `decline` and `revoke` both end in the `revoked` status. */
-export type LinkAction = 'accept' | 'decline' | 'revoke'
-
-const STATUS_LABELS: Record<LinkRole, Record<CoachLinkStatus, string>> = {
-  athlete: { pending: 'In attesa di risposta', active: 'Attivo', revoked: 'Revocato' },
-  coach: { pending: 'Richiesta in arrivo', active: 'Attivo', revoked: 'Revocato' },
+const STATUS_LABELS: Record<CoachLinkStatus, string> = {
+  active: 'Attivo',
+  // Legacy rows only: a link is active from the start now, so nothing creates a pending one.
+  pending: 'In sospeso',
+  revoked: 'Revocato',
 }
 
-export function linkStatusLabel(role: LinkRole, status: CoachLinkStatus): string {
-  return STATUS_LABELS[role][status]
+export function linkStatusLabel(status: CoachLinkStatus): string {
+  return STATUS_LABELS[status]
 }
 
-/** Mirrors the database: only the coach accepts or declines; either side revokes an open link; revoked is final. */
-export function allowedActions(role: LinkRole, status: CoachLinkStatus): LinkAction[] {
-  if (status === 'revoked') return []
-  if (status === 'pending' && role === 'coach') return ['accept', 'decline']
-  return ['revoke']
-}
+const isOpen = (link: CoachLink): boolean => link.status !== 'revoked'
 
-export function actionLabel(action: LinkAction, role: LinkRole, status: CoachLinkStatus): string {
-  if (action === 'accept') return 'Accetta'
-  if (action === 'decline') return 'Rifiuta'
-  if (role === 'athlete' && status === 'pending') return 'Ritira la richiesta'
-  return 'Revoca l’accesso'
-}
-
-/** The athlete's one open link (pending or active), or null: a revoked one is over and a new request is possible elsewhere. */
+/** The athlete's one open link (active, or a legacy pending), or null: a revoked one is over and a new link is possible elsewhere. */
 export function openCoachLink(asAthlete: readonly CoachLink[]): CoachLink | null {
-  return asAthlete.find((link) => link.status !== 'revoked') ?? null
+  return asAthlete.find(isOpen) ?? null
 }
 
-export const pendingRequests = (asCoach: readonly CoachLink[]): CoachLink[] => asCoach.filter((link) => link.status === 'pending')
+/** The coach's links that can still be revoked: active ones, plus legacy pending ones. */
+export const openAthletes = (asCoach: readonly CoachLink[]): CoachLink[] => asCoach.filter(isOpen)
 
+/** The athletes the coach can read: active links only. */
 export const activeAthletes = (asCoach: readonly CoachLink[]): CoachLink[] => asCoach.filter((link) => link.status === 'active')
 
 export type Parsed<T> = { ok: true; value: T } | { ok: false; message: string }
@@ -72,4 +58,9 @@ export function athleteName(link: Pick<CoachLink, 'athlete_label'>): string {
 /** "21 nov" for the local day a link timestamp falls on. */
 export function linkDay(timestamp: string): string {
   return dayMonthName(localDateString(new Date(timestamp)))
+}
+
+/** The day the link started: the database sets `accepted_at` on insert, older rows fall back to their creation. */
+export function linkSince(link: Pick<CoachLink, 'accepted_at' | 'created_at'>): string {
+  return linkDay(link.accepted_at ?? link.created_at)
 }

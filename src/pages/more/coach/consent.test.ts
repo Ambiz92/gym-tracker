@@ -10,6 +10,8 @@ test('the version shown is the one the database stores by default', () => {
 test('the text lists the notes and the past, says it is read-only and explains the revoke (S-A1-05)', () => {
   const { items, intro, revoke } = CONSENT_TEXT
   expect(intro).toMatch(/solo leggere/)
+  expect(intro).toMatch(/^Se confermi/)
+  expect(Object.values(CONSENT_TEXT).flat().join(' ')).not.toMatch(/accett|richiesta/)
   expect(items.join(' ')).toMatch(/note/)
   expect(items.join(' ')).toMatch(/precedenti al collegamento/)
   expect(revoke).toMatch(/revochi/)

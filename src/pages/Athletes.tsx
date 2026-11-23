@@ -1,6 +1,6 @@
 import { PageHeader } from '../components/PageHeader'
 import { RowLink } from '../components/RowLink'
-import { activeAthletes, athleteName, linkDay } from '../lib/coachLink'
+import { activeAthletes, athleteName, linkSince } from '../lib/coachLink'
 import '../styles/coach.css'
 import '../styles/history.css'
 import { useCoachLinks } from './coach/CoachLinksProvider'
@@ -20,7 +20,7 @@ export function Athletes() {
             return (
               <section className="history-empty">
                 <h2 className="history-empty__title">Nessun atleta attivo.</h2>
-                <p className="history-empty__text">Le richieste in arrivo si accettano da Altro.</p>
+                <p className="history-empty__text">Gli atleti si collegano da soli con il tuo codice, che trovi in Altro.</p>
                 <RowLink to="/more" title="Vai ad Altro" />
               </section>
             )
@@ -32,7 +32,7 @@ export function Athletes() {
                   key={link.id}
                   to={`/athletes/${link.athlete_id}`}
                   title={athleteName(link)}
-                  detail={`Attivo dal ${linkDay(link.accepted_at ?? link.created_at)}`}
+                  detail={`Attivo dal ${linkSince(link)}`}
                 />
               ))}
             </div>

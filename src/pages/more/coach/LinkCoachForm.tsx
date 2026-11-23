@@ -2,20 +2,20 @@ import { type FormEvent, useState } from 'react'
 import { FormError } from '../../../auth/FormParts'
 import { Field } from '../../../components/Field'
 import { PrimaryButton } from '../../../components/PrimaryButton'
-import { requestCoach } from '../../../data/coachLinks'
+import { linkToCoach } from '../../../data/coachLinks'
 import { useAction } from '../../../hooks/useAction'
 import { parseAthleteLabel, parseCoachCode } from '../../../lib/coachLink'
 import { describeCoachLinkError } from '../../dataErrors'
 import { ConsentText } from './ConsentText'
 
-interface RequestCoachFormProps {
+interface LinkCoachFormProps {
   /** The user's own id, to refuse their own code. */
   userId: string
-  onRequested: () => void
+  onLinked: () => void
 }
 
-/** Asks a coach by code, with the name the coach will see; sending it is the consent, so the text comes first. */
-export function RequestCoachForm({ userId, onRequested }: RequestCoachFormProps) {
+/** Links the athlete to a coach by code, with the name the coach will see; confirming is the consent, so the text comes first. */
+export function LinkCoachForm({ userId, onLinked }: LinkCoachFormProps) {
   const [code, setCode] = useState('')
   const [label, setLabel] = useState('')
   const [agreed, setAgreed] = useState(false)
@@ -31,12 +31,12 @@ export function RequestCoachForm({ userId, onRequested }: RequestCoachFormProps)
       label: parsedLabel.ok ? undefined : parsedLabel.message,
     })
     if (!parsedCode.ok || !parsedLabel.ok) return
-    if (await run(() => requestCoach(parsedCode.value, parsedLabel.value), 'Non riesco a inviare la richiesta: riprova.')) onRequested()
+    if (await run(() => linkToCoach(parsedCode.value, parsedLabel.value), 'Non riesco a creare il collegamento: riprova.')) onLinked()
   }
 
   return (
     <form onSubmit={(event) => void submit(event)} noValidate>
-      <h3 className="coach-subhead">Chiedi a un allenatore</h3>
+      <h3 className="coach-subhead">Collegati al tuo allenatore</h3>
       <p className="history-note">Incolla il codice che ti ha dato il tuo allenatore.</p>
       <Field label="Codice dell’allenatore" value={code} onChange={setCode} autoComplete="off" required error={problems.code} />
       <Field
@@ -55,7 +55,7 @@ export function RequestCoachForm({ userId, onRequested }: RequestCoachFormProps)
       </label>
       <FormError message={error} />
       <PrimaryButton type="submit" busy={busy} disabled={!agreed}>
-        Invia la richiesta
+        Collegami al mio allenatore
       </PrimaryButton>
     </form>
   )
