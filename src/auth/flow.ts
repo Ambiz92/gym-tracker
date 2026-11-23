@@ -102,17 +102,6 @@ export async function currentEmail(api: AuthApi): Promise<string | null> {
   }
 }
 
-/** True at aal2, false below it, null when the level cannot be read: an error is "unknown", never "not verified". */
-export async function isAal2(api: AuthApi): Promise<boolean | null> {
-  try {
-    const { data, error } = await api.mfa.getAuthenticatorAssuranceLevel()
-    if (error || !data) return null
-    return data.currentLevel === 'aal2'
-  } catch {
-    return null
-  }
-}
-
 export function signIn(api: AuthApi, email: string, password: string): Promise<Result<AuthStatus>> {
   const trimmedEmail = email.trim()
   if (!trimmedEmail || !password) return Promise.resolve({ ok: false, error: failure('invalid_credentials') })

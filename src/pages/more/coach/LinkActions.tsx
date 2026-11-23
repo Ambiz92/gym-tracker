@@ -3,7 +3,7 @@ import { FormError } from '../../../auth/FormParts'
 import { PrimaryButton } from '../../../components/PrimaryButton'
 import { acceptLink, revokeLink } from '../../../data/coachLinks'
 import { useAction } from '../../../hooks/useAction'
-import { actionLabel, allowedActions, type LinkAction, type LinkRole, needsSecondFactor } from '../../../lib/coachLink'
+import { actionLabel, allowedActions, type LinkAction, type LinkRole } from '../../../lib/coachLink'
 import type { CoachLink } from '../../../types/db'
 import { describeCoachLinkError } from '../../dataErrors'
 
@@ -16,14 +16,12 @@ const FAILURES: Record<LinkAction, string> = {
 interface LinkActionsProps {
   link: CoachLink
   role: LinkRole
-  /** The accept is offered only at aal2; while it is unknown or false the button stays disabled. */
-  aal2: boolean | null
   /** Called after the status changed, so the links reload. */
   onChanged: () => void
 }
 
 /** The buttons a side may press on a link (one tap each, no confirmation step), with the failure of the last one. */
-export function LinkActions({ link, role, aal2, onChanged }: LinkActionsProps) {
+export function LinkActions({ link, role, onChanged }: LinkActionsProps) {
   const { busy, error, run } = useAction(describeCoachLinkError)
 
   // useAction's busy covers the whole row; only the pressed button announces it.
@@ -42,7 +40,7 @@ export function LinkActions({ link, role, aal2, onChanged }: LinkActionsProps) {
           key={action}
           variant={action === 'accept' ? 'solid' : 'outline'}
           busy={busy && pressed === action}
-          disabled={busy || (needsSecondFactor(action) && aal2 !== true)}
+          disabled={busy}
           onClick={() => void perform(action)}
         >
           {actionLabel(action, role, link.status)}

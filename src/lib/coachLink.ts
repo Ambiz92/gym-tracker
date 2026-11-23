@@ -32,16 +32,6 @@ export function actionLabel(action: LinkAction, role: LinkRole, status: CoachLin
   return 'Revoca l’accesso'
 }
 
-/** Accepting is the only action the database refuses below aal2. */
-export function needsSecondFactor(action: LinkAction): boolean {
-  return action === 'accept'
-}
-
-/** The coach's reads and the accept both need aal2, so a coach with something to do and no aal2 is sent to verify. */
-export function coachNeedsSecondFactor(asCoach: readonly CoachLink[], aal2: boolean): boolean {
-  return !aal2 && asCoach.some((link) => link.status !== 'revoked')
-}
-
 /** The athlete's one open link (pending or active), or null: a revoked one is over and a new request is possible elsewhere. */
 export function openCoachLink(asAthlete: readonly CoachLink[]): CoachLink | null {
   return asAthlete.find((link) => link.status !== 'revoked') ?? null

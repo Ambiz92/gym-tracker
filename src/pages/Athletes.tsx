@@ -1,22 +1,18 @@
 import { PageHeader } from '../components/PageHeader'
 import { RowLink } from '../components/RowLink'
-import { useAal2 } from '../auth/useAal2'
 import { activeAthletes, athleteName, linkDay } from '../lib/coachLink'
 import '../styles/coach.css'
 import '../styles/history.css'
 import { useCoachLinks } from './coach/CoachLinksProvider'
-import { SecondFactorPrompt } from './coach/SecondFactorPrompt'
 import { LoadState } from './history/LoadState'
 
-/** Atleti tab: the coach's active athletes, each opening a read-only view. Needs aal2, like every read of their data. */
+/** Atleti tab: the coach's active athletes, each opening a read-only view. */
 export function Athletes() {
   const state = useCoachLinks()
-  const { aal2 } = useAal2()
 
   return (
     <>
       <PageHeader meta="Atleti" title="Atleti" />
-      {aal2 === false && <SecondFactorPrompt />}
       <LoadState state={state} what="gli atleti">
         {({ asCoach }) => {
           const athletes = activeAthletes(asCoach)

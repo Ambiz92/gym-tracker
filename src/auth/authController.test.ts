@@ -191,12 +191,3 @@ describe('following the session', () => {
     expect(controller.getState().status).toBe('signed_out')
   })
 })
-
-describe('isAal2', () => {
-  test('reports the level of the session right now', async () => {
-    const { controller } = setup({ session: 'aal1' })
-    expect(await controller.actions.isAal2()).toBe(false)
-    const verified = setup({ session: 'aal2', enrolled: true })
-    expect(await verified.controller.actions.isAal2()).toBe(true)
-  })
-})

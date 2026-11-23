@@ -6,7 +6,6 @@ import {
   type Enrollment,
   completeOAuthReturn,
   currentEmail,
-  isAal2,
   type Result,
   resolveStatus,
   signIn,
@@ -34,8 +33,6 @@ export interface AuthActions {
   startEnrollment(): Promise<Result<Enrollment>>
   verifyEnrollment(factorId: string, code: string): Promise<AuthFailure | null>
   signOut(): Promise<AuthFailure | null>
-  /** Whether the session is at aal2 right now; null when it cannot be read. */
-  isAal2(): Promise<boolean | null>
   clearOauthError(): void
 }
 
@@ -135,7 +132,6 @@ export function createAuthController(
       startEnrollment: () => startEnrollment(api),
       verifyEnrollment: (factorId, code) => apply(verifyEnrollment(api, factorId, code)),
       signOut: () => apply(signOut(api)),
-      isAal2: () => isAal2(api),
       clearOauthError: () => {
         if (state.oauthError) update({ oauthError: null })
       },

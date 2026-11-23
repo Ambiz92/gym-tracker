@@ -73,7 +73,7 @@ export function requestCoach(coachId: string, athleteLabel: string): Promise<Coa
   })
 }
 
-/** Coach side: pending to active. Needs aal2: the policy refuses it below that (`not_allowed`). */
+/** Coach side: pending to active. A coach with an enrolled factor still at aal1 is refused (`not_allowed`). */
 export function acceptLink(id: string): Promise<void> {
   return setStatus(id, 'active', ['pending'])
 }

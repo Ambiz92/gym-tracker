@@ -5,10 +5,8 @@ import {
   activeAthletes,
   allowedActions,
   athleteName,
-  coachNeedsSecondFactor,
   linkDay,
   linkStatusLabel,
-  needsSecondFactor,
   openCoachLink,
   parseAthleteLabel,
   parseCoachCode,
@@ -71,25 +69,6 @@ describe('actionLabel', () => {
     expect(actionLabel('revoke', 'athlete', 'pending')).toBe('Ritira la richiesta')
     expect(actionLabel('revoke', 'athlete', 'active')).toBe('Revoca l’accesso')
     expect(actionLabel('revoke', 'coach', 'active')).toBe('Revoca l’accesso')
-  })
-})
-
-test('only the accept needs the second factor', () => {
-  expect(needsSecondFactor('accept')).toBe(true)
-  expect(needsSecondFactor('decline')).toBe(false)
-  expect(needsSecondFactor('revoke')).toBe(false)
-})
-
-describe('coachNeedsSecondFactor', () => {
-  test('is true at aal1 with a pending or active link as coach', () => {
-    expect(coachNeedsSecondFactor([link('pending')], false)).toBe(true)
-    expect(coachNeedsSecondFactor([link('active')], false)).toBe(true)
-  })
-
-  test('is false at aal2, without links, or with only revoked ones', () => {
-    expect(coachNeedsSecondFactor([link('active')], true)).toBe(false)
-    expect(coachNeedsSecondFactor([], false)).toBe(false)
-    expect(coachNeedsSecondFactor([link('revoked')], false)).toBe(false)
   })
 })
 

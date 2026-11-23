@@ -1,16 +1,9 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { describe, expect, test } from 'vitest'
 import type { CoachLink } from '../../../types/db'
 import { LinksStub, makeLink, ME, OTHER } from '../../coach/fakeLinks'
 import { CoachSection } from './CoachSection'
-
-let aal2: boolean | null = true
-vi.mock('../../../auth/useAal2', () => ({ useAal2: () => ({ aal2, loading: aal2 === null, retry: () => undefined }) }))
-
-beforeEach(() => {
-  aal2 = true
-})
 
 interface Links {
   asAthlete?: CoachLink[]
@@ -92,33 +85,17 @@ describe('as a coach', () => {
     expect(html).toContain('Revoca l’accesso')
   })
 
-  test('at aal1 the accept is disabled and a prompt leads to the second factor', () => {
-    aal2 = false
+  test('the accept and the decline are both enabled, and nothing asks for a second factor', () => {
     const html = render({ asCoach: [pending] })
-    expect(html).toContain('serve il secondo fattore')
-    expect(html).toContain('href="/login/enroll"')
-    expect(button(html, 'Accetta')).toContain('disabled')
+    expect(html).not.toContain('secondo fattore')
+    expect(button(html, 'Accetta')).not.toContain('disabled')
     expect(button(html, 'Rifiuta')).not.toContain('disabled')
   })
 
-  test('at aal2 there is no prompt and the accept is enabled', () => {
-    const html = render({ asCoach: [pending] })
-    expect(html).not.toContain('serve il secondo fattore')
-    expect(button(html, 'Accetta')).not.toContain('disabled')
-  })
-
-  test('while aal2 is still unknown nothing is prompted yet, but the accept stays disabled', () => {
-    aal2 = null
-    const html = render({ asCoach: [pending] })
-    expect(html).not.toContain('serve il secondo fattore')
-    expect(button(html, 'Accetta')).toContain('disabled')
-  })
-
-  test('with only revoked links as coach there is nothing to prompt', () => {
-    aal2 = false
+  test('with only revoked links as coach there is nothing to show', () => {
     const html = render({ asCoach: [asCoach({ status: 'revoked', revoked_at: '2026-11-21T09:00:00Z', revoked_by: ME })] })
-    expect(html).not.toContain('serve il secondo fattore')
     expect(html).not.toContain('I miei atleti')
+    expect(html).not.toContain('Richieste in arrivo')
   })
 })
 

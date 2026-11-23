@@ -32,11 +32,11 @@ describe('describeCoachLinkError', () => {
     ['link_exists', 'anche se revocato'],
     ['self_link', 'Questo è il tuo codice'],
     ['invalid_label', 'Il nome non è accettato'],
-    ['not_allowed', 'secondo fattore'],
+    ['not_allowed', 'completa la verifica'],
     ['not_found', 'non è più disponibile'],
-    ['not_found', 'manca il secondo fattore'],
+    ['not_found', 'completare la verifica'],
     ['not_linked', 'collegamento non è attivo'],
-    ['not_linked', 'secondo fattore non è stato verificato'],
+    ['not_linked', 'completa la verifica'],
     ['invalid_athlete', 'Atleta non trovato'],
   ])('words %s in Italian', (code, text) => {
     expect(describeCoachLinkError(new DataError('x', code), 'Riprova.')).toContain(text)

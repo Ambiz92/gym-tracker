@@ -4,7 +4,7 @@ import { ConsentText } from './ConsentText'
 import { LinkActions } from './LinkActions'
 
 /** The athlete's open link: its state, what is shared, and the one-tap way out. */
-export function MyCoach({ link, aal2, onChanged }: { link: CoachLink; aal2: boolean | null; onChanged: () => void }) {
+export function MyCoach({ link, onChanged }: { link: CoachLink; onChanged: () => void }) {
   return (
     <div>
       <h3 className="coach-subhead">Il tuo allenatore</h3>
@@ -15,7 +15,7 @@ export function MyCoach({ link, aal2, onChanged }: { link: CoachLink; aal2: bool
         <summary>Cosa vede il tuo allenatore</summary>
         <ConsentText />
       </details>
-      <LinkActions link={link} role="athlete" aal2={aal2} onChanged={onChanged} />
+      <LinkActions link={link} role="athlete" onChanged={onChanged} />
     </div>
   )
 }

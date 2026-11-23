@@ -5,12 +5,11 @@ import { LinkActions } from './LinkActions'
 interface LinkListProps {
   title: string
   links: readonly CoachLink[]
-  aal2: boolean | null
   onChanged: () => void
 }
 
 /** Coach side: one row per athlete (the name they chose, shown as isolated text) with the actions the status allows. */
-export function LinkList({ title, links, aal2, onChanged }: LinkListProps) {
+export function LinkList({ title, links, onChanged }: LinkListProps) {
   if (links.length === 0) return null
   return (
     <div>
@@ -24,7 +23,7 @@ export function LinkList({ title, links, aal2, onChanged }: LinkListProps) {
             <p className="history-note">
               {linkStatusLabel('coach', link.status)} · dal {linkDay(link.accepted_at ?? link.created_at)}
             </p>
-            <LinkActions link={link} role="coach" aal2={aal2} onChanged={onChanged} />
+            <LinkActions link={link} role="coach" onChanged={onChanged} />
           </li>
         ))}
       </ul>
