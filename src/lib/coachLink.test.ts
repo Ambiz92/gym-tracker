@@ -1,16 +1,15 @@
 import { describe, expect, test } from 'vitest'
 import type { CoachLink, CoachLinkStatus } from '../types/db'
 import {
-  actionLabel,
   activeAthletes,
-  allowedActions,
   athleteName,
   linkDay,
+  linkSince,
   linkStatusLabel,
+  openAthletes,
   openCoachLink,
   parseAthleteLabel,
   parseCoachCode,
-  pendingRequests,
 } from './coachLink'
 
 const ME = '3f2b8c1e-5d4a-4e6f-9a7b-0c1d2e3f4a5b'
@@ -31,57 +30,26 @@ function link(status: CoachLinkStatus, id: string = status): CoachLink {
   }
 }
 
-describe('linkStatusLabel', () => {
-  test('words a pending link by who is waiting', () => {
-    expect(linkStatusLabel('athlete', 'pending')).toBe('In attesa di risposta')
-    expect(linkStatusLabel('coach', 'pending')).toBe('Richiesta in arrivo')
-  })
-
-  test('active and revoked read the same for both sides', () => {
-    for (const role of ['athlete', 'coach'] as const) {
-      expect(linkStatusLabel(role, 'active')).toBe('Attivo')
-      expect(linkStatusLabel(role, 'revoked')).toBe('Revocato')
-    }
-  })
-})
-
-describe('allowedActions', () => {
-  test.each([
-    ['coach', 'pending', ['accept', 'decline']],
-    ['coach', 'active', ['revoke']],
-    ['coach', 'revoked', []],
-    ['athlete', 'pending', ['revoke']],
-    ['athlete', 'active', ['revoke']],
-    ['athlete', 'revoked', []],
-  ] as const)('%s on a %s link may %j', (role, status, expected) => {
-    expect(allowedActions(role, status)).toEqual(expected)
-  })
-
-  test('an athlete is never offered the accept', () => {
-    for (const status of ['pending', 'active', 'revoked'] as const) expect(allowedActions('athlete', status)).not.toContain('accept')
-  })
-})
-
-describe('actionLabel', () => {
-  test('names the action, and the athlete withdrawing a request differently from a revoke', () => {
-    expect(actionLabel('accept', 'coach', 'pending')).toBe('Accetta')
-    expect(actionLabel('decline', 'coach', 'pending')).toBe('Rifiuta')
-    expect(actionLabel('revoke', 'athlete', 'pending')).toBe('Ritira la richiesta')
-    expect(actionLabel('revoke', 'athlete', 'active')).toBe('Revoca l’accesso')
-    expect(actionLabel('revoke', 'coach', 'active')).toBe('Revoca l’accesso')
-  })
+test('linkStatusLabel words each status, a legacy pending one included', () => {
+  expect(linkStatusLabel('active')).toBe('Attivo')
+  expect(linkStatusLabel('pending')).toBe('In sospeso')
+  expect(linkStatusLabel('revoked')).toBe('Revocato')
 })
 
 describe('link selectors', () => {
   const all = [link('revoked', 'a'), link('pending', 'b'), link('active', 'c'), link('pending', 'd')]
 
-  test('pendingRequests and activeAthletes pick by status, keeping the order', () => {
-    expect(pendingRequests(all).map((l) => l.id)).toEqual(['b', 'd'])
+  test('activeAthletes keeps only the active links, in order', () => {
     expect(activeAthletes(all).map((l) => l.id)).toEqual(['c'])
   })
 
-  test('openCoachLink is the pending or active link, and null when only revoked ones are left', () => {
+  test('openAthletes keeps the active and the legacy pending links, in order', () => {
+    expect(openAthletes(all).map((l) => l.id)).toEqual(['b', 'c', 'd'])
+  })
+
+  test('openCoachLink is the active or legacy pending link, and null when only revoked ones are left', () => {
     expect(openCoachLink([link('revoked'), link('active', 'x')])?.id).toBe('x')
+    expect(openCoachLink([link('pending', 'p')])?.id).toBe('p')
     expect(openCoachLink([link('revoked')])).toBeNull()
     expect(openCoachLink([])).toBeNull()
   })
@@ -138,4 +106,11 @@ test('athleteName falls back when the label is missing', () => {
 test('linkDay is the local calendar day of the timestamp', () => {
   expect(linkDay(new Date(2026, 10, 21, 23, 30).toISOString())).toBe('21 nov')
   expect(linkDay(new Date(2026, 0, 5, 0, 10).toISOString())).toBe('5 gen')
+})
+
+test('linkSince is the day of the acceptance, or of the creation on rows without one', () => {
+  const accepted = new Date(2026, 10, 22, 9, 0).toISOString()
+  const created = new Date(2026, 10, 21, 9, 0).toISOString()
+  expect(linkSince({ accepted_at: accepted, created_at: created })).toBe('22 nov')
+  expect(linkSince({ accepted_at: null, created_at: created })).toBe('21 nov')
 })

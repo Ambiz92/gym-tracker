@@ -8,17 +8,17 @@ import { CoachLinksContext, type CoachLinksState } from './CoachLinksProvider'
 export const ME = '3f2b8c1e-5d4a-4e6f-9a7b-0c1d2e3f4a5b'
 export const OTHER = '9a7b0c1d-2e3f-4a5b-8c1e-5d4a4e6f3f2b'
 
-/** A pending link where `ME` is the athlete; override what a test cares about. */
+/** An active link where `ME` is the athlete; override what a test cares about. */
 export function makeLink(overrides: Partial<CoachLink> = {}): CoachLink {
   return {
     id: 'l1',
     coach_id: OTHER,
     athlete_id: ME,
-    status: 'pending',
+    status: 'active',
     athlete_label: 'Marta',
     consent_version: 'consent-v1',
     created_at: '2026-11-20T10:00:00Z',
-    accepted_at: null,
+    accepted_at: '2026-11-20T10:00:00Z',
     revoked_at: null,
     revoked_by: null,
     ...overrides,

@@ -1,6 +1,6 @@
 import { CONSENT_TEXT as text } from './consent'
 
-/** What the coach will see, before the athlete sends the request (see consent.ts). */
+/** What the coach will see, before the athlete confirms the link (see consent.ts). */
 export function ConsentText() {
   return (
     <div className="coach-consent">

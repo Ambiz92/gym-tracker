@@ -10,7 +10,7 @@ const INVALID_TEXT_REPRESENTATION = '22P02'
 export interface CoachLinks {
   /** The signed-in user's id, which doubles as their coach code. */
   userId: string
-  /** Links where the user asked for a coach, newest first. */
+  /** Links where the user is the athlete, newest first. */
   asAthlete: CoachLink[]
   /** Links where the user is the coach, newest first. */
   asCoach: CoachLink[]
@@ -63,33 +63,25 @@ export async function loadCoachLinks(): Promise<CoachLinks> {
 }
 
 /**
- * The athlete asks `coachId` (the coach's code) to coach them. Only the coach and the name the coach
- * will see are sent: the database sets the athlete (the caller), the status and the consent version.
+ * The athlete links to `coachId` (the coach's code); the link is active at once. Only the coach and the name
+ * the coach will see are sent: the database sets the athlete (the caller), the status, the acceptance time
+ * and the consent version.
  */
-export function requestCoach(coachId: string, athleteLabel: string): Promise<CoachLink> {
+export function linkToCoach(coachId: string, athleteLabel: string): Promise<CoachLink> {
   return mapped(async () => {
     const links = await linkTable()
     return unwrap<CoachLink>(await links.insert({ coach_id: coachId, athlete_label: athleteLabel }).select().single())
   })
 }
 
-/** Coach side: pending to active. A coach with an enrolled factor still at aal1 is refused (`not_allowed`). */
-export function acceptLink(id: string): Promise<void> {
-  return setStatus(id, 'active', ['pending'])
-}
-
 /**
- * Either side ends a pending or active link for good: the athlete withdraws or revokes, the coach declines or revokes.
- * A revoked link cannot be reopened (the database refuses it), and the row stays as the record of the consent.
+ * Either side ends an active (or legacy pending) link for good. A revoked link cannot be reopened (the database
+ * refuses it), and the row stays as the record of the consent. Only `status` is sent (the only column the
+ * grants allow); a row that no longer matches is `not_found`.
  */
 export function revokeLink(id: string): Promise<void> {
-  return setStatus(id, 'revoked', ['pending', 'active'])
-}
-
-/** Only `status` is sent (the only column the grants allow), and only from the statuses the action starts from; no match is `not_found`. */
-function setStatus(id: string, status: 'active' | 'revoked', from: string[]): Promise<void> {
   return mapped(async () => {
     const links = await linkTable()
-    ensureAffected(await links.update({ status }).eq('id', id).in('status', from).select('id'))
+    ensureAffected(await links.update({ status: 'revoked' }).eq('id', id).in('status', ['pending', 'active']).select('id'))
   })
 }
