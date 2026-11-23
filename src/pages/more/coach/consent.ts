@@ -17,6 +17,6 @@ export const CONSENT_TEXT = {
   health:
     'Questi dati riguardano la tua attività fisica e possono dire qualcosa sulla tua salute: collegati solo a una persona di cui ti fidi.',
   revoke:
-    'Puoi cambiare idea quando vuoi. Con un tocco in Altro revochi l’accesso: da quel momento l’allenatore non legge più nulla e i tuoi dati restano tuoi. Un collegamento revocato non si riattiva: per ricollegarti serve un nuovo collegamento.',
+    'Puoi cambiare idea quando vuoi. Con un tocco in Altro revochi l’accesso: da quel momento l’allenatore non legge più nulla e i tuoi dati restano tuoi. Un collegamento revocato non si riattiva: per ricollegarti con lo stesso allenatore chiedi all’amministratore dell’app.',
   outro: 'Un solo allenatore alla volta. Il consenso vale finché il collegamento è attivo.',
 }
