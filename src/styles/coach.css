@@ -78,24 +78,6 @@
   font-weight: var(--ds-weight-bold);
 }
 
-.coach-prompt {
-  display: grid;
-  gap: var(--ds-space-2);
-  padding: var(--ds-space-3);
-  border: var(--ds-hairline) solid var(--ds-color-danger);
-  border-radius: var(--ds-radius-md);
-  font-weight: var(--ds-weight-bold);
-}
-
-.coach-prompt__link {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--ds-size-touch);
-  font-weight: var(--ds-weight-black);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
 /* Athlete screens: free text written by the athlete, shown as plain text and kept in its own direction */
 .athlete-banner {
   margin: var(--ds-space-3) 0;

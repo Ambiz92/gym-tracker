@@ -98,7 +98,7 @@ describe('status changes', () => {
     await expect(run('l1')).rejects.toMatchObject({ code: 'not_found' })
   })
 
-  test('a refusal of the trigger or the policy (aal1 accept, forbidden transition) is not_allowed', async () => {
+  test('a refusal of the trigger or the policy (aal1 with an enrolled factor, forbidden transition) is not_allowed', async () => {
     fakeSupabase.reset(() => failure('42501', 'coach_athlete: transition revoked to active not allowed'))
     await expect(acceptLink('l1')).rejects.toMatchObject({ code: 'not_allowed' })
     await expect(revokeLink('l1')).rejects.toMatchObject({ code: 'not_allowed' })
