@@ -7,6 +7,8 @@ import {
   judgeForeignKey,
   judgeHiddenByPolicy,
   judgeAccepted,
+  judgeActiveLink,
+  judgeCheckViolation,
   judgeNoRowsWritten,
   judgeOnlyOwners,
   judgeOtp,
@@ -227,8 +229,8 @@ describe('judgeAccepted', () => {
 
 describe('judgeRowUnchanged', () => {
   it('compares what was read before and after', () => {
-    expect(judgeRowUnchanged([{ id: 1, status: 'pending' }], [{ id: 1, status: 'pending' }]).pass).toBe(true)
-    expect(judgeRowUnchanged([{ id: 1, status: 'pending' }], [{ id: 1, status: 'active' }]).pass).toBe(false)
+    expect(judgeRowUnchanged([{ id: 1, status: 'active' }], [{ id: 1, status: 'active' }]).pass).toBe(true)
+    expect(judgeRowUnchanged([{ id: 1, status: 'active' }], [{ id: 1, status: 'revoked' }]).pass).toBe(false)
   })
 
   it('fails when the row disappeared', () => {
@@ -236,10 +238,36 @@ describe('judgeRowUnchanged', () => {
   })
 })
 
+describe('judgeCheckViolation', () => {
+  it('passes on a 23514 check violation', () => {
+    expect(judgeCheckViolation({ data: null, error: { code: '23514', message: 'violates check constraint "coach_athlete_not_self"' } }).pass).toBe(true)
+  })
+
+  it('fails when the row is accepted or the error is another one', () => {
+    expect(judgeCheckViolation({ data: [{ id: 1 }], error: null }).pass).toBe(false)
+    expect(judgeCheckViolation(denied).pass).toBe(false)
+  })
+})
+
+describe('judgeActiveLink', () => {
+  const stamp = '2030-01-01T00:00:00Z'
+
+  it('passes on an active link stamped by the server and not revoked', () => {
+    expect(judgeActiveLink({ status: 'active', accepted_at: stamp, revoked_at: null }).pass).toBe(true)
+  })
+
+  it('fails on a link that is not active, unstamped, revoked or missing', () => {
+    expect(judgeActiveLink({ status: 'pending', accepted_at: null, revoked_at: null }).pass).toBe(false)
+    expect(judgeActiveLink({ status: 'active', accepted_at: null, revoked_at: null }).pass).toBe(false)
+    expect(judgeActiveLink({ status: 'active', accepted_at: stamp, revoked_at: stamp }).pass).toBe(false)
+    expect(judgeActiveLink(undefined).pass).toBe(false)
+  })
+})
+
 describe('judgeRefusedTransition', () => {
   it('passes on a 42501 refusal with the status unchanged', () => {
-    expect(judgeRefusedTransition(byPolicy, 'pending', 'pending').pass).toBe(true)
-    expect(judgeRefusedTransition(byGrant, 'pending', 'pending').pass).toBe(true)
+    expect(judgeRefusedTransition(byPolicy, 'active', 'active').pass).toBe(true)
+    expect(judgeRefusedTransition(byGrant, 'active', 'active').pass).toBe(true)
   })
 
   it('passes when the update matched no row and the status is unchanged', () => {
@@ -247,18 +275,18 @@ describe('judgeRefusedTransition', () => {
   })
 
   it('fails when the update returned the changed row', () => {
-    expect(judgeRefusedTransition({ data: [{ status: 'active' }], error: null }, 'pending', 'pending').pass).toBe(false)
+    expect(judgeRefusedTransition({ data: [{ status: 'active' }], error: null }, 'revoked', 'revoked').pass).toBe(false)
   })
 
   it('fails when the status moved, whatever the update reported', () => {
     expect(judgeRefusedTransition({ data: [], error: null }, 'revoked', 'active').pass).toBe(false)
-    expect(judgeRefusedTransition(byPolicy, 'pending', 'active').pass).toBe(false)
+    expect(judgeRefusedTransition(byPolicy, 'active', 'revoked').pass).toBe(false)
   })
 
   it('fails on an unrelated error and when the row is gone', () => {
     const other = { data: null, error: { code: '23514', message: 'check constraint' } }
-    expect(judgeRefusedTransition(other, 'pending', 'pending').pass).toBe(false)
-    expect(judgeRefusedTransition({ data: [], error: null }, 'pending', undefined).pass).toBe(false)
+    expect(judgeRefusedTransition(other, 'active', 'active').pass).toBe(false)
+    expect(judgeRefusedTransition({ data: [], error: null }, 'active', undefined).pass).toBe(false)
   })
 })
 

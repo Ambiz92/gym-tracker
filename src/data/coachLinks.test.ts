@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import type { CoachLink } from '../types/db'
-import { acceptLink, loadCoachLinks, requestCoach, revokeLink } from './coachLinks'
+import { linkToCoach, loadCoachLinks, revokeLink } from './coachLinks'
 import type { Call } from './fakeSupabase'
 import { FAKE_USER_ID, fakeSupabase } from './fakeSupabase'
 
 vi.mock('../lib/supabase', async () => ({ supabase: (await import('./fakeSupabase')).fakeSupabase }))
 
 const COACH = '9a7b0c1d-2e3f-4a5b-8c1e-5d4a4e6f3f2b'
-const row = { id: 'l1', coach_id: COACH, athlete_id: FAKE_USER_ID, status: 'pending', athlete_label: 'Marta' } as CoachLink
+const row = { id: 'l1', coach_id: COACH, athlete_id: FAKE_USER_ID, status: 'active', athlete_label: 'Marta' } as CoachLink
 
 const failure = (code: string, message: string) => ({ error: { code, message } })
 
@@ -36,10 +36,10 @@ describe('loadCoachLinks', () => {
   })
 })
 
-describe('requestCoach', () => {
+describe('linkToCoach', () => {
   test('inserts only the coach and the label, never the athlete, status or timestamps', async () => {
     fakeSupabase.reset(() => ({ data: row }))
-    expect(await requestCoach(COACH, 'Marta')).toEqual(row)
+    expect(await linkToCoach(COACH, 'Marta')).toEqual(row)
     expect(fakeSupabase.calls).toHaveLength(1)
     expect(fakeSupabase.calls[0]).toMatchObject({ table: 'coach_athlete', op: 'insert', mode: 'single' })
     expect(fakeSupabase.calls[0].payload).toEqual({ coach_id: COACH, athlete_label: 'Marta' })
@@ -55,52 +55,38 @@ describe('requestCoach', () => {
     ['a refused insert', failure('42501', 'new row violates row-level security policy for table "coach_athlete"'), 'not_allowed'],
   ])('maps %s to %s', async (_name, result, code) => {
     fakeSupabase.reset(() => result)
-    await expect(requestCoach(COACH, 'Marta')).rejects.toMatchObject({ name: 'DataError', code, cause: { code: result.error.code } })
+    await expect(linkToCoach(COACH, 'Marta')).rejects.toMatchObject({ name: 'DataError', code, cause: { code: result.error.code } })
   })
 
   test('keeps the code of a failure it has no wording for', async () => {
     fakeSupabase.reset(() => failure('23505', 'duplicate key value violates unique constraint "something_else"'))
-    await expect(requestCoach(COACH, 'Marta')).rejects.toMatchObject({ code: '23505' })
+    await expect(linkToCoach(COACH, 'Marta')).rejects.toMatchObject({ code: '23505' })
     fakeSupabase.reset(() => failure('XX000', 'boom'))
-    await expect(requestCoach(COACH, 'Marta')).rejects.toMatchObject({ code: 'XX000' })
+    await expect(linkToCoach(COACH, 'Marta')).rejects.toMatchObject({ code: 'XX000' })
   })
 })
 
-describe('status changes', () => {
-  test('accept sends only status active, for a pending row of that id', async () => {
+describe('revokeLink', () => {
+  test('sends only status revoked, for an active or legacy pending row of that id', async () => {
     fakeSupabase.reset(() => ({ data: [{ id: 'l1' }] }))
-    await acceptLink('l1')
+    await revokeLink('l1')
     expect(fakeSupabase.calls).toHaveLength(1)
     expect(fakeSupabase.calls[0]).toMatchObject({
       table: 'coach_athlete',
       op: 'update',
-      payload: { status: 'active' },
-      columns: 'id',
-      filters: [['eq', 'id', 'l1'], ['in', 'status', ['pending']]],
-    })
-  })
-
-  test('revoke sends only status revoked, for a pending or active row', async () => {
-    fakeSupabase.reset(() => ({ data: [{ id: 'l1' }] }))
-    await revokeLink('l1')
-    expect(fakeSupabase.calls[0]).toMatchObject({
-      op: 'update',
       payload: { status: 'revoked' },
+      columns: 'id',
       filters: [['eq', 'id', 'l1'], ['in', 'status', ['pending', 'active']]],
     })
   })
 
-  test.each([
-    ['accept', acceptLink],
-    ['revoke', revokeLink],
-  ])('%s of a row that no longer matches is not_found', async (_name, run) => {
+  test('a row that no longer matches is not_found', async () => {
     fakeSupabase.reset(() => ({ data: [] }))
-    await expect(run('l1')).rejects.toMatchObject({ code: 'not_found' })
+    await expect(revokeLink('l1')).rejects.toMatchObject({ code: 'not_found' })
   })
 
-  test('a refusal of the trigger or the policy (aal1 accept, forbidden transition) is not_allowed', async () => {
-    fakeSupabase.reset(() => failure('42501', 'coach_athlete: transition revoked to active not allowed'))
-    await expect(acceptLink('l1')).rejects.toMatchObject({ code: 'not_allowed' })
+  test('a refusal of the trigger or the policy (a forbidden transition) is not_allowed', async () => {
+    fakeSupabase.reset(() => failure('42501', 'coach_athlete: transition revoked to revoked not allowed'))
     await expect(revokeLink('l1')).rejects.toMatchObject({ code: 'not_allowed' })
   })
 })

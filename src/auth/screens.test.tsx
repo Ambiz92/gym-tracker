@@ -27,7 +27,6 @@ function render(ui: ReactElement, overrides: Partial<AuthContextValue> = {}) {
         startEnrollment: unused,
         verifyEnrollment: unused,
         signOut: unused,
-        isAal2: unused,
         ...overrides,
       }}
     >

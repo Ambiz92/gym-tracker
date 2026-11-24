@@ -9,7 +9,7 @@ const COPY_MESSAGES: Record<CopyState, string> = {
   failed: 'Non riesco a copiarlo: selezionalo e copialo a mano.',
 }
 
-/** The user's own code (their account id): what an athlete pastes to ask this user to be their coach. */
+/** The user's own code (their account id): what an athlete pastes to link to this user as their coach. */
 export function CoachCode({ code }: { code: string }) {
   const [copy, setCopy] = useState<CopyState>('idle')
 
@@ -25,7 +25,7 @@ export function CoachCode({ code }: { code: string }) {
   return (
     <div>
       <h3 className="coach-subhead">Il tuo codice</h3>
-      <p className="history-note">Se alleni qualcuno, dagli questo codice: lo incolla nella richiesta.</p>
+      <p className="history-note">Se alleni qualcuno, dagli questo codice: sono gli atleti a collegarsi a te, incollandolo in Altro. Appena confermano, vedi i loro dati.</p>
       <p className="coach-code">
         <code>{code}</code>
       </p>

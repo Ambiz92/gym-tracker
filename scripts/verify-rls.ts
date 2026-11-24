@@ -16,11 +16,12 @@
  * of the second user pointing at the first user's plan_session must be refused by the composite
  * key. It creates and deletes one 'rls-check' plan with a session for the first user.
  *
- * RLS_TEST_COACH_*, RLS_TEST_ATHLETE_* and RLS_TEST_STRANGER_* (EMAIL, PASSWORD) add the three-user checks of the
- * coach/athlete migrations (0007, 0008): see scripts/coachAthleteChecks.ts and scripts/README.md. The coach has a
- * verified TOTP factor and its base32 secret in RLS_TEST_COACH_TOTP_SECRET (without it only the aal1 refusals run).
- * RLS_TEST_BOTH_* (with RLS_TEST_BOTH_TOTP_SECRET) adds a user who is athlete and coach at once. The run leaves link
- * rows behind, which only postgres can delete; the next run says how.
+ * RLS_TEST_COACH_*, RLS_TEST_ATHLETE_* and RLS_TEST_STRANGER_* (EMAIL, PASSWORD), all WITHOUT a second factor, add the
+ * three-user checks of the coach/athlete migrations (0007, 0008, 0009): see scripts/coachAthleteChecks.ts and
+ * scripts/README.md. The athlete creates the link, active at once; the coach does nothing and reads with a password
+ * session (aal1). RLS_TEST_BOTH_* adds a user who is athlete and coach at once. RLS_TEST_COACH_MFA_* with
+ * RLS_TEST_COACH_MFA_TOTP_SECRET, a coach WITH a verified TOTP factor, adds the checks that it still needs aal2. The
+ * run leaves link rows behind, which only postgres can delete; the next run says how.
  *
  * What this does NOT prove (follow-up manual tests, they need a logged-in session):
  *  - the restrictive *_mfa_if_enrolled policies on the other tables: an aal1 session is refused
@@ -32,7 +33,7 @@
  */
 import { readdirSync, readFileSync } from 'node:fs'
 import { type SupabaseClient, createClient } from '@supabase/supabase-js'
-import { type Accounts, type FactorSession, coachAthleteChecks } from './coachAthleteChecks'
+import { type FactorSession, type Session, coachAthleteChecks } from './coachAthleteChecks'
 import {
   type Check,
   type Outcome,
@@ -142,13 +143,16 @@ function testUser(prefix: string): TestUser | null {
 }
 
 interface FactorUser extends TestUser {
-  totpSecret: string | null
+  totpSecret: string
 }
 
-/** Like testUser, plus the base32 secret of the account's TOTP factor (`<prefix>_TOTP_SECRET`). */
+/** Like testUser, plus the base32 secret of the account's TOTP factor (`<prefix>_TOTP_SECRET`), required. */
 function factorUser(prefix: string): FactorUser | null {
   const user = testUser(prefix)
-  return user && { ...user, totpSecret: process.env[`${prefix}_TOTP_SECRET`] || null }
+  if (!user) return null
+  const totpSecret = process.env[`${prefix}_TOTP_SECRET`]
+  if (!totpSecret) throw new Error(`${prefix}_EMAIL is set but ${prefix}_TOTP_SECRET is not: a coach with a factor needs the secret to reach aal2`)
+  return { ...user, totpSecret }
 }
 
 async function signIn({ email, password }: TestUser): Promise<SupabaseClient> {
@@ -165,7 +169,7 @@ async function userId(client: SupabaseClient): Promise<string> {
 }
 
 /** Password sign-in, then the TOTP step with a code computed from the secret: the returned client is at aal2. */
-async function signInAal2(user: FactorUser & { totpSecret: string }): Promise<SupabaseClient> {
+async function signInAal2(user: FactorUser): Promise<SupabaseClient> {
   const client = await signIn(user)
   const { data: factors, error: listError } = await client.auth.mfa.listFactors()
   const factor = factors?.totp[0]
@@ -176,32 +180,33 @@ async function signInAal2(user: FactorUser & { totpSecret: string }): Promise<Su
 
 async function factorSession(user: FactorUser): Promise<FactorSession> {
   const aal1 = await signIn(user)
-  return { id: await userId(aal1), aal1, aal2: user.totpSecret ? await signInAal2({ ...user, totpSecret: user.totpSecret }) : null }
+  return { id: await userId(aal1), aal1, aal2: await signInAal2(user) }
+}
+
+async function session(user: TestUser): Promise<Session> {
+  const client = await signIn(user)
+  return { id: await userId(client), client }
 }
 
 /** The three-user checks of the coach/athlete migrations; skipped when no fixture user is configured. */
 async function coachAthleteSection(): Promise<Check[]> {
-  const coach = factorUser('RLS_TEST_COACH')
+  const coach = testUser('RLS_TEST_COACH')
   const athlete = testUser('RLS_TEST_ATHLETE')
   const stranger = testUser('RLS_TEST_STRANGER')
-  const both = factorUser('RLS_TEST_BOTH')
-  if (!coach && !athlete && !stranger && !both) {
+  const both = testUser('RLS_TEST_BOTH')
+  const factorCoach = factorUser('RLS_TEST_COACH_MFA')
+  if (!coach && !athlete && !stranger && !both && !factorCoach) {
     console.log('Coach/athlete checks skipped: set RLS_TEST_COACH_*, RLS_TEST_ATHLETE_* and RLS_TEST_STRANGER_* to run them.\n')
     return []
   }
   if (!coach || !athlete || !stranger) throw new Error('The coach/athlete checks need RLS_TEST_COACH_*, RLS_TEST_ATHLETE_* and RLS_TEST_STRANGER_* together')
-  if (both && !(both.totpSecret && coach.totpSecret)) throw new Error('RLS_TEST_BOTH_* needs RLS_TEST_BOTH_TOTP_SECRET and RLS_TEST_COACH_TOTP_SECRET: it accepts requests as a coach')
-  const athleteClient = await signIn(athlete)
-  const strangerClient = await signIn(stranger)
-  const bothSession = both ? await factorSession(both) : null
-  const accounts: Accounts = {
-    coach: await factorSession(coach),
-    athlete: { id: await userId(athleteClient), client: athleteClient },
-    stranger: { id: await userId(strangerClient), client: strangerClient },
-    signInStranger: () => signIn(stranger),
-    both: bothSession?.aal2 ? { ...bothSession, aal2: bothSession.aal2 } : null,
-  }
-  return coachAthleteChecks(accounts)
+  return coachAthleteChecks({
+    coach: await session(coach),
+    athlete: await session(athlete),
+    stranger: await session(stranger),
+    both: both && (await session(both)),
+    factorCoach: factorCoach && (await factorSession(factorCoach)),
+  })
 }
 
 /** Two inserts of the same catalog entry for one owner: the second must hit the unique index. */
