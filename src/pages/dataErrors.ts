@@ -19,13 +19,13 @@ export function describeCoachLinkError(cause: unknown, fallback: string): string
 
 const COACH_LINK_MESSAGES: Record<string, string> = {
   invalid_code: 'Il codice non è valido: incollalo per intero, così com’è.',
-  unknown_coach: 'Nessun allenatore ha questo codice. Controlla di averlo copiato per intero.',
-  already_has_coach: 'Hai già un allenatore o una richiesta in corso: revocala prima di farne un’altra.',
+  unknown_coach: 'Nessun allenatore ha questo codice. Controlla di averlo copiato per intero, o chiedi di nuovo il codice al tuo allenatore.',
+  already_has_coach: 'Hai già un allenatore: revoca il collegamento attuale prima di collegarti a un altro.',
   link_exists: 'Con questo allenatore esiste già un collegamento, anche se revocato. Per riattivarlo serve l’amministratore.',
   self_link: 'Questo è il tuo codice: serve quello del tuo allenatore.',
   invalid_label: 'Il nome non è accettato: usa da 1 a 60 caratteri visibili.',
-  not_allowed: 'Operazione non consentita. Per accettare richieste e leggere i dati degli atleti serve il secondo fattore.',
-  not_found: 'La richiesta non è più disponibile: è già stata gestita o revocata, oppure manca il secondo fattore. Aggiorna la pagina.',
-  not_linked: 'Non hai accesso ai dati di questo atleta: il collegamento non è attivo oppure il secondo fattore non è stato verificato.',
+  not_allowed: 'Operazione non consentita. Se hai attivato il secondo fattore, completa la verifica e riprova.',
+  not_found: 'Il collegamento non è più disponibile: è già stato revocato. Aggiorna la pagina.',
+  not_linked: 'Non hai accesso ai dati di questo atleta: il collegamento non è attivo. Se hai attivato il secondo fattore, completa la verifica e riprova.',
   invalid_athlete: 'Atleta non trovato.',
 }
