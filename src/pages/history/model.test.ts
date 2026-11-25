@@ -77,13 +77,13 @@ describe('format', () => {
     expect(groupSets(sets)).toEqual(['2×8 · 30 kg', '1×6 · 27,5 kg'])
   })
 
-  test('groupSets shows both sides of a barbell and does not merge it with a dumbbell of the same stored weight', () => {
+  test('groupSets labels a barbell as a total and does not merge it with a dumbbell of the same stored weight', () => {
     const sets = [
       { set_number: 1, reps: 8, weight_kg: 55, equipment_used: 'barbell' as const },
       { set_number: 2, reps: 8, weight_kg: 55, equipment_used: 'barbell' as const },
       { set_number: 3, reps: 8, weight_kg: 55, equipment_used: 'dumbbell' as const },
     ]
-    expect(groupSets(sets)).toEqual(['2×8 · 110 kg totali', '1×8 · 55 kg'])
+    expect(groupSets(sets)).toEqual(['2×8 · 55 kg totali', '1×8 · 55 kg'])
   })
 })
 
@@ -94,17 +94,14 @@ describe('buildExerciseSummaries', () => {
     const sets = [logged('row', '2026-11-03', 25), logged('row', '2026-11-17', 30), logged('bench', '2026-11-10', 15)]
     const summaries = buildExerciseSummaries(exercises, sets)
     expect(summaries.map((s) => s.name)).toEqual(['Rematore', 'Panca piana'])
-    expect(summaries[0]).toMatchObject({ lastWeightKg: 60, variationPct: 20, lastDate: '2026-11-17' })
-    expect(summaries[1]).toMatchObject({ lastWeightKg: 30, variationPct: 0 })
+    expect(summaries[0]).toMatchObject({ lastWeightKg: 30, variationPct: 20, lastDate: '2026-11-17' })
+    expect(summaries[1]).toMatchObject({ lastWeightKg: 15, variationPct: 0 })
   })
 
-  test('dumbbells stay as logged and a mixed exercise compares totals with totals', () => {
+  test('dumbbell weights are plain kg, with no "totali" label', () => {
     const [dumbbell] = buildExerciseSummaries([exercise('press', 'Press', { equipment: 'dumbbell' })], [logged('press', '2026-11-03', 20, 'dumbbell')])
     expect(dumbbell).toMatchObject({ lastWeightKg: 20 })
     expect(summaryDetail(dumbbell!)).toBe('ultima 20 kg')
-
-    const [mixed] = buildExerciseSummaries(exercises, [logged('row', '2026-11-03', 20, 'barbell'), logged('row', '2026-11-10', 50, 'dumbbell')])
-    expect(mixed).toMatchObject({ lastWeightKg: 50, variationPct: 25 })
   })
 
   test('orders by most recent training, then by name', () => {
@@ -115,7 +112,7 @@ describe('buildExerciseSummaries', () => {
   test('keeps archived exercises and says so in the detail line', () => {
     const [summary] = buildExerciseSummaries([exercise('row', 'Rematore', { archived: true })], [logged('row', '2026-11-03', 25)])
     expect(summary!.archived).toBe(true)
-    expect(summaryDetail(summary!)).toBe('ultima 50 kg totali · archiviato')
+    expect(summaryDetail(summary!)).toBe('ultima 25 kg totali · archiviato')
   })
 
   test('filters by name ignoring case and surrounding spaces', () => {
@@ -146,8 +143,8 @@ describe('buildSessionSummaries', () => {
       title: 'Upper body',
       detail: 'oggi · 2 esercizi · 3 serie',
       exercises: [
-        { exerciseId: 'bench', name: 'Panca piana', sets: ['1×8 · 30 kg totali'] },
-        { exerciseId: 'row', name: 'Rematore', sets: ['2×8 · 60 kg totali'] },
+        { exerciseId: 'bench', name: 'Panca piana', sets: ['1×8 · 15 kg totali'] },
+        { exerciseId: 'row', name: 'Rematore', sets: ['2×8 · 30 kg totali'] },
       ],
     })
   })
@@ -167,8 +164,8 @@ describe('buildWorkoutRows', () => {
       historySet('w2', '2026-11-17', 2, 6, 30),
     ]
     expect(buildWorkoutRows(sets, TODAY)).toEqual([
-      { key: 'w2', date: 'oggi', sets: ['1×8 · 60 kg totali', '1×6 · 60 kg totali'] },
-      { key: 'w1', date: '03.11', sets: ['1×8 · 50 kg totali'] },
+      { key: 'w2', date: 'oggi', sets: ['1×8 · 30 kg totali', '1×6 · 30 kg totali'] },
+      { key: 'w1', date: '03.11', sets: ['1×8 · 25 kg totali'] },
     ])
   })
 })
@@ -183,8 +180,8 @@ describe('buildExerciseView', () => {
   test('KPIs use the exercise starting weight and compare the last week with the first logged one', () => {
     const view = buildExerciseView(exercise('row', 'Rematore', { starting_weight_kg: 20 }), sets, '2026-11-30')
     expect(view.kpis).toEqual([
-      { value: '40', label: 'partenza (kg totali)' },
-      { value: '60', label: 'ultima (kg totali)' },
+      { value: '20', label: 'partenza (kg totali)' },
+      { value: '30', label: 'ultima (kg totali)' },
       { value: '+20%', label: 'vs sett. 1', accent: true },
     ])
     expect(view.equipment).toBe('Bilanciere')
@@ -193,12 +190,12 @@ describe('buildExerciseView', () => {
   test('the chart has one point per logged week, with a sentence for each and for the trend', () => {
     const view = buildExerciseView(exercise('row', 'Rematore'), sets, '2026-11-30')
     expect(view.chartPoints.map(({ x, y, axisLabel }) => ({ x, y, axisLabel }))).toEqual([
-      { x: 1, y: 50, axisLabel: 'S1' },
-      { x: 2, y: 55, axisLabel: 'S2' },
-      { x: 4, y: 60, axisLabel: 'S4' },
+      { x: 1, y: 25, axisLabel: 'S1' },
+      { x: 2, y: 27.5, axisLabel: 'S2' },
+      { x: 4, y: 30, axisLabel: 'S4' },
     ])
-    expect(view.chartPoints[1]!.description).toBe('Settimana 2, dal 09.11: 55 kg totali')
-    expect(view.chartSummary).toBe('Peso massimo per settimana: da 50 kg totali nella settimana 1 a 60 kg totali nella settimana 4.')
+    expect(view.chartPoints[1]!.description).toBe('Settimana 2, dal 09.11: 27,5 kg totali')
+    expect(view.chartSummary).toBe('Peso massimo per settimana: da 25 kg totali nella settimana 1 a 30 kg totali nella settimana 4.')
   })
 
   test('a barbell exercise says its weights are totals of both sides, bar excluded', () => {

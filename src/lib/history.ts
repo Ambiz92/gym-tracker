@@ -1,11 +1,6 @@
-import type { HistorySet, SetLog } from '../types/db'
+import type { HistorySet } from '../types/db'
 
 type HistoryInput = Pick<HistorySet, 'date' | 'weight_kg'>
-
-/** Barbell weights are stored per side; history shows the plates of both sides together, bar excluded. */
-export function totalWeightKg({ weight_kg, equipment_used }: Pick<SetLog, 'weight_kg' | 'equipment_used'>): number {
-  return equipment_used === 'barbell' ? weight_kg * 2 : weight_kg
-}
 
 export interface WeekPoint {
   week: number
