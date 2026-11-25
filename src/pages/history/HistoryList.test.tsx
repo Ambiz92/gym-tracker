@@ -11,7 +11,7 @@ const sessions: SessionSummary[] = [
   { id: 'w1', title: 'Upper body', detail: 'oggi · 2 esercizi · 6 serie', exercises: [{ exerciseId: 'e1', name: 'Panca', sets: ['3×8 · 30 kg'] }] },
 ]
 const exercises: ExerciseSummary[] = [
-  { id: 'e1', name: 'Panca piana', archived: false, lastWeightKg: 30, variationPct: 20, lastDate: '2026-11-17' },
+  { id: 'e1', name: 'Panca piana', archived: false, equipment: 'barbell', lastWeightKg: 30, variationPct: 20, lastDate: '2026-11-17' },
 ]
 
 const render = () =>

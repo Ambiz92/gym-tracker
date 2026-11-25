@@ -21,7 +21,7 @@ describe('buildAthleteSessions', () => {
       ['w1', 'A', 'Buona giornata'],
       ['w2', 'B', null],
     ])
-    expect(sessions[0]!.exercises).toEqual([{ exerciseId: 'e1', name: 'Panca', sets: ['2×8 · 40 kg'] }])
+    expect(sessions[0]!.exercises).toEqual([{ exerciseId: 'e1', name: 'Panca', sets: ['2×8 · 80 kg totali'] }])
   })
 
   test('a blank note counts as no note', () => {
@@ -32,12 +32,12 @@ describe('buildAthleteSessions', () => {
 describe('buildAthleteExercises', () => {
   test('lists the exercises that were logged, with their trimmed notes', () => {
     const rows = buildAthleteExercises(exercises, [
-      { exercise_id: 'e1', weight_kg: 40, date: '2026-11-18' },
-      { exercise_id: 'e2', weight_kg: 60, date: '2026-11-20' },
+      { exercise_id: 'e1', weight_kg: 40, equipment_used: 'barbell', date: '2026-11-18' },
+      { exercise_id: 'e2', weight_kg: 60, equipment_used: 'barbell', date: '2026-11-20' },
     ])
     expect(rows.map((row) => [row.name, row.notes, row.lastWeightKg])).toEqual([
-      ['Squat', null, 60],
-      ['Panca', 'spalla delicata', 40],
+      ['Squat', null, 120],
+      ['Panca', 'spalla delicata', 80],
     ])
   })
 
