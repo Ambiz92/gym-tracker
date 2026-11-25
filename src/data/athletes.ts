@@ -47,8 +47,8 @@ export async function loadAthleteData(athleteId: string, recentWorkouts: number)
       .order('created_at', { ascending: false })
       .limit(recentWorkouts),
     reader.table('exercise').select(EXERCISE_COLUMNS).order('name'),
-    readAllRows<Pick<LoggedSet, 'exercise_id' | 'weight_kg'> & { workout: { date: string } }>((from, to) =>
-      reader.table('set_log').select('exercise_id, weight_kg, workout!inner(date)').order('id').range(from, to),
+    readAllRows<Omit<LoggedSet, 'date'> & { workout: { date: string } }>((from, to) =>
+      reader.table('set_log').select('exercise_id, weight_kg, equipment_used, workout!inner(date)').order('id').range(from, to),
     ),
     reader.table('plan').select(PLAN_COLUMNS).eq('archived', false).eq('plan_session.archived', false).order('name'),
   ])

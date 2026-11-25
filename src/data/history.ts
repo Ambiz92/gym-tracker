@@ -7,11 +7,7 @@ const INVALID_TEXT_REPRESENTATION = '22P02'
 /** The exercise fields the history screens read; archived exercises keep their history. */
 export type HistoryExercise = Pick<Exercise, 'id' | 'name' | 'equipment' | 'archived' | 'starting_weight_kg'>
 
-export interface LoggedSet {
-  exercise_id: string
-  weight_kg: number
-  date: string
-}
+export type LoggedSet = Pick<SetLog, 'exercise_id' | 'weight_kg' | 'equipment_used'> & { date: string }
 
 export type RecentWorkout = Pick<Workout, 'id' | 'date' | 'session_name'> & {
   set_log: (Pick<SetLog, 'exercise_id'> & LastSet)[]
@@ -36,10 +32,10 @@ export async function getHistoryExercise(id: string): Promise<HistoryExercise | 
   }
 }
 
-/** Exercise, weight and workout date of every logged set, however many there are. */
+/** Exercise, weight, equipment and workout date of every logged set, however many there are. */
 export async function listLoggedSets(): Promise<LoggedSet[]> {
-  const rows = await readAllRows<Pick<SetLog, 'exercise_id' | 'weight_kg'> & { workout: { date: string } }>(
-    async (from, to) => (await own('set_log')).select('exercise_id, weight_kg, workout!inner(date)').order('id').range(from, to),
+  const rows = await readAllRows<Omit<LoggedSet, 'date'> & { workout: { date: string } }>(
+    async (from, to) => (await own('set_log')).select('exercise_id, weight_kg, equipment_used, workout!inner(date)').order('id').range(from, to),
   )
   return rows.map(({ workout, ...set }) => ({ ...set, date: workout.date }))
 }

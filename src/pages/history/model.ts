@@ -1,8 +1,8 @@
 import type { ChartPoint } from '../../components/lineChartScale'
 import type { HistoryExercise, LoggedSet, RecentWorkout } from '../../data/history'
-import { buildHistory } from '../../lib/history'
+import { buildHistory, totalWeightKg, type ExerciseHistory } from '../../lib/history'
 import type { Equipment, HistorySet } from '../../types/db'
-import { formatKg, formatNumber, formatShortDate, formatVariation, groupSets, pluralize } from './format'
+import { formatLoadKg, formatNumber, formatShortDate, formatVariation, groupSets, pluralize } from './format'
 
 function groupBy<Item, Key>(items: readonly Item[], key: (item: Item) => Key): Map<Key, Item[]> {
   const groups = new Map<Key, Item[]>()
@@ -14,12 +14,23 @@ function groupBy<Item, Key>(items: readonly Item[], key: (item: Item) => Key): M
   return groups
 }
 
+/** Weekly history in total kg: sets are converted one by one, as an exercise may mix equipment. */
+function buildTotalHistory(exercise: HistoryExercise, sets: readonly Pick<LoggedSet, 'date' | 'weight_kg' | 'equipment_used'>[]): ExerciseHistory {
+  const { starting_weight_kg: starting, equipment } = exercise
+  return buildHistory(
+    sets.map((set) => ({ date: set.date, weight_kg: totalWeightKg(set) })),
+    starting === null ? null : totalWeightKg({ weight_kg: starting, equipment_used: equipment }),
+  )
+}
+
 const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, 'it')
 
 export interface ExerciseSummary {
   id: string
   name: string
   archived: boolean
+  equipment: Equipment
+  /** Total kg, see totalWeightKg. */
   lastWeightKg: number
   variationPct: number | null
   lastDate: string
@@ -35,16 +46,16 @@ export function buildExerciseSummaries(
   for (const exercise of exercises) {
     const logged = setsByExercise.get(exercise.id)
     if (!logged) continue
-    const { lastWeightKg, variationPct } = buildHistory(logged, exercise.starting_weight_kg)
+    const { lastWeightKg, variationPct } = buildTotalHistory(exercise, logged)
     if (lastWeightKg === null) continue
     const lastDate = logged.reduce((latest, set) => (set.date > latest ? set.date : latest), '')
-    summaries.push({ id: exercise.id, name: exercise.name, archived: exercise.archived, lastWeightKg, variationPct, lastDate })
+    summaries.push({ id: exercise.id, name: exercise.name, archived: exercise.archived, equipment: exercise.equipment, lastWeightKg, variationPct, lastDate })
   }
   return summaries.sort((a, b) => b.lastDate.localeCompare(a.lastDate) || byName(a, b))
 }
 
 export function summaryDetail(summary: ExerciseSummary): string {
-  const detail = `ultima ${formatKg(summary.lastWeightKg)}`
+  const detail = `ultima ${formatLoadKg(summary.lastWeightKg, summary.equipment)}`
   return summary.archived ? `${detail} · archiviato` : detail
 }
 
@@ -114,14 +125,16 @@ export interface ExerciseView {
   archived: boolean
   kpis: { value: string; label: string; accent?: boolean }[]
   chartPoints: ChartPoint[]
+  weightNote: string
   chartSummary: string
   workouts: WorkoutRow[]
 }
 
 /** Everything the exercise page shows; `kpis` and the chart are empty when nothing was logged. */
 export function buildExerciseView(exercise: HistoryExercise, sets: readonly HistorySet[], today: string): ExerciseView {
-  const history = buildHistory(sets, exercise.starting_weight_kg)
-  const { points, startingWeightKg, lastWeightKg, variationPct } = history
+  const { points, startingWeightKg, lastWeightKg, variationPct } = buildTotalHistory(exercise, sets)
+  const isBarbell = exercise.equipment === 'barbell'
+  const formatLoad = (kg: number) => formatLoadKg(kg, exercise.equipment)
   const view: ExerciseView = {
     name: exercise.name,
     equipment: EQUIPMENT_LABELS[exercise.equipment],
@@ -131,8 +144,9 @@ export function buildExerciseView(exercise: HistoryExercise, sets: readonly Hist
       x: point.week,
       y: point.maxWeightKg,
       axisLabel: `S${point.week}`,
-      description: `Settimana ${point.week}, dal ${formatShortDate(point.weekStart, today)}: ${formatKg(point.maxWeightKg)}`,
+      description: `Settimana ${point.week}, dal ${formatShortDate(point.weekStart, today)}: ${formatLoad(point.maxWeightKg)}`,
     })),
+    weightNote: isBarbell ? 'Il massimo di ogni settimana, in kg totali dei dischi di entrambi i lati (bilanciere escluso).' : 'Il massimo di ogni settimana.',
     chartSummary: '',
     workouts: buildWorkoutRows(sets, today),
   }
@@ -141,13 +155,13 @@ export function buildExerciseView(exercise: HistoryExercise, sets: readonly Hist
   if (!first || !last || startingWeightKg === null || lastWeightKg === null) return view
 
   view.kpis = [
-    { value: formatNumber(startingWeightKg), label: 'kg partenza' },
-    { value: formatNumber(lastWeightKg), label: 'kg ultima' },
+    { value: formatNumber(startingWeightKg), label: isBarbell ? 'partenza (kg totali)' : 'kg partenza' },
+    { value: formatNumber(lastWeightKg), label: isBarbell ? 'ultima (kg totali)' : 'kg ultima' },
     { value: formatVariation(variationPct), label: 'vs sett. 1', accent: true },
   ]
   view.chartSummary =
     points.length === 1
-      ? `Peso massimo per settimana: ${formatKg(first.maxWeightKg)} nella settimana 1.`
-      : `Peso massimo per settimana: da ${formatKg(first.maxWeightKg)} nella settimana 1 a ${formatKg(last.maxWeightKg)} nella settimana ${last.week}.`
+      ? `Peso massimo per settimana: ${formatLoad(first.maxWeightKg)} nella settimana 1.`
+      : `Peso massimo per settimana: da ${formatLoad(first.maxWeightKg)} nella settimana 1 a ${formatLoad(last.maxWeightKg)} nella settimana ${last.week}.`
   return view
 }
