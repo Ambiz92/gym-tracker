@@ -61,7 +61,7 @@ function Loaded({ view }: { view: ExerciseView }) {
           <KpiRow items={view.kpis} />
           <section>
             <h2 className="history-label">Peso per settimana</h2>
-            <p className="history-note">Il massimo di ogni settimana.</p>
+            <p className="history-note">{view.weightNote}</p>
             <LineChart points={view.chartPoints} summary={view.chartSummary} formatTick={formatNumber} />
           </section>
           <section>

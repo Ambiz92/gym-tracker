@@ -8,7 +8,7 @@ const set = (exercise_id: string, set_number: number, weight_kg: number) => ({ e
 const data: AthleteData = {
   workouts: [{ id: 'w1', date: '2026-11-20', session_name: 'Sessione A', notes: 'Dolore <b>alla spalla</b>\nmeglio dopo', set_log: [set('e1', 1, 40), set('e1', 2, 40)] }],
   exercises: [{ id: 'e1', name: 'Panca', equipment: 'barbell', archived: false, starting_weight_kg: 40, notes: 'Presa stretta' }],
-  sets: [{ exercise_id: 'e1', weight_kg: 40, date: '2026-11-20' }],
+  sets: [{ exercise_id: 'e1', weight_kg: 40, equipment_used: 'barbell', date: '2026-11-20' }],
   plans: [
     {
       id: 'p1',
@@ -26,9 +26,9 @@ const html = renderToStaticMarkup(<AthleteContent data={data} />)
 test('shows the recent sessions with their notes, the exercises with the last weight and the plans with targets', () => {
   expect(html).toContain('Ultime sessioni')
   expect(html).toContain('<bdi>Sessione A</bdi>')
-  expect(html).toContain('2×8 · 40 kg')
+  expect(html).toContain('2×8 · 80 kg totali')
   expect(html).toContain('Presa stretta')
-  expect(html).toContain('ultima 40 kg')
+  expect(html).toContain('ultima 80 kg totali')
   expect(html).toContain('Forza')
   expect(html).toContain('Attiva')
   expect(html).toContain('4×8')

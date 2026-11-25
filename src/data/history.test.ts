@@ -59,14 +59,14 @@ describe('getHistoryExercise', () => {
 })
 
 test('listLoggedSets flattens the workout date onto each set and pages on a unique order', async () => {
-  fakeSupabase.reset(() => ({ data: [{ exercise_id: 'e1', weight_kg: 20, workout: { date: '2026-11-17' } }] }))
-  expect(await listLoggedSets()).toEqual([{ exercise_id: 'e1', weight_kg: 20, date: '2026-11-17' }])
+  fakeSupabase.reset(() => ({ data: [{ exercise_id: 'e1', weight_kg: 20, equipment_used: 'barbell', workout: { date: '2026-11-17' } }] }))
+  expect(await listLoggedSets()).toEqual([{ exercise_id: 'e1', weight_kg: 20, equipment_used: 'barbell', date: '2026-11-17' }])
   expect(fakeSupabase.calls[0]).toMatchObject({ table: 'set_log', orders: [{ column: 'id' }], range: [0, 999] })
 })
 
 describe('listLoggedSets across pages', () => {
   const page = (count: number) =>
-    Array.from({ length: count }, () => ({ exercise_id: 'e1', weight_kg: 20, workout: { date: '2026-11-17' } }))
+    Array.from({ length: count }, () => ({ exercise_id: 'e1', weight_kg: 20, equipment_used: 'barbell', workout: { date: '2026-11-17' } }))
 
   test('scopes every page to whoever is signed in when it is read', async () => {
     fakeSupabase.reset((call) => {
