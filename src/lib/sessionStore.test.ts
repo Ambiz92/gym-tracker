@@ -182,11 +182,21 @@ describe('confirming sets', () => {
       exercise_id: 'e1',
       set_number: 1,
       reps: 8,
-      weight_kg: 20,
+      weight_kg: 40,
       equipment_used: 'barbell',
     })
     expect(store.getSnapshot().draft?.sets[0]?.sync).toBe('synced')
     expect(store.getSnapshot().draft?.workoutSynced).toBe(true)
+  })
+
+  it('keeps the logger weight in the draft and sends the stored one: the total of both sides on a barbell, as is otherwise', async () => {
+    const store = new SessionStore(f.env)
+    store.confirmSet(session, input('e1', 15))
+    store.confirmSet(session, { exerciseId: 'e2', reps: 8, weightKg: 12.5, equipment: 'dumbbell' })
+    await store.flush()
+
+    expect(store.getSnapshot().draft?.sets.map((set) => set.weightKg)).toEqual([15, 12.5])
+    expect(f.api.logSet.mock.calls.map(([call]) => call.weight_kg)).toEqual([30, 12.5])
   })
 
   it('numbers sets per exercise and sends them in order', async () => {

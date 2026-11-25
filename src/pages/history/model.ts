@@ -1,6 +1,6 @@
 import type { ChartPoint } from '../../components/lineChartScale'
 import type { HistoryExercise, LoggedSet, RecentWorkout } from '../../data/history'
-import { buildHistory, totalWeightKg, type ExerciseHistory } from '../../lib/history'
+import { buildHistory } from '../../lib/history'
 import type { Equipment, HistorySet } from '../../types/db'
 import { formatLoadKg, formatNumber, formatShortDate, formatVariation, groupSets, pluralize } from './format'
 
@@ -14,15 +14,6 @@ function groupBy<Item, Key>(items: readonly Item[], key: (item: Item) => Key): M
   return groups
 }
 
-/** Weekly history in total kg: sets are converted one by one, as an exercise may mix equipment. */
-function buildTotalHistory(exercise: HistoryExercise, sets: readonly Pick<LoggedSet, 'date' | 'weight_kg' | 'equipment_used'>[]): ExerciseHistory {
-  const { starting_weight_kg: starting, equipment } = exercise
-  return buildHistory(
-    sets.map((set) => ({ date: set.date, weight_kg: totalWeightKg(set) })),
-    starting === null ? null : totalWeightKg({ weight_kg: starting, equipment_used: equipment }),
-  )
-}
-
 const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, 'it')
 
 export interface ExerciseSummary {
@@ -30,7 +21,7 @@ export interface ExerciseSummary {
   name: string
   archived: boolean
   equipment: Equipment
-  /** Total kg, see totalWeightKg. */
+  /** Stored kg: the total of both sides on a barbell. */
   lastWeightKg: number
   variationPct: number | null
   lastDate: string
@@ -46,7 +37,7 @@ export function buildExerciseSummaries(
   for (const exercise of exercises) {
     const logged = setsByExercise.get(exercise.id)
     if (!logged) continue
-    const { lastWeightKg, variationPct } = buildTotalHistory(exercise, logged)
+    const { lastWeightKg, variationPct } = buildHistory(logged, exercise.starting_weight_kg)
     if (lastWeightKg === null) continue
     const lastDate = logged.reduce((latest, set) => (set.date > latest ? set.date : latest), '')
     summaries.push({ id: exercise.id, name: exercise.name, archived: exercise.archived, equipment: exercise.equipment, lastWeightKg, variationPct, lastDate })
@@ -132,7 +123,7 @@ export interface ExerciseView {
 
 /** Everything the exercise page shows; `kpis` and the chart are empty when nothing was logged. */
 export function buildExerciseView(exercise: HistoryExercise, sets: readonly HistorySet[], today: string): ExerciseView {
-  const { points, startingWeightKg, lastWeightKg, variationPct } = buildTotalHistory(exercise, sets)
+  const { points, startingWeightKg, lastWeightKg, variationPct } = buildHistory(sets, exercise.starting_weight_kg)
   const isBarbell = exercise.equipment === 'barbell'
   const formatLoad = (kg: number) => formatLoadKg(kg, exercise.equipment)
   const view: ExerciseView = {

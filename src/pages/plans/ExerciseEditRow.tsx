@@ -47,6 +47,7 @@ export function ExerciseEditRow({ row, index, count, busy, grip, onSave, onApply
   const reps = Number(values.reps)
   const warning = Number.isInteger(reps) ? repsWarning(reps, values.unit) : null
   const unit = unitLabel(values.unit)
+  const weightUnit = equipment === 'barbell' ? 'kg per lato' : 'kg'
 
   /** What every number input of the row shares: its text, its error state and the autosave hooks. */
   const input = (key: keyof TargetFormErrors, label: string) => ({
@@ -102,16 +103,16 @@ export function ExerciseEditRow({ row, index, count, busy, grip, onSave, onApply
         </div>
         <div className="builder-field">
           <label className="builder-field__label" htmlFor={`${ids}-weight`}>
-            Peso kg
+            {equipment === 'barbell' ? 'Kg per lato' : 'Peso kg'}
           </label>
-          <NumberInput {...input('weight', `Peso suggerito di ${name} (kg)`)} inputMode="decimal" enterKeyHint={showMax ? 'next' : 'done'} />
+          <NumberInput {...input('weight', `Peso suggerito di ${name} (${weightUnit})`)} inputMode="decimal" enterKeyHint={showMax ? 'next' : 'done'} />
         </div>
         {showMax && (
           <div className="builder-field builder-field--max">
             <label className="builder-field__label" htmlFor={`${ids}-weightMax`}>
-              Fino a kg
+              {equipment === 'barbell' ? 'Fino a, per lato' : 'Fino a kg'}
             </label>
-            <NumberInput {...input('weightMax', `Peso suggerito massimo di ${name} (kg)`)} inputMode="decimal" enterKeyHint="done" />
+            <NumberInput {...input('weightMax', `Peso suggerito massimo di ${name} (${weightUnit})`)} inputMode="decimal" enterKeyHint="done" />
           </div>
         )}
       </div>

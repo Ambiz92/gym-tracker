@@ -24,7 +24,8 @@ function deferred() {
 function setup(save: (target: PlanTarget) => Promise<void> = () => Promise.resolve()) {
   const saves: PlanTarget[] = []
   const applied: PlanTarget[] = []
-  const autosave = new TargetAutosave(targetFormFrom(stored), {
+  const autosave = new TargetAutosave(targetFormFrom(stored, 'dumbbell'), {
+    equipment: 'dumbbell',
     save: (target) => {
       saves.push(target)
       return save(target)
@@ -86,7 +87,8 @@ describe('saving while typing', () => {
   it('saves the unit with the row, and keeps a weight range it does not show', async () => {
     const withRange = { ...stored, suggested_weight_max_kg: 25 }
     const saves: PlanTarget[] = []
-    const autosave = new TargetAutosave(targetFormFrom(withRange), {
+    const autosave = new TargetAutosave(targetFormFrom(withRange, 'dumbbell'), {
+      equipment: 'dumbbell',
       save: async (target) => void saves.push(target),
       apply: () => {},
       describeFailure: () => '',
@@ -95,6 +97,21 @@ describe('saving while typing', () => {
     autosave.blur()
     await settle()
     expect(saves).toEqual([{ ...withRange, target_unit: 'seconds' }])
+  })
+
+  it('saves a barbell weight typed per side as the total of both sides', async () => {
+    const saves: PlanTarget[] = []
+    const autosave = new TargetAutosave(targetFormFrom(stored, 'barbell'), {
+      equipment: 'barbell',
+      save: async (target) => void saves.push(target),
+      apply: () => {},
+      describeFailure: () => '',
+    })
+    expect(autosave.getSnapshot().values.weight).toBe('10')
+    autosave.change({ weight: '12,5' })
+    autosave.blur()
+    await settle()
+    expect(saves.map((target) => target.suggested_weight_kg)).toEqual([25])
   })
 
   it('tells the screen about each target as its save starts', async () => {

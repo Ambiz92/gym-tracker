@@ -8,6 +8,7 @@ export interface DraftSet {
   exerciseId: string
   setNumber: number
   reps: number
+  /** Kept as the logger shows it (one side on a barbell), so drafts saved earlier stay valid; stored weight is made when the set is sent. */
   weightKg: number
   equipment: Equipment
   sync: SetSync

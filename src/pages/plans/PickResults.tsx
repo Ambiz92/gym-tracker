@@ -2,6 +2,7 @@ import { useId } from 'react'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { Skeleton } from '../../components/Skeleton'
 import type { AsyncState } from '../../hooks/useAsync'
+import { toDisplayKg } from '../../lib/barbellLoad'
 import { EQUIPMENT_LABELS, EQUIPMENT_ORDER } from '../../lib/exerciseForm'
 import { exerciseDetail, exerciseSections } from '../../lib/exerciseList'
 import { formatNumber } from '../../lib/formatNumber'
@@ -193,7 +194,7 @@ function MineList({ exercises, state, onToggle }: MineListProps) {
                 <span className="exercise-row__detail">
                   {exercise.starting_weight_kg === null
                     ? exerciseDetail({ ...exercise, muscles: null })
-                    : `${EQUIPMENT_LABELS[exercise.equipment]} · ${formatNumber(exercise.starting_weight_kg)} kg`}
+                    : `${EQUIPMENT_LABELS[exercise.equipment]} · ${formatNumber(toDisplayKg(exercise.equipment, exercise.starting_weight_kg))} kg${exercise.equipment === 'barbell' ? ' per lato' : ''}`}
                 </span>
               </span>
               <span className="add-sheet__state" aria-hidden="true">

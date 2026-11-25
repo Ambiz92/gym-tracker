@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { targetFormFrom, type PlanTarget } from '../../lib/planForm'
 import { TargetAutosave, type AutosaveSnapshot } from '../../lib/targetAutosave'
-import type { PlanExercise } from '../../types/db'
+import type { PlanExerciseDetail } from '../../data/activePlan'
 import { describePlanError } from './errors'
 
 interface Handlers {
@@ -10,14 +10,15 @@ interface Handlers {
 }
 
 /** The autosave of one exercise row: its typed values and save status, and the controller to feed. */
-export function useTargetAutosave(row: PlanExercise, handlers: Handlers): [AutosaveSnapshot, TargetAutosave] {
+export function useTargetAutosave(row: PlanExerciseDetail, handlers: Handlers): [AutosaveSnapshot, TargetAutosave] {
   const latest = useRef(handlers)
   useEffect(() => {
     latest.current = handlers
   })
   const [autosave] = useState(
     () =>
-      new TargetAutosave(targetFormFrom(row), {
+      new TargetAutosave(targetFormFrom(row, row.exercise.equipment), {
+        equipment: row.exercise.equipment,
         save: (target) => latest.current.save(target),
         apply: (target) => latest.current.apply(target),
         describeFailure: (cause) => describePlanError(cause, 'Salvataggio non riuscito. Riprova.'),

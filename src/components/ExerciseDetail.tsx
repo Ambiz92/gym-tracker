@@ -1,3 +1,4 @@
+import { toDisplayKg } from '../lib/barbellLoad'
 import { dayMonthName } from '../lib/formatDate'
 import { formatNumber } from '../lib/formatNumber'
 import { equipmentLabel, splitSteps, unitLabel } from '../lib/sessionProgress'
@@ -16,7 +17,7 @@ interface ExerciseDetailProps {
   suggestion?: string
 }
 
-/** Read-only view of an exercise: how to do it, the progression hint and the sets of the last workout. */
+/** Read-only view of an exercise: how to do it, the progression hint and the sets of the last workout (a barbell weight as one side). */
 export function ExerciseDetail({ name, equipment, muscles, executionSteps, unit, lastSets, lastDate, suggestion }: ExerciseDetailProps) {
   const steps = splitSteps(executionSteps)
   const sets = [...lastSets].sort((a, b) => a.set_number - b.set_number)
@@ -54,7 +55,7 @@ export function ExerciseDetail({ name, equipment, muscles, executionSteps, unit,
               <tr key={set.set_number}>
                 <td>{set.set_number}</td>
                 <td>{set.reps}</td>
-                <td>{formatNumber(set.weight_kg)}</td>
+                <td>{formatNumber(toDisplayKg(set.equipment_used, set.weight_kg))}</td>
               </tr>
             ))}
           </tbody>

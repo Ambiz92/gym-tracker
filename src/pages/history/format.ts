@@ -1,4 +1,3 @@
-import { totalWeightKg } from '../../lib/history'
 import type { Equipment, SetLog } from '../../types/db'
 
 type SetValues = Pick<SetLog, 'set_number' | 'reps' | 'weight_kg' | 'equipment_used'>
@@ -12,7 +11,7 @@ export function formatKg(value: number): string {
   return `${formatNumber(value)} kg`
 }
 
-/** A history weight already converted by totalWeightKg: barbell loads say they are the total of both sides. */
+/** A stored weight: a barbell one is the total of both sides, and says so. */
 export function formatLoadKg(value: number, equipment: Equipment): string {
   return equipment === 'barbell' ? `${formatNumber(value)} kg totali` : formatKg(value)
 }
@@ -45,5 +44,5 @@ export function groupSets(sets: readonly SetValues[]): string[] {
     if (last && last.reps === reps && last.weight_kg === weight_kg && last.equipment_used === equipment_used) last.count += 1
     else groups.push({ reps, weight_kg, equipment_used, count: 1 })
   }
-  return groups.map((group) => `${group.count}×${group.reps} · ${formatLoadKg(totalWeightKg(group), group.equipment_used)}`)
+  return groups.map((group) => `${group.count}×${group.reps} · ${formatLoadKg(group.weight_kg, group.equipment_used)}`)
 }

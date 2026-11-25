@@ -1,4 +1,5 @@
 import type { Equipment, SetLogInsert } from '../types/db'
+import { toStoredKg } from './barbellLoad'
 import {
   ackSet,
   ackWorkout,
@@ -53,6 +54,7 @@ export interface StoreState {
 export interface SetInput {
   exerciseId: string
   reps: number
+  /** As the logger shows it: one side on a barbell. */
   weightKg: number
   equipment: Equipment
 }
@@ -212,7 +214,7 @@ export class SessionStore {
         exercise_id: set.exerciseId,
         set_number: set.setNumber,
         reps: set.reps,
-        weight_kg: set.weightKg,
+        weight_kg: toStoredKg(set.equipment, set.weightKg),
         equipment_used: set.equipment,
       })
       this.apply(workoutId, (current) => ackSet(current, set.id))

@@ -40,7 +40,7 @@ const lastSet = (setNumber: number): SetLog => ({
   exercise_id: 'e2',
   set_number: setNumber,
   reps: 10,
-  weight_kg: 12.5,
+  weight_kg: 25,
   equipment_used: 'barbell',
   rpe: null,
 })

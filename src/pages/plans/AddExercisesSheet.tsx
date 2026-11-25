@@ -213,7 +213,7 @@ export function NewExerciseForm({ initialName, busy, onSubmit, onCancel }: NewEx
       </div>
       <EquipmentKeys label="Attrezzo" value={values.equipment} onPick={(equipment) => setValues((current) => ({ ...current, equipment }))} />
       <Field
-        label="Peso di partenza (kg, facoltativo)"
+        label={values.equipment === 'barbell' ? 'Peso di partenza (kg per lato, facoltativo)' : 'Peso di partenza (kg, facoltativo)'}
         value={values.startingWeight}
         onChange={(startingWeight) => setValues((current) => ({ ...current, startingWeight }))}
         inputMode="decimal"

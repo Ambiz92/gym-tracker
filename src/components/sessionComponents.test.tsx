@@ -217,28 +217,28 @@ describe('SessionSummary', () => {
       <SessionSummary
         {...props}
         rows={[
-          { exerciseId: 'a', name: 'Curl', sets: 3, weightsKg: [15, 15, 12.5], weightKg: 15, equipment: 'barbell', deltaKg: 2.5 },
-          { exerciseId: 'b', name: 'Panca', sets: 3, weightsKg: [15, 15, 15], weightKg: 15, equipment: 'barbell', deltaKg: 0 },
-          { exerciseId: 'c', name: 'Squat', sets: 3, weightsKg: [30, 30, 30], weightKg: 30, equipment: 'barbell', deltaKg: null },
+          { exerciseId: 'a', name: 'Curl', sets: 3, weightsKg: [30, 30, 25], weightKg: 30, equipment: 'barbell', deltaKg: 5 },
+          { exerciseId: 'b', name: 'Panca', sets: 3, weightsKg: [30, 30, 30], weightKg: 30, equipment: 'barbell', deltaKg: 0 },
+          { exerciseId: 'c', name: 'Squat', sets: 3, weightsKg: [60, 60, 60], weightKg: 60, equipment: 'barbell', deltaKg: null },
         ]}
       />,
     )
     expect(html).toContain('52 min')
     expect(html).toContain('3 esercizi · 9 serie')
-    expect(html).toContain('2 × 15 kg per lato · 1 × 12,5 kg per lato')
-    expect(html).toContain('3 × 30 kg per lato')
-    expect(html).toContain('+2,5 kg')
-    expect(html).toContain('2,5 kg in più dell&#x27;ultima volta')
+    expect(html).toContain('2 × 30 kg totali · 1 × 25 kg totali')
+    expect(html).toContain('3 × 60 kg totali')
+    expect(html).toContain('+5 kg')
+    expect(html).toContain('5 kg in più dell&#x27;ultima volta')
     expect(html).toContain('stesso peso')
     expect(html).toContain('prima volta')
     expect(html).toContain('primo allenamento')
     expect(html).toContain('Note (facoltativo)')
   })
 
-  it('draws the glyph from the stored weight as the plates of one side, and leaves other equipment bare', () => {
+  it('draws the glyph with the plates of one side of the stored total, and leaves other equipment bare', () => {
     const row = { exerciseId: 'a', name: 'Curl', sets: 1, weightsKg: [15], weightKg: 15, deltaKg: null }
     const barbell = render(<SessionSummary {...props} rows={[{ ...row, equipment: 'barbell' }]} />)
-    expect(barbell.match(/class="plate /g)).toHaveLength(1)
+    expect(barbell.match(/class="plate /g)).toHaveLength(2)
     const dumbbell = render(<SessionSummary {...props} rows={[{ ...row, equipment: 'dumbbell' }]} />)
     expect(dumbbell).not.toContain('plate-glyph')
     expect(dumbbell).toContain('1 × 15 kg<')
