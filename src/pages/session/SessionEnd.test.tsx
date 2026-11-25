@@ -51,7 +51,7 @@ const loaded: LoadedSession = {
     exercises: [planExercise('e1', 'Panca piana'), planExercise('e2', 'Curl con bilanciere')],
     warmup: [],
   },
-  lastSets: new Map([['e2', [lastSet('e2', 12.5)]]]),
+  lastSets: new Map([['e2', [lastSet('e2', 25)]]]),
   lastDates: new Map([['e2', '2026-11-13']]),
   recentSets: new Map(),
 }
@@ -68,14 +68,14 @@ function render(draft: typeof base | null) {
   )
 }
 
-test('the summary lists today\'s weights and the change since the last workout of each exercise', () => {
+test('the summary lists today\'s stored totals and the change since the last workout of each exercise', () => {
   const draft = logged(logged(logged(base, 'a', 'e1', 1, 15), 'b', 'e2', 1, 15), 'c', 'e2', 2, 12.5)
   const html = render(draft)
   expect(html).toContain('Progressi di oggi')
-  expect(html).toContain('1 × 15 kg per lato')
-  expect(html).toContain('1 × 15 kg per lato · 1 × 12,5 kg per lato')
+  expect(html).toContain('1 × 30 kg totali')
+  expect(html).toContain('1 × 30 kg totali · 1 × 25 kg totali')
   expect(html).toContain('prima volta')
-  expect(html).toContain('+2,5 kg')
+  expect(html).toContain('+5 kg')
 })
 
 test('without an open session the summary says nothing is saved', () => {

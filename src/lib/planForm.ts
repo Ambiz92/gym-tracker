@@ -1,5 +1,6 @@
-import type { Exercise, PlanExercise, PlanSession, TargetUnit } from '../types/db'
-import { MAX_NAME_LENGTH, MAX_STARTING_WEIGHT_KG } from './exerciseForm'
+import type { Equipment, Exercise, PlanExercise, PlanSession, TargetUnit } from '../types/db'
+import { toDisplayKg, toStoredKg } from './barbellLoad'
+import { MAX_NAME_LENGTH, weightLimitError } from './exerciseForm'
 import { formatNumber } from './formatNumber'
 import { parseDecimal } from './validation'
 
@@ -71,7 +72,7 @@ export type PlanTarget = Pick<
   'target_sets' | 'target_reps' | 'target_unit' | 'suggested_weight_kg' | 'suggested_weight_max_kg'
 >
 
-/** Typed text of the target of one exercise: weights accept comma or dot decimals. */
+/** Typed text of the target of one exercise: weights accept comma or dot decimals and are one side on a barbell. */
 export interface TargetFormValues {
   sets: string
   reps: string
@@ -97,13 +98,14 @@ function weightText(kg: number | null): string {
   return kg === null ? '' : formatNumber(kg)
 }
 
-export function targetFormFrom(target: PlanTarget): TargetFormValues {
+/** The typed text of a stored target; a barbell weight is shown as one side. */
+export function targetFormFrom(target: PlanTarget, equipment: Equipment): TargetFormValues {
   return {
     sets: String(target.target_sets),
     reps: String(target.target_reps),
     unit: target.target_unit,
-    weight: weightText(target.suggested_weight_kg),
-    weightMax: weightText(target.suggested_weight_max_kg),
+    weight: weightText(toDisplayKg(equipment, target.suggested_weight_kg)),
+    weightMax: weightText(toDisplayKg(equipment, target.suggested_weight_max_kg)),
   }
 }
 
@@ -118,6 +120,9 @@ export function defaultTarget(exercise: Pick<Exercise, 'starting_weight_kg'>): P
   }
 }
 
+const stored = (equipment: Equipment, perSideKg: number | null): number | null =>
+  perSideKg === null ? null : toStoredKg(equipment, perSideKg)
+
 type Parsed<T> = { ok: true; value: T } | { ok: false; error: string }
 
 function parseCount(text: string, max: number, what: string): Parsed<number> {
@@ -127,21 +132,22 @@ function parseCount(text: string, max: number, what: string): Parsed<number> {
   return { ok: true, value }
 }
 
-function parseWeight(text: string): Parsed<number | null> {
+function parseWeight(text: string, equipment: Equipment): Parsed<number | null> {
   if (text.trim() === '') return { ok: true, value: null }
   const value = parseDecimal(text)
   if (value === null) return { ok: false, error: 'Inserisci un peso in kg, ad esempio 12,5.' }
-  if (value > MAX_STARTING_WEIGHT_KG) return { ok: false, error: 'Il peso massimo è 9999,99 kg.' }
+  const limit = weightLimitError(equipment, value)
+  if (limit) return { ok: false, error: limit }
   return { ok: true, value }
 }
 
-/** Checks the target form against the database limits and builds the columns to store. */
-export function validateTargetForm(values: TargetFormValues): TargetFormResult {
+/** Checks the target form against the database limits and builds the columns to store (a barbell weight doubled). */
+export function validateTargetForm(values: TargetFormValues, equipment: Equipment): TargetFormResult {
   const errors: TargetFormErrors = {}
   const sets = parseCount(values.sets, MAX_SETS, 'Serie')
   const reps = parseCount(values.reps, MAX_REPS, UNIT_LABELS[values.unit])
-  const weight = parseWeight(values.weight)
-  const weightMax = parseWeight(values.weightMax)
+  const weight = parseWeight(values.weight, equipment)
+  const weightMax = parseWeight(values.weightMax, equipment)
 
   if (!sets.ok) errors.sets = sets.error
   if (!reps.ok) errors.reps = reps.error
@@ -160,8 +166,8 @@ export function validateTargetForm(values: TargetFormValues): TargetFormResult {
       target_sets: sets.value,
       target_reps: reps.value,
       target_unit: values.unit,
-      suggested_weight_kg: weight.value,
-      suggested_weight_max_kg: weightMax.value,
+      suggested_weight_kg: stored(equipment, weight.value),
+      suggested_weight_max_kg: stored(equipment, weightMax.value),
     },
   }
 }

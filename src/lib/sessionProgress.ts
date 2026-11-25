@@ -1,5 +1,6 @@
 import type { Equipment, LastSet, PlanExercise, TargetUnit } from '../types/db'
 import { formatNumber } from './formatNumber'
+import { toDisplayKg, toStoredKg } from './barbellLoad'
 import { BAR_KG } from './plates'
 import type { PrefillRow } from './prefill'
 import { setsOf, type Draft, type DraftSet } from './sessionDraft'
@@ -39,24 +40,27 @@ export function completedExercises(draft: Draft | null, exercises: readonly Plan
 }
 
 interface StartingValuesInput {
-  /** Prefill row for the set about to be logged. */
+  /** Prefill row for the set about to be logged; its weight is stored kg. */
   row: PrefillRow
   /** The set of this exercise confirmed just before, today. */
   previous: DraftSet | undefined
-  /** Weight proposed by the progression rule, when last time was clean. */
+  /** Weight proposed by the progression rule, when last time was clean; stored kg. */
   suggestedKg: number | null
 }
 
 /**
- * Values the logger opens with. After a set today, weight and equipment carry over from it (the
- * user's decision of the day beats last workout's); the first set takes the progression
- * suggestion, then the prefill. Reps always follow the prefill.
+ * Values the logger opens with, weight as the logger shows it (one side on a barbell). After a set
+ * today, weight and equipment carry over from it (the user's decision of the day beats last
+ * workout's); the first set takes the progression suggestion, then the prefill, both stored kg.
+ * Reps always follow the prefill.
  */
 export function startingValues({ row, previous, suggestedKg }: StartingValuesInput): SetValues {
+  const equipment = previous?.equipment ?? row.equipment_used
+  const storedKg = suggestedKg ?? row.weight_kg
   return {
-    weight: previous?.weightKg ?? suggestedKg ?? row.weight_kg ?? 0,
+    weight: previous?.weightKg ?? (storedKg === null ? 0 : toDisplayKg(equipment, storedKg)),
     reps: row.reps,
-    equipment: previous?.equipment ?? row.equipment_used,
+    equipment,
   }
 }
 
@@ -64,7 +68,7 @@ export function startingValues({ row, previous, suggestedKg }: StartingValuesInp
 const weightText = (kg: number, equipment: Equipment): string =>
   `${formatNumber(kg)} kg${equipment === 'barbell' ? ' per lato' : ''}`
 
-/** "Ultima volta 12,5 kg × 10 · suggerito 15 ↑", or a first-time note; a barbell weight says "per lato". */
+/** "Ultima volta 12,5 kg × 10 · suggerito 15 ↑", or a first-time note; stored kg in, a barbell weight out as one side, "per lato". */
 export function lastTimeHint(
   lastSets: readonly LastSet[],
   setNumber: number,
@@ -77,14 +81,15 @@ export function lastTimeHint(
 
   const equipment = reference.equipment_used
   const barbell = equipment === 'barbell'
-  const last = `Ultima volta ${weightText(reference.weight_kg, equipment)} × ${reference.reps}${UNIT_SUFFIX[unit]}`
+  const last = `Ultima volta ${weightText(toDisplayKg(equipment, reference.weight_kg), equipment)} × ${reference.reps}${UNIT_SUFFIX[unit]}`
   if (suggestedKg === null) return last
-  return `${last} · suggerito ${barbell ? weightText(suggestedKg, equipment) : formatNumber(suggestedKg)} ↑`
+  const suggested = toDisplayKg(equipment, suggestedKg)
+  return `${last} · suggerito ${barbell ? weightText(suggested, equipment) : formatNumber(suggested)} ↑`
 }
 
 /** Under the giant number: "2 × 15 kg + sbarra 20 kg = 50 kg". Information only, the weight stays the one side. */
 export const barbellTotalNote = (sideKg: number): string =>
-  `2 × ${formatNumber(sideKg)} kg + sbarra ${BAR_KG} kg = ${formatNumber(2 * sideKg + BAR_KG)} kg`
+  `2 × ${formatNumber(sideKg)} kg + sbarra ${BAR_KG} kg = ${formatNumber(toStoredKg('barbell', sideKg) + BAR_KG)} kg`
 
 /** The set about to be saved, in caps for the save button: "62,5 KG × 8", "15 KG PER LATO × 8", "20 KG × 30 SEC", or just "30 SEC" without a weight. */
 export function setSummary({ weight, reps, equipment }: SetValues, unit: TargetUnit): string {
@@ -99,7 +104,7 @@ export function targetLabel(target: Pick<PlanExercise, 'target_sets' | 'target_r
   return `${target.target_sets}×${target.target_reps}${UNIT_SUFFIX[target.target_unit]}`
 }
 
-/** "3 × 15 kg" or "2 × 15 kg · 1 × 12,5 kg": the weights of the sets, runs of the same weight collapsed; "per lato" on a barbell. */
+/** "3 × 15 kg" or "2 × 30 kg totali · 1 × 25 kg totali": the stored weights of the sets, runs of the same weight collapsed. */
 export function loadLabel(weightsKg: readonly number[], equipment: Equipment): string {
   const runs: { weightKg: number; count: number }[] = []
   for (const weightKg of weightsKg) {
@@ -107,30 +112,33 @@ export function loadLabel(weightsKg: readonly number[], equipment: Equipment): s
     if (last?.weightKg === weightKg) last.count += 1
     else runs.push({ weightKg, count: 1 })
   }
-  return runs.map(({ weightKg, count }) => `${count} × ${weightText(weightKg, equipment)}`).join(' · ')
+  const unit = equipment === 'barbell' ? ' totali' : ''
+  return runs.map(({ weightKg, count }) => `${count} × ${formatNumber(weightKg)} kg${unit}`).join(' · ')
 }
 
 export interface SummaryRow {
   exerciseId: string
   name: string
   sets: number
-  /** Weight of every set today, in set order. */
+  /** Stored kg of every set today, in set order. */
   weightsKg: number[]
-  /** Heaviest weight of the session. */
+  /** Heaviest stored weight of the session. */
   weightKg: number
   equipment: Equipment
   /** Against the heaviest weight of the last workout; null without one. */
   deltaKg: number | null
 }
 
-/** One row per exercise with sets today, in plan order. */
+/** One row per exercise with sets today, in plan order. Weights are stored kg (a barbell's total), also in `lastSets`. */
 export function buildSummary(
   draft: Draft,
   exercises: readonly { exerciseId: string; name: string; lastSets: readonly LastSet[] }[],
 ): SummaryRow[] {
   return exercises.flatMap(({ exerciseId, name, lastSets }) => {
-    const sets = [...setsOf(draft, exerciseId)].sort((a, b) => a.setNumber - b.setNumber)
-    const heaviest = sets.reduce<DraftSet | undefined>((top, set) => (!top || set.weightKg > top.weightKg ? set : top), undefined)
+    const sets = [...setsOf(draft, exerciseId)]
+      .sort((a, b) => a.setNumber - b.setNumber)
+      .map((set) => ({ ...set, storedKg: toStoredKg(set.equipment, set.weightKg) }))
+    const heaviest = sets.reduce<(typeof sets)[number] | undefined>((top, set) => (!top || set.storedKg > top.storedKg ? set : top), undefined)
     if (!heaviest) return []
     const before = lastSets.length > 0 ? Math.max(...lastSets.map((set) => set.weight_kg)) : null
     return [
@@ -138,10 +146,10 @@ export function buildSummary(
         exerciseId,
         name,
         sets: sets.length,
-        weightsKg: sets.map((set) => set.weightKg),
-        weightKg: heaviest.weightKg,
+        weightsKg: sets.map((set) => set.storedKg),
+        weightKg: heaviest.storedKg,
         equipment: heaviest.equipment,
-        deltaKg: before === null ? null : Math.round((heaviest.weightKg - before) * 100) / 100,
+        deltaKg: before === null ? null : Math.round((heaviest.storedKg - before) * 100) / 100,
       },
     ]
   })

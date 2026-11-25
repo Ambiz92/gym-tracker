@@ -77,8 +77,8 @@ interface GridRowProps {
 }
 
 function GridRow({ row, index, count, busy, onSave, onMove, onRemove }: GridRowProps) {
-  const { name } = row.exercise
-  const stored = targetFormFrom(row)
+  const { name, equipment } = row.exercise
+  const stored = targetFormFrom(row, equipment)
   const [values, setValues] = useState(stored)
   const [errors, setErrors] = useState<TargetFormErrors>({})
   const edited = (Object.keys(stored) as (keyof TargetFormValues)[]).some((key) => values[key] !== stored[key])
@@ -89,13 +89,13 @@ function GridRow({ row, index, count, busy, onSave, onMove, onRemove }: GridRowP
 
   async function save() {
     if (busy || !edited) return
-    const result = validateTargetForm(values)
+    const result = validateTargetForm(values, equipment)
     if (!result.ok) {
       setErrors(result.errors)
       return
     }
     setErrors({})
-    if (await onSave(row.id, result.target)) setValues(targetFormFrom(result.target))
+    if (await onSave(row.id, result.target)) setValues(targetFormFrom(result.target, equipment))
   }
 
   function handleKeyDown(event: KeyboardEvent) {
@@ -107,6 +107,7 @@ function GridRow({ row, index, count, busy, onSave, onMove, onRemove }: GridRowP
   const reps = Number(values.reps)
   const warning = Number.isInteger(reps) ? repsWarning(reps, values.unit) : null
   const messages = Object.values(errors)
+  const weightUnit = equipment === 'barbell' ? 'kg per lato' : 'kg'
 
   return (
     <>
@@ -150,13 +151,13 @@ function GridRow({ row, index, count, busy, onSave, onMove, onRemove }: GridRowP
               ))}
             </select>
           </Cell>
-          <Cell label="Kg">
+          <Cell label={equipment === 'barbell' ? 'Kg per lato' : 'Kg'}>
             <span className="plan-grid__kg">
               <input
                 className="plan-grid__input"
                 inputMode="decimal"
                 autoComplete="off"
-                aria-label={`Peso suggerito di ${name} (kg)`}
+                aria-label={`Peso suggerito di ${name} (${weightUnit})`}
                 aria-invalid={errors.weight ? true : undefined}
                 value={values.weight}
                 onChange={(event) => update('weight', event.target.value)}
@@ -166,7 +167,7 @@ function GridRow({ row, index, count, busy, onSave, onMove, onRemove }: GridRowP
                 className="plan-grid__input"
                 inputMode="decimal"
                 autoComplete="off"
-                aria-label={`Peso suggerito massimo di ${name} (kg)`}
+                aria-label={`Peso suggerito massimo di ${name} (${weightUnit})`}
                 aria-invalid={errors.weightMax ? true : undefined}
                 value={values.weightMax}
                 onChange={(event) => update('weightMax', event.target.value)}

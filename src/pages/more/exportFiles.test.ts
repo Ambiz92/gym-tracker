@@ -44,6 +44,11 @@ describe('buildCsvFiles', () => {
     expect(row).toBe('e1,u1,"Rematore, bilanciere",barbell,,,"\'=HYPERLINK(""x"")",25,true,')
   })
 
+  test('exports the stored weights, the total of both sides for a barbell', () => {
+    const [, row] = files[TABLE_NAMES.indexOf('set_log')]!.content.split('\r\n')
+    expect(row).toBe('l1,u1,w1,e1,1,8,27.5,barbell,')
+  })
+
   test('an empty table still has its header', () => {
     const empty = { ...sample, plan: [] }
     const plan = buildCsvFiles(empty, NOW)[1]!

@@ -55,7 +55,7 @@ describe('an exercise row', () => {
     const html = render(<ExerciseEditRow {...rowProps} row={row('a')} />)
     expect(html).toMatch(/<input[^>]*aria-label="Serie di Esercizio e-a"[^>]*value="3"/)
     expect(html).toMatch(/<input[^>]*aria-label="Ripetizioni, secondi o metri di Esercizio e-a"[^>]*value="8"/)
-    expect(html).toMatch(/<input[^>]*aria-label="Peso suggerito di Esercizio e-a \(kg\)"[^>]*value="20"/)
+    expect(html).toMatch(/<input[^>]*aria-label="Peso suggerito di Esercizio e-a \(kg per lato\)"[^>]*value="10"/)
     expect(html).toContain('Bilanciere')
     expect(html).not.toMatch(/Modifica|Salva</)
   })
@@ -66,8 +66,21 @@ describe('an exercise row', () => {
     expect(html.match(/inputMode="decimal"/g)).toHaveLength(1)
   })
 
+  test('shows a barbell weight, stored as the total of both sides, as one side and says so', () => {
+    const html = render(<ExerciseEditRow {...rowProps} row={row('a', { suggested_weight_kg: 25 })} />)
+    expect(html).toContain('value="12,5"')
+    expect(html).toContain('>Kg per lato<')
+  })
+
+  test('shows a dumbbell weight as stored', () => {
+    const dumbbell = row('a', { suggested_weight_kg: 12.5, exercise: exercise('e-a', { equipment: 'dumbbell' }) })
+    const html = render(<ExerciseEditRow {...rowProps} row={dumbbell} />)
+    expect(html).toContain('value="12,5"')
+    expect(html).toContain('>Peso kg<')
+  })
+
   test('writes the weight with a comma and leaves it empty when there is none', () => {
-    expect(render(<ExerciseEditRow {...rowProps} row={row('a', { suggested_weight_kg: 12.5 })} />)).toContain('value="12,5"')
+    expect(render(<ExerciseEditRow {...rowProps} row={row('a', { suggested_weight_kg: 25 })} />)).toContain('value="12,5"')
     expect(render(<ExerciseEditRow {...rowProps} row={row('a', { suggested_weight_kg: null })} />)).toMatch(/aria-label="Peso suggerito[^>]*value=""/)
   })
 
@@ -81,10 +94,10 @@ describe('an exercise row', () => {
   })
 
   test('shows the top of the weight range only for a row that already has one', () => {
-    expect(render(<ExerciseEditRow {...rowProps} row={row('a')} />)).not.toContain('Fino a kg')
+    expect(render(<ExerciseEditRow {...rowProps} row={row('a')} />)).not.toContain('Fino a')
     const html = render(<ExerciseEditRow {...rowProps} row={row('a', { suggested_weight_max_kg: 25 })} />)
-    expect(html).toContain('Fino a kg')
-    expect(html).toContain('value="25"')
+    expect(html).toContain('Fino a, per lato')
+    expect(html).toContain('value="12,5"')
   })
 
   test('removes with one tap (the Undo toast is the safety net) and moves with buttons', () => {
@@ -228,6 +241,7 @@ describe('the add sheet', () => {
   test('shows the starting weight that a new row will get', () => {
     const html = ready([exercise('a', { starting_weight_kg: 12.5, equipment: 'dumbbell' })])
     expect(html).toContain('Manubri · 12,5 kg')
+    expect(ready([exercise('b', { starting_weight_kg: 25 })])).toContain('Bilanciere · 12,5 kg per lato')
   })
 
   test('announces a failed add as an alert and keeps the list', () => {
@@ -294,7 +308,7 @@ describe('the add sheet', () => {
     expect(html).toContain('value="Curl a martello"')
     expect(html).toMatch(/aria-pressed="true"[^>]*>Bilanciere</)
     expect(html).toMatch(/aria-pressed="false"[^>]*>Manubri</)
-    expect(html).toContain('Peso di partenza (kg, facoltativo)')
+    expect(html).toContain('Peso di partenza (kg per lato, facoltativo)')
     expect(html).toContain('Crea e aggiungi')
   })
 

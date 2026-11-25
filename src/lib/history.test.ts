@@ -1,18 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { buildHistory, totalWeightKg } from './history'
+import { buildHistory } from './history'
 
 const set = (date: string, weight_kg: number) => ({ date, weight_kg })
-
-describe('totalWeightKg', () => {
-  it('doubles a barbell weight, which is stored per side, without adding the bar', () => {
-    expect(totalWeightKg({ weight_kg: 52.5, equipment_used: 'barbell' })).toBe(105)
-  })
-
-  it('leaves dumbbell and other weights as logged', () => {
-    expect(totalWeightKg({ weight_kg: 22.5, equipment_used: 'dumbbell' })).toBe(22.5)
-    expect(totalWeightKg({ weight_kg: 40, equipment_used: 'other' })).toBe(40)
-  })
-})
 
 describe('buildHistory', () => {
   it('handles empty input', () => {

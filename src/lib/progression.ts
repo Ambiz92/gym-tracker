@@ -1,5 +1,7 @@
 import type { Equipment, LastSet, PlanExercise } from '../types/db'
+import { toDisplayKg, toStoredKg } from './barbellLoad'
 
+/** Per side: the weights compared here are stored totals, see incrementFor. */
 export const BARBELL_INCREMENT_KG = 2.5
 export const DUMBBELL_HEAVY_THRESHOLD_KG = 10
 export const DUMBBELL_HEAVY_INCREMENT_KG = 2
@@ -16,8 +18,9 @@ function formatKg(kg: number): string {
   return String(kg).replace('.', ',')
 }
 
+/** Increment in stored kg, the unit of `LastSet.weight_kg`: on a barbell the per-side step on both sides. */
 function incrementFor(equipment: Equipment, currentKg: number): number | null {
-  if (equipment === 'barbell') return BARBELL_INCREMENT_KG
+  if (equipment === 'barbell') return toStoredKg(equipment, BARBELL_INCREMENT_KG)
   if (equipment === 'dumbbell') {
     return currentKg >= DUMBBELL_HEAVY_THRESHOLD_KG ? DUMBBELL_HEAVY_INCREMENT_KG : DUMBBELL_LIGHT_INCREMENT_KG
   }
@@ -50,6 +53,7 @@ function sameLoad(a: Load, b: Load): boolean {
 /**
  * Suggests the next weight once the last `CLEAN_WORKOUTS_REQUIRED` workouts were all clean at the
  * same weight and equipment. `recentWorkouts` holds the sets of each workout, newest first.
+ * Weights in and out are stored kg (a barbell's total of both sides).
  */
 export function suggestNextWeight(
   recentWorkouts: readonly (readonly LastSet[])[],
@@ -79,8 +83,9 @@ export function suggestNextWeight(
     return { suggested: null, reason: 'Ancora un allenamento pulito a questo peso prima di aumentare' }
   }
 
+  const step = `${formatKg(toDisplayKg(load.equipment_used, increment))} kg${load.equipment_used === 'barbell' ? ' per lato' : ''}`
   return {
     suggested: Math.round((load.weight_kg + increment) * 100) / 100,
-    reason: `Ultimi ${CLEAN_WORKOUTS_REQUIRED} allenamenti puliti a questo peso: +${formatKg(increment)} kg`,
+    reason: `Ultimi ${CLEAN_WORKOUTS_REQUIRED} allenamenti puliti a questo peso: +${step}`,
   }
 }

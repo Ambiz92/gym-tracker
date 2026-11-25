@@ -21,7 +21,7 @@ describe('buildAthleteSessions', () => {
       ['w1', 'A', 'Buona giornata'],
       ['w2', 'B', null],
     ])
-    expect(sessions[0]!.exercises).toEqual([{ exerciseId: 'e1', name: 'Panca', sets: ['2×8 · 80 kg totali'] }])
+    expect(sessions[0]!.exercises).toEqual([{ exerciseId: 'e1', name: 'Panca', sets: ['2×8 · 40 kg totali'] }])
   })
 
   test('a blank note counts as no note', () => {
@@ -36,8 +36,8 @@ describe('buildAthleteExercises', () => {
       { exercise_id: 'e2', weight_kg: 60, equipment_used: 'barbell', date: '2026-11-20' },
     ])
     expect(rows.map((row) => [row.name, row.notes, row.lastWeightKg])).toEqual([
-      ['Squat', null, 120],
-      ['Panca', 'spalla delicata', 80],
+      ['Squat', null, 60],
+      ['Panca', 'spalla delicata', 40],
     ])
   })
 

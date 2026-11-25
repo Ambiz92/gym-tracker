@@ -66,6 +66,15 @@ test('ExerciseForm labels its fields, marks the name required and shows a submit
   expect(html).not.toContain('aria-busy')
 })
 
+test('ExerciseForm says the starting weight of a barbell is one side, and of a dumbbell one dumbbell', () => {
+  const html = (equipment: 'barbell' | 'dumbbell') =>
+    renderToStaticMarkup(
+      <ExerciseForm initial={{ ...emptyForm(), equipment }} busy={false} error={null} submitLabel="Salva" onSubmit={() => {}} />,
+    )
+  expect(html('barbell')).toContain('il peso di un solo lato, senza sbarra')
+  expect(html('dumbbell')).toContain('il peso di un solo manubrio')
+})
+
 test('ExerciseForm blocks the submit button while busy', () => {
   const html = renderToStaticMarkup(
     <ExerciseForm initial={emptyForm()} busy error={null} submitLabel="Salva" onSubmit={() => {}} />,

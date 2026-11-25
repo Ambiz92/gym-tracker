@@ -1,3 +1,4 @@
+import type { Equipment } from '../types/db'
 import { validateTargetForm, type PlanTarget, type TargetFormErrors, type TargetFormValues } from './planForm'
 
 export const AUTOSAVE_DELAY_MS = 400
@@ -15,6 +16,8 @@ export interface AutosaveSnapshot {
 }
 
 interface AutosaveDeps {
+  /** Of the exercise: a barbell weight is typed per side and saved as the total of both. */
+  equipment: Equipment
   save: (target: PlanTarget) => Promise<void>
   /** Called with each valid target as its save starts: the screen's copy of the plan follows what the user typed. */
   apply: (target: PlanTarget) => void
@@ -41,7 +44,7 @@ export class TargetAutosave {
     private readonly deps: AutosaveDeps,
   ) {
     this.snapshot = { values: initial, errors: {}, status: 'idle', failure: null }
-    const checked = validateTargetForm(initial)
+    const checked = validateTargetForm(initial, deps.equipment)
     this.stored = checked.ok ? targetKey(checked.target) : ''
   }
 
@@ -74,7 +77,7 @@ export class TargetAutosave {
   private run(reportErrors: boolean): void {
     this.clearTimer()
     if (this.saving) return
-    const checked = validateTargetForm(this.snapshot.values)
+    const checked = validateTargetForm(this.snapshot.values, this.deps.equipment)
     if (!checked.ok) {
       if (reportErrors) this.update({ errors: checked.errors })
       return
@@ -110,7 +113,7 @@ export class TargetAutosave {
   }
 
   private hasPendingEdit(): boolean {
-    const checked = validateTargetForm(this.snapshot.values)
+    const checked = validateTargetForm(this.snapshot.values, this.deps.equipment)
     return !checked.ok || targetKey(checked.target) !== this.stored
   }
 

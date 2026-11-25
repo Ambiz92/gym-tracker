@@ -45,11 +45,17 @@ describe('validateExerciseForm', () => {
   })
 
   it('accepts a dot weight and zero', () => {
-    expect(validateExerciseForm(form({ startingWeight: '8.25' }))).toMatchObject({
+    expect(validateExerciseForm(form({ equipment: 'dumbbell', startingWeight: '8.25' }))).toMatchObject({
       exercise: { starting_weight_kg: 8.25 },
     })
     expect(validateExerciseForm(form({ startingWeight: '0' }))).toMatchObject({
       exercise: { starting_weight_kg: 0 },
+    })
+  })
+
+  it('stores a barbell weight typed per side as the total of both sides', () => {
+    expect(validateExerciseForm(form({ equipment: 'barbell', startingWeight: '15' }))).toMatchObject({
+      exercise: { equipment: 'barbell', starting_weight_kg: 30 },
     })
   })
 
@@ -67,11 +73,16 @@ describe('validateExerciseForm', () => {
         errors: { startingWeight: 'Inserisci un peso in kg, ad esempio 12,5.' },
       })
     }
-    expect(validateExerciseForm(form({ startingWeight: '10000' }))).toMatchObject({
+    const dumbbell = (startingWeight: string) => form({ equipment: 'dumbbell', startingWeight })
+    expect(validateExerciseForm(dumbbell('10000'))).toMatchObject({
       ok: false,
       errors: { startingWeight: 'Il peso massimo è 9999,99 kg.' },
     })
-    expect(validateExerciseForm(form({ startingWeight: '9999,99' })).ok).toBe(true)
+    expect(validateExerciseForm(dumbbell('9999,99')).ok).toBe(true)
+    expect(validateExerciseForm(form({ startingWeight: '5000' }))).toMatchObject({
+      errors: { startingWeight: 'Il peso massimo è 4999,99 kg per lato.' },
+    })
+    expect(validateExerciseForm(form({ startingWeight: '4999,99' })).ok).toBe(true)
   })
 
   it('enforces the database length limits', () => {
@@ -122,14 +133,18 @@ describe('formFromExercise', () => {
   }
 
   it('fills the form with an Italian decimal and split steps', () => {
-    expect(formFromExercise(exercise)).toEqual({
+    expect(formFromExercise({ ...exercise, equipment: 'dumbbell' })).toEqual({
       name: 'Curl',
-      equipment: 'barbell',
+      equipment: 'dumbbell',
       muscles: '',
       steps: ['Su', 'Giù'],
       startingWeight: '12,5',
       notes: '',
     })
+  })
+
+  it('shows the stored total of a barbell as the weight of one side', () => {
+    expect(formFromExercise({ ...exercise, starting_weight_kg: 25 }).startingWeight).toBe('12,5')
   })
 
   it('maps a missing starting weight to an empty field', () => {
@@ -140,6 +155,9 @@ describe('formFromExercise', () => {
     expect(validateExerciseForm(formFromExercise(exercise))).toMatchObject({
       ok: true,
       exercise: { name: 'Curl', execution_steps: 'Su\nGiù', starting_weight_kg: 12.5 },
+    })
+    expect(validateExerciseForm(formFromExercise({ ...exercise, starting_weight_kg: 25 }))).toMatchObject({
+      exercise: { starting_weight_kg: 25 },
     })
   })
 })
