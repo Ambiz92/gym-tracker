@@ -4,12 +4,13 @@
 --  (a) plan_exercise suggested min/max and exercise.starting_weight_kg go back to the values 0010 saved in
 --      public.barbell_legacy_backup, only for rows still holding the halved value (a row edited since is left alone);
 --  (b) the 2026-11-19 barbell sets go back to the totals in public.barbell_setlog_backup;
---  (c) every other barbell set (all workout dates except 2026-11-19) was logged per side, so it is doubled; the
+--  (c) the barbell sets logged per side (workouts on per_side_extra_date and from 2026-11-20 on) are doubled; the
 --      2026-11-24 calf raise first set was logged as 15 by mistake and is corrected to 20 per side, final 40.
+--      Any other date is left untouched.
 -- Old values of (c) stay in public.barbell_total_backup (RLS on, no client grant); its existence makes a second run a no-op.
 -- Runs as the table owner, one transaction; no policy or grant on existing tables changes.
 --
--- Rollback: set_log from public.barbell_total_backup (old_weight_kg), then halve again what (a) and (b) restored;
+-- Rollback: set_log from public.barbell_total_backup (old_weight_kg, only rows still holding the doubled value), then halve again what (a) and (b) restored;
 -- see workspace/security/rehearsal-0012/ROLLBACK-0012.sql.
 begin;
 
@@ -17,6 +18,8 @@ do $migration$
 declare
   -- Name of the exercise whose 2026-11-24 first set (logged as 15) is corrected to 20 per side.
   calf_name_pattern constant text := '%calf%';
+  -- CONFIRM BEFORE APPLYING. The one workout date before 2026-11-19 whose barbell sets were logged per side.
+  per_side_extra_date constant date := date '2026-11-17';
   calf_id uuid;
   n_plan_exercise bigint;
   n_exercise bigint;
@@ -29,6 +32,15 @@ begin
   end if;
   if to_regclass('public.barbell_legacy_backup') is null or to_regclass('public.barbell_setlog_backup') is null then
     raise exception 'apply 0010 and 0011 first: their backup tables are missing';
+  end if;
+
+  if exists (select 1 from public.barbell_setlog_backup b
+              where not exists (select 1 from public.set_log s join public.workout w on w.id = s.workout_id
+                                 where s.id = b.id and s.equipment_used = 'barbell' and w.date = date '2026-11-19'))
+     or exists (select 1 from public.set_log s join public.workout w on w.id = s.workout_id
+                 where s.equipment_used = 'barbell' and w.date = date '2026-11-19'
+                   and not exists (select 1 from public.barbell_setlog_backup b where b.id = s.id)) then
+    raise exception 'the barbell sets of 2026-11-19 are not the ones in barbell_setlog_backup';
   end if;
 
   select (array_agg(s.id))[1] into calf_id
@@ -46,7 +58,7 @@ begin
     select s.id, s.weight_kg as old_weight_kg
     from public.set_log s
     join public.workout w on w.id = s.workout_id
-    where s.equipment_used = 'barbell' and w.date <> date '2026-11-19';
+    where s.equipment_used = 'barbell' and (w.date = per_side_extra_date or w.date >= date '2026-11-20');
   alter table public.barbell_total_backup add primary key (id);
   alter table public.barbell_total_backup enable row level security;
   revoke all on public.barbell_total_backup from public, anon, authenticated;
