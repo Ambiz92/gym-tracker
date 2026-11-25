@@ -68,7 +68,11 @@ export function ExerciseForm({ initial, busy, error, submitLabel, extraActions, 
         inputMode="decimal"
         enterKeyHint="next"
         autoComplete="off"
-        hint="Per i manubri, il peso di un solo manubrio. Ad esempio 12,5."
+        hint={
+          values.equipment === 'barbell'
+            ? 'Per il bilanciere, il peso di un solo lato, senza sbarra. Ad esempio 15.'
+            : 'Per i manubri, il peso di un solo manubrio. Ad esempio 12,5.'
+        }
         error={errors.startingWeight}
       />
       <Field
