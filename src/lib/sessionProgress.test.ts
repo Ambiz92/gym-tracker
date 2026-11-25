@@ -50,23 +50,33 @@ describe('exercise progress', () => {
 describe('startingValues', () => {
   const row = { set_number: 2, reps: 8, weight_kg: 12.5, equipment_used: 'barbell' as const }
 
-  it('takes the progression suggestion for the first set', () => {
-    expect(startingValues({ row, previous: undefined, suggestedKg: 15 })).toEqual({ weight: 15, reps: 8, equipment: 'barbell' })
+  it('takes the progression suggestion for the first set, as one side on a barbell', () => {
+    expect(startingValues({ row, previous: undefined, suggestedKg: 30 })).toEqual({ weight: 15, reps: 8, equipment: 'barbell' })
   })
 
-  it('opens a barbell on the last weight as it was saved, which is the load of one side', () => {
-    const lastTime = { set_number: 1, reps: 10, weight_kg: 15, equipment_used: 'barbell' as const }
+  it('opens a barbell on the stored total of last time, shown as one side', () => {
+    const lastTime = { set_number: 1, reps: 10, weight_kg: 30, equipment_used: 'barbell' as const }
     expect(startingValues({ row: lastTime, previous: undefined, suggestedKg: null })).toEqual({ weight: 15, reps: 10, equipment: 'barbell' })
   })
 
+  it('opens a dumbbell on the stored weight', () => {
+    const lastTime = { set_number: 1, reps: 10, weight_kg: 12.5, equipment_used: 'dumbbell' as const }
+    expect(startingValues({ row: lastTime, previous: undefined, suggestedKg: null }).weight).toBe(12.5)
+  })
+
   it('falls back to the prefill weight, then to zero', () => {
-    expect(startingValues({ row, previous: undefined, suggestedKg: null }).weight).toBe(12.5)
+    expect(startingValues({ row, previous: undefined, suggestedKg: null }).weight).toBe(6.25)
     expect(startingValues({ row: { ...row, weight_kg: null }, previous: undefined, suggestedKg: null }).weight).toBe(0)
   })
 
   it('carries weight and equipment over from the previous set of today', () => {
     const previous = { id: 'a', exerciseId: 'e1', setNumber: 1, reps: 6, weightKg: 17.5, equipment: 'dumbbell' as const, sync: 'pending' as const }
     expect(startingValues({ row, previous, suggestedKg: 15 })).toEqual({ weight: 17.5, reps: 8, equipment: 'dumbbell' })
+  })
+
+  it('takes the previous set of today as it is, because drafts hold the logger values', () => {
+    const previous = { id: 'a', exerciseId: 'e1', setNumber: 1, reps: 6, weightKg: 15, equipment: 'barbell' as const, sync: 'pending' as const }
+    expect(startingValues({ row, previous, suggestedKg: 40 }).weight).toBe(15)
   })
 })
 
@@ -92,11 +102,11 @@ describe('lastTimeHint', () => {
     expect(lastTimeHint([last(1, 20, 40)], 1, 'meters', null)).toBe('Ultima volta 40 kg × 20 m')
   })
 
-  it('says "per lato" on a barbell weight, which is the load of one side', () => {
-    expect(lastTimeHint([last(1, 10, 15, 'barbell')], 1, 'reps', 17.5)).toBe(
+  it('shows a stored barbell total as one side, saying "per lato"', () => {
+    expect(lastTimeHint([last(1, 10, 30, 'barbell')], 1, 'reps', 35)).toBe(
       'Ultima volta 15 kg per lato × 10 · suggerito 17,5 kg per lato ↑',
     )
-    expect(lastTimeHint([last(1, 10, 15, 'barbell')], 1, 'reps', null)).toBe('Ultima volta 15 kg per lato × 10')
+    expect(lastTimeHint([last(1, 10, 30, 'barbell')], 1, 'reps', null)).toBe('Ultima volta 15 kg per lato × 10')
   })
 
   it('says so on the first time', () => {
@@ -147,31 +157,37 @@ describe('loadLabel', () => {
     expect(loadLabel([20, 22.5, 20], 'dumbbell')).toBe('1 × 20 kg · 1 × 22,5 kg · 1 × 20 kg')
   })
 
-  it('says "per lato" on a barbell, whose weights are the load of one side', () => {
-    expect(loadLabel([15, 15, 12.5], 'barbell')).toBe('2 × 15 kg per lato · 1 × 12,5 kg per lato')
+  it('shows the stored total of a barbell, saying "totali"', () => {
+    expect(loadLabel([30, 30, 25], 'barbell')).toBe('2 × 30 kg totali · 1 × 25 kg totali')
   })
 })
 
 describe('buildSummary', () => {
   const exercises = [
-    { exerciseId: 'e1', name: 'Panca', lastSets: [last(1, 8, 15)] },
-    { exerciseId: 'e2', name: 'Rematore', lastSets: [last(1, 8, 25)] },
+    { exerciseId: 'e1', name: 'Panca', lastSets: [last(1, 8, 30, 'barbell')] },
+    { exerciseId: 'e2', name: 'Rematore', lastSets: [last(1, 8, 50, 'barbell')] },
     { exerciseId: 'e3', name: 'Curl', lastSets: [] },
     { exerciseId: 'e4', name: 'Squat', lastSets: [] },
   ]
   const draft = logged(logged(logged(logged(logged(base, 'a', 'e1', 1, 15), 'b', 'e2', 1, 25), 'c', 'e2', 2, 27.5), 'd', 'e3', 1, 10), 'e', 'e1', 2, 15)
 
-  it('keeps plan order, skips untouched exercises and compares the heaviest weights', () => {
+  it('keeps plan order, skips untouched exercises and compares the heaviest stored totals', () => {
     expect(buildSummary(draft, exercises).map(({ name, sets, weightKg, deltaKg }) => ({ name, sets, weightKg, deltaKg }))).toEqual([
-      { name: 'Panca', sets: 2, weightKg: 15, deltaKg: 0 },
-      { name: 'Rematore', sets: 2, weightKg: 27.5, deltaKg: 2.5 },
-      { name: 'Curl', sets: 1, weightKg: 10, deltaKg: null },
+      { name: 'Panca', sets: 2, weightKg: 30, deltaKg: 0 },
+      { name: 'Rematore', sets: 2, weightKg: 55, deltaKg: 5 },
+      { name: 'Curl', sets: 1, weightKg: 20, deltaKg: null },
     ])
   })
 
-  it('lists the weight of every set in set order', () => {
+  it('lists the stored weight of every set in set order', () => {
     const unordered = logged(logged(base, 'a', 'e2', 2, 27.5), 'b', 'e2', 1, 25)
-    expect(buildSummary(unordered, exercises)[0]?.weightsKg).toEqual([25, 27.5])
+    expect(buildSummary(unordered, exercises)[0]?.weightsKg).toEqual([50, 55])
+  })
+
+  it('leaves dumbbell sets as logged', () => {
+    const dumbbell = addSet(base, { id: 'a', exerciseId: 'e1', setNumber: 1, reps: 8, weightKg: 12.5, equipment: 'dumbbell' })
+    const [row] = buildSummary(dumbbell, [{ exerciseId: 'e1', name: 'Panca', lastSets: [last(1, 8, 10)] }])
+    expect(row).toMatchObject({ weightsKg: [12.5], weightKg: 12.5, deltaKg: 2.5 })
   })
 })
 

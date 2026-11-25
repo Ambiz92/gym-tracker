@@ -26,10 +26,16 @@ test('says so without written steps', () => {
   expect(renderToStaticMarkup(<ExerciseDetail {...base} />)).toContain('Nessuna indicazione scritta')
 })
 
-test('labels the weight column per side on a barbell, whose weights are the load of one side', () => {
-  const lastSets = [{ set_number: 1, reps: 10, weight_kg: 15, equipment_used: 'barbell' }] as const
+test('shows a stored barbell total as the weight of one side, under a "per lato" column', () => {
+  const lastSets = [{ set_number: 1, reps: 10, weight_kg: 30, equipment_used: 'barbell' }] as const
   const barbell = renderToStaticMarkup(<ExerciseDetail {...base} equipment="barbell" unit="reps" lastSets={lastSets} />)
   expect(barbell).toContain('<th scope="col">Kg per lato</th>')
   expect(barbell).toContain('<td>15</td>')
-  expect(renderToStaticMarkup(<ExerciseDetail {...base} unit="reps" lastSets={lastSets} />)).toContain('<th scope="col">Kg</th>')
+})
+
+test('leaves a dumbbell weight as stored, under a plain "Kg" column', () => {
+  const lastSets = [{ set_number: 1, reps: 10, weight_kg: 15, equipment_used: 'dumbbell' }] as const
+  const html = renderToStaticMarkup(<ExerciseDetail {...base} unit="reps" lastSets={lastSets} />)
+  expect(html).toContain('<th scope="col">Kg</th>')
+  expect(html).toContain('<td>15</td>')
 })

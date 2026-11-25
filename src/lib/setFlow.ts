@@ -7,7 +7,7 @@ export type Field = 'weight' | 'reps'
 
 /** What the user is about to confirm as the next set. */
 export interface SetValues {
-  /** Kg as shown and saved: one dumbbell, or the load of ONE side of a barbell. */
+  /** Kg as the logger shows them: one dumbbell, or the load of ONE side of a barbell (stored doubled, see barbellLoad). */
   weight: number
   reps: number
   equipment: Equipment

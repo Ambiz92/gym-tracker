@@ -3,7 +3,7 @@ import { MAX_KG_PER_SIDE } from './validation'
 
 /** Weight to scene geometry: plates, cable block and ruler scale. Generic slider math lives in slider.ts. */
 
-/** Barbell weights are the load of ONE side; the bar and the total are information only. */
+/** The logger works on the load of ONE side; the bar is information only, it enters no stored weight. */
 export const BAR_KG = 20
 
 export type PlateId = '25' | '20' | '15' | '10' | '5' | '2-5' | '1-25'

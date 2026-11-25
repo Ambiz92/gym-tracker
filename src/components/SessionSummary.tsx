@@ -1,3 +1,4 @@
+import { toDisplayKg } from '../lib/barbellLoad'
 import { formatNumber } from '../lib/formatNumber'
 import { loadLabel, type SummaryRow } from '../lib/sessionProgress'
 import { Field } from './Field'
@@ -55,7 +56,7 @@ export function SessionSummary({ sessionName, backTo, minutes, rows, notes, onNo
                   <span>
                     <span className="summary-row__name">{row.name}</span>
                     <small className="summary-row__load">
-                      {row.equipment === 'barbell' && <PlateGlyph weight={row.weightKg} />}
+                      {row.equipment === 'barbell' && <PlateGlyph weight={toDisplayKg(row.equipment, row.weightKg)} />}
                       {loadLabel(row.weightsKg, row.equipment)}
                     </small>
                   </span>
