@@ -7,7 +7,7 @@
 -- This halves, only for exercises with equipment = 'barbell':
 --  * plan_exercise.suggested_weight_kg and suggested_weight_max_kg;
 --  * exercise.starting_weight_kg.
--- Logged sets (set_log) are NOT touched: the workouts that exist were all logged per side (checked by Francesco).
+-- Logged sets (set_log) are NOT touched: the workouts that exist were all logged per side.
 -- They carry no date, so the defaults are halved unconditionally, once. Exercises in the exclusion list (total
 -- is not 2 x per side) are skipped.
 --
@@ -19,13 +19,13 @@
 -- the conversion is done, so a second run changes nothing. It has RLS on and no grant to any client role.
 -- Runs as the table owner (migration role), one transaction. No policy or grant on existing tables changes.
 --
--- Rollback: workspace/security/rehearsal-0010/ROLLBACK-0010.sql restores the old values from the backup.
+-- Rollback: restore the old values from public.barbell_legacy_backup.
 
 begin;
 
 do $migration$
 declare
-  -- CONFIRM BEFORE APPLYING. The same two lists must be in 0-PRECHECK, the rehearsal and APPLICA.
+  -- Both lists are empty: no exclusion was needed when this was applied.
   -- Exercises whose total is NOT 2 x per side (e.g. a calf raise on a machine): left untouched.
   excluded_exercise_ids uuid[] := array[]::uuid[];
   -- Same, by name (case-insensitive, every owner), e.g. array['calf raise'].
